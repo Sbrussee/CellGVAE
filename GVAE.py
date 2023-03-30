@@ -4,6 +4,7 @@ import seaborn as sns
 import networkx as nx
 import scanpy as sc
 import squidpy as sq
+import pandas as pd
 
 import torch
 import torch.nn as nn
@@ -56,6 +57,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 #Set training mode to true
 TRAINING = True
 
+#Make sure the plot layout works correctly
+plt.rcParams.update({'figure.autolayout':True, 'savefig.bbox':'tight'})
 
 class SAGEEncoder(nn.Module):
     """GraphSAGE-based encoder class
@@ -396,7 +399,6 @@ class VGCNEncoder(nn.Module):
                 x = F.dropout(x, p=0.2)
 
             x = self.hlayers(x, edge_index, weight)
-
             mu = self.conv_mu(x, edge_index, weight)
             sigma = torch.exp(self.conv_logstd(x, edge_index, weight))
         z = mu + sigma * self.N.sample(mu.shape)
@@ -650,6 +652,8 @@ def train_model(model, train_data, x, cell_id, weight):
     if args.variational:
         loss += (1 / train_data.num_nodes) * kl
     loss.backward()
+    torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
+                                  error_if_nonfinite=True)
     optimizer.step()
     return float(loss)
 
@@ -674,7 +678,8 @@ def apply_on_dataset(model, dataset, name, celltype_key):
         total_loss += loss
 
     dataset.obs['total_counts'] = np.sum(dataset.X, axis=1)
-
+    print(dataset.obs['total_counts'])
+    print(dataset.obs['total_counts'].shape)
     sc.pl.spatial(dataset, use_raw=False, spot_size=0.1, color=['total_counts'],
                   title="Spatial distribution of true expression",
                   save=f"true_expr_spatial_{name}_all_genes", size=1, show=False)
@@ -717,12 +722,25 @@ def apply_on_dataset(model, dataset, name, celltype_key):
 
     error_per_gene = {}
     for i, gene in enumerate(dataset.var_names):
-        error_per_gene['total'] = total_error_per_gene[i]
-        error_per_gene['average'] = average_error_per_gene[i]
-        error_per_gene['relative'] = relative_error_per_gene[i]
+        error_per_gene[gene] = [total_error_per_gene[i],
+                                average_error_per_gene[i],
+                                relative_error_per_gene[i]]
 
     with open(f"error_per_gene_{name}.pkl", 'wb') as f:
         pickle.dump(error_per_gene, f)
+
+    error_gene_df = pd.DataFrame.from_dict(error_per_gene, orient='index',
+                                 columns=['total', 'average', 'relative']).sort_values(by='relative', axis=0, ascending=False)
+    print(error_gene_df)
+    top10 = error_gene_df.iloc[:10]
+    print(top10)
+    print(top10.reset_index())
+    sns.barplot(data=top10.reset_index(), x='relative', y='index', label='Relative prediction error', orient='h')
+    plt.xlabel('Relative prediction error')
+    plt.ylabel('Gene')
+    plt.legend()
+    plt.savefig(f'figures/gene_error_{name}.png', dpi=300)
+    plt.close()
 
     error_per_cell_type = {}
     for cell_type in dataset.obs[celltype_key].unique():
@@ -731,11 +749,12 @@ def apply_on_dataset(model, dataset, name, celltype_key):
         error_per_cell_type[cell_type] = average_error
         print(f"{cell_type} : {average_error}")
 
-    sns.barplot(x=list(error_per_cell_type.keys()), y=list(error_per_cell_type.values()),
-                label='Prediction error')
+    error_celltype_df = pd.DataFrame.from_dict(error_per_cell_type, orient='index', columns=['average_error']).sort_values(by='average_error', axis=0, ascending=False)
+    sns.barplot(data=error_celltype_df.reset_index(), x='average_error', y='index',
+                label='Prediction error', orient='h')
     plt.legend()
-    plt.xlabel('Cell type')
-    plt.ylabel('Prediction error')
+    plt.xlabel('Prediction error')
+    plt.ylabel('Cell type')
     plt.savefig(f"figures/cell_type_error_{name}.png", dpi=300)
     plt.close()
     with open(f"error_per_celltype_{name}.pkl", 'wb') as f:
@@ -1091,4 +1110,4 @@ plot_latent(model, pyg_val, dataset, list(dataset.obs[celltype_key].unique()),
             device, name=f'{name}_{type}_{subtype}', number_of_cells=500, celltype_key=celltype_key)
 
 #Apply on dataset
-apply_on_dataset(model, dataset, 'test', celltype_key)
+apply_on_dataset(model, dataset, 'GVAE_GCN_SeqFISH', celltype_key)
