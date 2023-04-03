@@ -542,7 +542,7 @@ class Decoder(nn.Module):
         x_hat = self.linear1(z).relu()
         if TRAINING:
             x_hat = F.dropout(x_hat, p=0.2)
-            x_hat = self.hlayers(x_hat)
+        x_hat = self.hlayers(x_hat)
         return self.linear2(x_hat)
 
 class GAE(nn.Module):
@@ -792,18 +792,26 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph'):
 
     nx.set_node_attributes(G, {i: {"expr" : x, 'cell_type' : y} for i, x in enumerate(expr_mat) for i, y in enumerate(cell_types)})
 
+    #Remove edges between same-type nodes
     if args.remove_same_type_edges:
         G = remove_same_cell_type_edges(G)
 
+    #Remove edges between subtypes of the same cell type
     if args.remove_subtype_edges:
         G = remove_similar_celltype_edges(G)
 
+    #If any isolated nodes present, remove them:
+    G = remove_isolated_nodes(G)
+
+    #Calculate a graph statistics summary
     if args.graph_summary:
         graph_summary(G, name)
 
+    #Add cell type information to the networkx graph
     if args.add_cell_types == False:
         G = remove_node_attributes(G, 'cell_type')
 
+    #Calculate the weights for each edge
     for edge in G.edges():
         G[edge[0]][edge[1]]['weight'] = 1/G[edge[0]][edge[1]]['weight']
 
@@ -875,7 +883,7 @@ def variance_decomposition(dataset, celltype_key):
     gene_variance = 0
     known_total_variance = 0
     for i, cell in tqdm(enumerate(dataset.obs_names)):
-        celltype = dataset.obs['celltype_key'][i]
+        celltype = dataset.obs[celltype_key][i]
         for gene in dataset.var_names:
             intracell_variance += np.sqrt(dataset[[cell], [gene]].X - mean_per_celltype[gene][celltype])
             intercell_variance += np.sqrt(mean_per_celltype[gene][celltype] - mean_per_gene[gene])
@@ -1021,12 +1029,12 @@ if args.dataset == 'resolve':
     celltype_key = 'maxScores'
 
 elif args.dataset == 'merfish':
-    dataset = sq.datasets.merfish(path="./merfish")
+    dataset = sq.datasets.merfish()
     organism='mouse'
     name='mouse_merfish'
 
 elif args.dataset == 'seqfish':
-    dataset = sq.datasets.seqfish(path="./seqfish")
+    dataset = sq.datasets.seqfish()
     organism='mouse'
     name='mouse_seqfish'
     celltype_key = 'celltype_mapped_refined'
