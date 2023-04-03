@@ -14,7 +14,6 @@ import torch_geometric as pyg
 import torch_geometric.transforms as T
 from torch_geometric.nn import GCNConv, GATConv, SAGEConv
 from torch_geometric.nn.sequential import Sequential
-from torch_geometric.sampler import BaseSampler
 from scipy.sparse.csgraph import laplacian
 from scipy.sparse import csr_matrix
 import sklearn.manifold as manifold
@@ -825,6 +824,8 @@ def remove_same_cell_type_edges(G):
                 G.remove_edge(neighbor, node)
     return G
 
+def remove_isolated_nodes(G):
+    return G.remove_nodes_from(list(nx.isolates(G)))
 
 def remove_node_attributes(G, attr):
     for node in G.nodes():
@@ -845,6 +846,56 @@ def remove_similar_celltype_edges(G):
                 G.remove_edge(neighbor, node)
 
     return G
+
+def variance_decomposition(dataset, celltype_key):
+    """
+    Total variance consists of:
+    mean expression over all cells line{y},
+    and for each cell i with gene j the mean expression.
+
+    For the intracell-type variance we need to calculate
+    for each cell type the mean expression of gene j
+
+    For intercell variance we need to calculate the mean expression overall
+    for gene j over all cel types.
+    """
+
+    y_line = np.mean(dataset.X, axis=(0,1))
+    #y_ij equals dataset.X
+    mean_per_celltype = {}
+    mean_per_gene = {}
+    for gene in tqdm(dataset.var_names):
+        mean_per_celltype[gene] = {}
+        mean_per_gene[gene] = np.mean(dataset[:, [gene]].X)
+        for celltype in dataset.obs[celltype_key].unique():
+            mean_per_celltype[gene][celltype] = np.mean(dataset[dataset.obs[celltype_key] == celltype][:,gene].X)
+
+    intracell_variance = 0
+    intercell_variance = 0
+    gene_variance = 0
+    known_total_variance = 0
+    for i, cell in tqdm(enumerate(dataset.obs_names)):
+        celltype = dataset.obs['celltype_key'][i]
+        for gene in dataset.var_names:
+            intracell_variance += np.sqrt(dataset[[cell], [gene]].X - mean_per_celltype[gene][celltype])
+            intercell_variance += np.sqrt(mean_per_celltype[gene][celltype] - mean_per_gene[gene])
+            gene_variance += np.sqrt(mean_per_gene[gene] - y_line)
+            known_total_variance += np.sqrt(dataset[[cell], [gene]].X - y_line)
+    print('intracell_variance, intercell_variance, gene_variance')
+    print(intracell_variance)
+    print(intercell_variance)
+    print(gene_variance)
+    predicted_total_variance = intracell_variance + intercell_variance + gene_variance
+    print("Known vs. predicted")
+    print(known_total_variance)
+    print(predicted_total_variance)
+    assert known_total_variance == predicted_total_variance
+    return predicted_total_variance, intracell_variance, intercell_variance, gene_variance
+
+
+
+
+
 
 def normalize_adjacency_matrix(M):
     d = np.sum(M, axis=1)
@@ -993,6 +1044,8 @@ print(dataset)
 
 if not isinstance(dataset.X, np.ndarray):
     dataset.X = dataset.X.toarray()
+
+_, _, _, _ = variance_decomposition(dataset, celltype_key)
 
 val_i = random.sample(range(len(dataset.obs)), k=1000)
 val, train = dataset[val_i], dataset[[x for x in range(len(dataset.obs)) if x not in val_i]]
