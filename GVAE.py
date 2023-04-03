@@ -1029,12 +1029,12 @@ if args.dataset == 'resolve':
     celltype_key = 'maxScores'
 
 elif args.dataset == 'merfish':
-    dataset = sq.datasets.merfish()
+    dataset = sq.datasets.merfish("data/merfish")
     organism='mouse'
     name='mouse_merfish'
 
 elif args.dataset == 'seqfish':
-    dataset = sq.datasets.seqfish()
+    dataset = sq.datasets.seqfish("data/seqfish")
     organism='mouse'
     name='mouse_seqfish'
     celltype_key = 'celltype_mapped_refined'
