@@ -542,7 +542,7 @@ class Decoder(nn.Module):
         x_hat = self.linear1(z).relu()
         if TRAINING:
             x_hat = F.dropout(x_hat, p=0.2)
-        x_hat = self.hlayers(x_hat)
+            x_hat = self.hlayers(x_hat)
         return self.linear2(x_hat)
 
 class GAE(nn.Module):
@@ -1021,12 +1021,12 @@ if args.dataset == 'resolve':
     celltype_key = 'maxScores'
 
 elif args.dataset == 'merfish':
-    dataset = sq.datasets.merfish()
+    dataset = sq.datasets.merfish(path="./merfish")
     organism='mouse'
     name='mouse_merfish'
 
 elif args.dataset == 'seqfish':
-    dataset = sq.datasets.seqfish()
+    dataset = sq.datasets.seqfish(path="./seqfish")
     organism='mouse'
     name='mouse_seqfish'
     celltype_key = 'celltype_mapped_refined'
