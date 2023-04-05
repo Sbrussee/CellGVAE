@@ -1322,7 +1322,7 @@ else:
 
 #Plot results
 print("Plotting training plots...")
-plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_{name}_{type}_{subtype}.png')
+plot_loss_curve(loss_over_cells.cpu(), 'cells', f'loss_curve_cells_{name}_{type}_{subtype}.png')
 plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_{name}_{type}_{subtype}.png')
 print("Plotting latent space...")
 #Plot the latent test set
