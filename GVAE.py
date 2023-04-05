@@ -707,12 +707,12 @@ def train_model(model, train_data, x, cell_id, weight):
             z, kl = model.encoder(train_data.expr, train_data.edge_index,  weight)
         else:
             z = model.encoder(train_data.expr, train_data.edge_index,  weight)
-            real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:])))
-            fake = torch.sigmoid(discriminator(z[cell_id,:].detach()))
-            real_loss = -torch.log(real + 1e-15).mean()
-            fake_loss = -torch.log(1 - fake + 1e-15).mean()
-            discriminator_loss = real_loss + fake_loss
-            x_hat = model.discriminator(z[cell_id, :])
+        real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:])))
+        fake = torch.sigmoid(discriminator(z[cell_id,:].detach()))
+        real_loss = -torch.log(real + 1e-15).mean()
+        fake_loss = -torch.log(1 - fake + 1e-15).mean()
+        discriminator_loss = real_loss + fake_loss
+        x_hat = model.discriminator(z[cell_id, :])
 
     elif args.variational:
         x_hat, kl = model(train_data.expr, train_data.edge_index, cell_id, weight)
@@ -848,15 +848,13 @@ def validate(model, val_data, x, cell_id, weight):
             z, kl = model.encoder(val_data.expr, val_data.edge_index,  weight)
         else:
             z = model.encoder(val_data.expr, val_data.edge_index,  weight)
-
-        for i in range(5):
-            discriminator.eval()
-            real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:])))
-            fake = torch.sigmoid(discriminator(z[cell_id,:].detach()))
-            real_loss = -torch.log(real + 1e-15).mean()
-            fake_loss = -torch.log(1 - fake + 1e-15).mean()
-            discriminator_loss = real_loss + fake_loss
-            x_hat = model.discriminator(z[cell_id, :])
+        discriminator.eval()
+        real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:])))
+        fake = torch.sigmoid(discriminator(z[cell_id,:].detach()))
+        real_loss = -torch.log(real + 1e-15).mean()
+        fake_loss = -torch.log(1 - fake + 1e-15).mean()
+        discriminator_loss = real_loss + fake_loss
+        x_hat = model.discriminator(z[cell_id, :])
 
     elif args.variational:
         x_hat, kl = model(val_data.expr, val_data.edge_index, cell_id, weight)
