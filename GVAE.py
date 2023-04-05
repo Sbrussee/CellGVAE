@@ -876,13 +876,13 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph'):
         print("Normalizing adjacency matrix...")
         N, L = normalize_adjacency_matrix(adj_mat)
         if args.normalization == 'Normal':
-            G = nx.from_numpy_matrix(N.toarray())
+            G = nx.from_numpy_array(N.toarray())
         else:
-            G = nx.from_numpy_matrix(L.toarray())
+            G = nx.from_numpy_array(L.toarray())
 
     else:
         #Make graph from adjanceny matrix
-        G = nx.from_numpy_matrix(adj_mat.toarray())
+        G = nx.from_numpy_array(adj_mat.toarray())
 
     print("Setting node attributes")
     nx.set_node_attributes(G, {i: {"expr" : x, 'cell_type' : y} for i, x in enumerate(expr_mat) for i, y in enumerate(cell_types)})
