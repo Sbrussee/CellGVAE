@@ -1252,12 +1252,12 @@ for epoch in range(1, args.epochs+1):
     print(cells)
     batch = pyg_graph.clone()
     if args.prediction_mode == 'spatial':
-        batch.expr.fill_(0.0)
+        batch.expr.fill_(0)
         assert batch.expr.sum() < 0.1
     else:
-        batch.expr[cells, :].fill_(0.0)
-        print(batch.expr[cells, :])
-        assert batch.expr[cells, :].sum() < 0.1
+        batch.expr[cells].fill_(0)
+        print(batch.expr[cells])
+        assert batch.expr[cells].sum() < 0.1
     for cell in cells:
         loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
         total_loss_over_cells += loss
@@ -1276,11 +1276,11 @@ for epoch in range(1, args.epochs+1):
     model.eval()
     val_batch = pyg_graph.clone()
     if args.prediction_mode == 'spatial':
-        val_batch.expr.fill_(0.0)
+        val_batch.expr.fill_(0)
         assert val_batch.expr.sum() < 0.1
     else:
-        val_batch.expr[val_cells, :].fill_(0.0)
-        assert val_batch.expr[val_cells, :].sum() < 0.1
+        val_batch.expr[val_cells].fill_(0)
+        assert val_batch.expr[val_cells].sum() < 0.1
     for cell in cells:
         val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
         total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
