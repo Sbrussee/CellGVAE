@@ -42,7 +42,7 @@ arg_parser.add_argument('-d', "--dataset", help="Which dataset to use", required
 arg_parser.add_argument('-e', "--epochs", type=int, help="How many training epochs to use", default=1)
 arg_parser.add_argument('-c', "--cells", type=int, default=-1,  help="How many cells to sample per epoch.")
 arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE', 'Linear'], help="Model type to use (GCN, GAT, SAGE, Linear)", default='GCN')
-arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial', 'linear'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression information only")
+arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression information only")
 arg_parser.add_argument('-w', '--weight', action='store_true', help="Whether to use distance-weighted edges")
 arg_parser.add_argument('-n', '--normalization', choices=["Laplacian", "Normal", "None"], default="None", help="Adjanceny matrix normalization strategy (Laplacian, Normal, None)")
 arg_parser.add_argument('-ct', '--add_cell_types', action='store_true', help='Whether to include cell type information')
@@ -704,9 +704,21 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 def train_model(model, train_data, x, cell_id, weight):
     if args.adversarial:
         if args.variational:
-            z, kl = model.encoder(train_data.expr, train_data.edge_index,  weight)
+            if args.type == 'GCN' or args.type == 'GAT':
+                z, kl = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device),
+                                  pyg_graph.weight.to(device))
+            elif args.type == 'SAGE':
+                z, kl = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device))
+            else:
+                z, kl = model.encoder(pyg_graph.expr.to(device))
         else:
-            z = model.encoder(train_data.expr, train_data.edge_index,  weight)
+            if args.type == 'GCN'or args.type == 'GAT':
+                z = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device),
+                                          pyg_graph.weight.to(device))
+            elif args.type == 'SAGE':
+                z = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device))
+            else:
+                z = model.encoder(pyg_graph.expr.to(device))
         real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:])))
         fake = torch.sigmoid(discriminator(z[cell_id,:].detach()))
         real_loss = -torch.log(real + 1e-15).mean()
