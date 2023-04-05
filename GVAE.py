@@ -707,18 +707,12 @@ def train_model(model, train_data, x, cell_id, weight):
             z, kl = model.encoder(train_data.expr, train_data.edge_index,  weight)
         else:
             z = model.encoder(train_data.expr, train_data.edge_index,  weight)
-
-        for i in range(5):
-            discriminator.train()
-            discriminator_optimizer.zero_grad()
             real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:])))
             fake = torch.sigmoid(discriminator(z[cell_id,:].detach()))
             real_loss = -torch.log(real + 1e-15).mean()
             fake_loss = -torch.log(1 - fake + 1e-15).mean()
             discriminator_loss = real_loss + fake_loss
             x_hat = model.discriminator(z[cell_id, :])
-            discriminator_loss.backward(retain_graph=True)
-            discriminator_optimizer.step()
 
     elif args.variational:
         x_hat, kl = model(train_data.expr, train_data.edge_index, cell_id, weight)
@@ -732,7 +726,10 @@ def train_model(model, train_data, x, cell_id, weight):
     if args.adversarial:
         loss += model.reg_loss(z[cell_id])
 
-    return loss
+    if not args.adverarial:
+        return loss
+    else:
+        return loss, discriminator_loss
 
 @torch.no_grad()
 def apply_on_dataset(model, dataset, name, celltype_key):
@@ -1251,6 +1248,10 @@ print("Training the model...")
 for epoch in range(1, args.epochs+1):
     model.train()
     optimizer.zero_grad()
+    if args.adversarial:
+        discriminator.train()
+        discriminator_optimizer.zero_grad()
+        total_disc_loss = 0
     total_loss_over_cells = 0
     cells = random.sample(train_i, k=k)
     batch = pyg_graph.clone()
@@ -1261,9 +1262,13 @@ for epoch in range(1, args.epochs+1):
         batch.expr.index_fill_(0, torch.tensor(cells).to(device), 0.0)
         assert batch.expr[cells, :].sum() < 0.1
     for cell in cells:
-        loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
+        if args.adversarial:
+            loss, discriminator_loss = rain_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
+        else:
+            loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
         total_loss_over_cells += loss
-
+        if args.adversarial:
+            total_disc_loss += discriminator_loss
     cells_seen += len(cells)
     print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
 
@@ -1271,6 +1276,10 @@ for epoch in range(1, args.epochs+1):
     torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
                                       error_if_nonfinite=True)
     optimizer.step()
+
+    if args.adversarial:
+        discriminator_loss.backward(retain_graph=True)
+        discriminator_optimizer.step()
 
     loss_over_cells[cells_seen] = total_loss_over_cells.detach().cpu()/len(cells)
     total_val_loss = 0
