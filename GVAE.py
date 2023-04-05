@@ -1268,7 +1268,7 @@ for epoch in range(1, args.epochs+1):
     torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
                                       error_if_nonfinite=True)
     optimizer.step()
-    
+
     loss_over_cells[cells_seen] = total_loss_over_cells.detach().cpu()/len(cells)
     total_val_loss = 0
     total_r2 = 0
@@ -1288,7 +1288,7 @@ for epoch in range(1, args.epochs+1):
 
 
     train_loss_over_epochs[epoch] = total_loss_over_cells.cpu()/len(cells)
-    val_loss_over_epochs[epoch] = total_val_loss/500
+    val_loss_over_epochs[epoch] = total_val_loss.detach().cpu()/500
     print(f"Epoch {epoch}, average training loss:{train_loss_over_epochs[epoch]}, average validation loss:{val_loss_over_epochs[epoch]}")
     print(f"Validation R2: {total_r2/500}")
 
