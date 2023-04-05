@@ -1288,7 +1288,7 @@ for epoch in range(1, args.epochs+1):
 
 
     train_loss_over_epochs[epoch] = total_loss_over_cells.cpu()/len(cells)
-    val_loss_over_epochs[epoch] = total_val_loss.cpu()/500
+    val_loss_over_epochs[epoch] = total_val_loss/500
     print(f"Epoch {epoch}, average training loss:{train_loss_over_epochs[epoch]}, average validation loss:{val_loss_over_epochs[epoch]}")
     print(f"Validation R2: {total_r2/500}")
 
