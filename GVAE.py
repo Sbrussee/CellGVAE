@@ -57,6 +57,7 @@ arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whe
 args = arg_parser.parse_args()
 #Define device based on cuda availability
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"Found device: {device}")
 #Set training mode to true
 TRAINING = True
 
@@ -1247,18 +1248,20 @@ for epoch in range(1, args.epochs+1):
     model.train()
     optimizer.zero_grad()
     total_loss_over_cells = 0
-    for i, cell in tqdm(enumerate(random.sample(train_i, k=k))):
-        batch = pyg_graph.clone()
-        if args.prediction_mode == 'spatial':
-            batch.expr.fill_(0.0)
-            assert batch.expr.sum() == 0
-        batch.expr[cell, :].fill_(0.0)
-        assert batch.expr[cell, :].sum() == 0
+    cells = random.sample(train_i, k=k):
+    batch = pyg_graph.clone()
+    if args.prediction_mode == 'spatial':
+        batch.expr.fill_(0.0)
+        assert batch.expr.sum() == 0
+    else:
+        batch.expr[cells, :].fill_(0.0)
+        assert batch.expr[cells, :].sum() == 0
+    for cell in cells:
         loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
         total_loss_over_cells += loss
-        if i % 50 == 0 and i != 0:
-            print(f"Cells seen: {i}, average MSE:{total_loss_over_cells/i}")
-            loss_over_cells[i] = total_loss_over_cells/i
+    if i % 50 == 0 and i != 0:
+        print(f"Cells seen: {i}, average MSE:{total_loss_over_cells/i}")
+        loss_over_cells[i] = total_loss_over_cells/i
 
     total_loss_over_cells.backward()
     torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
@@ -1267,19 +1270,22 @@ for epoch in range(1, args.epochs+1):
 
     total_val_loss = 0
     total_r2 = 0
-    for cell in tqdm(random.sample(val_i, k=1000)):
-        val_batch = pyg_graph.clone()
-        if args.prediction_mode == 'spatial':
-            val_batch.expr.fill_(0.0)
-            assert val_batch.expr.sum() == 0
-        val_batch.expr[cell, :].fill_(0.0)
-        assert val_batch.expr[cell, :].sum() == 0
+    val_cells = random.sample(val_i, k=1000)
+    model.eval()
+    val_batch = pyg_graph.clone()
+    if args.prediction_mode == 'spatial':
+        val_batch.expr.fill_(0.0)
+        assert val_batch.expr.sum() == 0
+    else:
+        val_batch.expr[val_cells, :].fill_(0.0)
+        assert val_batch.expr[val_cells, :].sum() == 0
+    for cell in cells:
         val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
         total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
         total_val_loss += val_loss
 
 
-    train_loss_over_epochs[epoch] = total_loss_over_cells/k
+    train_loss_over_epochs[epoch] = total_loss_over_cells/len(cells)
     val_loss_over_epochs[epoch] = total_val_loss/1000
     print(f"Epoch {epoch}, average training loss:{train_loss_over_epochs[epoch]}, average validation loss:{val_loss_over_epochs[epoch]}")
     print(f"Validation R2: {total_r2/1000}")
