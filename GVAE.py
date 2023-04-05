@@ -48,7 +48,7 @@ arg_parser.add_argument('-n', '--normalization', choices=["Laplacian", "Normal",
 arg_parser.add_argument('-ct', '--add_cell_types', action='store_true', help='Whether to include cell type information')
 arg_parser.add_argument('-rm', '--remove_same_type_edges', action='store_true', help="Whether to remove edges between same cell types")
 arg_parser.add_argument('-rms', '--remove_subtype_edges', action='store_true', help='Whether to remove edges between subtypes of the same cell')
-arg_parser.add_argument('-aggr', '--aggregation_method', choices=['max', 'mean', 'lstm'], help='Which aggregation method to use for GraphSAGE')
+arg_parser.add_argument('-aggr', '--aggregation_method', choices=['max', 'mean'], help='Which aggregation method to use for GraphSAGE')
 arg_parser.add_argument('-th', '--threshold', type=float, help='Distance threshold to use when constructing graph. If neighbors is specified, threshold is ignored.', default=-1)
 arg_parser.add_argument('-ng', '--neighbors', type=int, help='Number of neighbors per cell to select when constructing graph. If threshold is specified, neighbors are ignored.', default=-1)
 arg_parser.add_argument('-ls', '--latent', type=int, help='Size of the latent space to use', default=4)
