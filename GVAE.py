@@ -867,6 +867,10 @@ def validate(model, val_data, x, cell_id, weight):
 
     if args.variational:
         loss += (1 / val_data.num_nodes) * kl
+
+    if args.adversarial:
+        loss += model.reg_loss(z[cell_id])
+
     return float(loss), x_hat
 
 def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph'):
