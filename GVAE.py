@@ -1263,7 +1263,7 @@ for epoch in range(1, args.epochs+1):
         assert batch.expr[cells, :].sum() < 0.1
     for cell in cells:
         if args.adversarial:
-            loss, discriminator_loss = rain_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
+            loss, discriminator_loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
         else:
             loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
         total_loss_over_cells += loss
