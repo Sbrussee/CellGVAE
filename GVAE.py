@@ -735,6 +735,7 @@ def train_model(model, train_data, x, cell_id, weight):
 def apply_on_dataset(model, dataset, name, celltype_key):
     dataset = construct_graph(dataset)
     G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name)
+    G = nx.convert_node_labels_to_integers(G)
     pyG_graph = pyg.utils.from_networkx(G)
     pyG_graph.to(device)
 
