@@ -13,9 +13,11 @@ import torch.distributions
 import torch_geometric as pyg
 import torch_geometric.transforms as T
 from torch_geometric.nn import GCNConv, GATConv, SAGEConv
+from torch_geometric.nn.models.autoencoder import ARGVA, ARGA
 from torch_geometric.nn.sequential import Sequential
 from scipy.sparse.csgraph import laplacian
-from scipy.sparse import csr_matrix
+import scipy.sparse as sp
+from sklearn.metrics import r2_score
 import sklearn.manifold as manifold
 import umap.umap_ as umap
 
@@ -35,10 +37,12 @@ from tqdm import tqdm
 #Build argument parser
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('-v', "--variational", action='store_true', help="Whether to use a variational AE model", default=False)
+arg_parser.add_argument('-a', "--adversarial", action="store_true", help="Whether to use a adversarial AE model", default=False)
 arg_parser.add_argument('-d', "--dataset", help="Which dataset to use", required=True)
 arg_parser.add_argument('-e', "--epochs", type=int, help="How many training epochs to use", default=1)
 arg_parser.add_argument('-c', "--cells", type=int, default=-1,  help="How many cells to sample per epoch.")
 arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE', 'Linear'], help="Model type to use (GCN, GAT, SAGE, Linear)", default='GCN')
+arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial', 'linear'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression information only")
 arg_parser.add_argument('-w', '--weight', action='store_true', help="Whether to use distance-weighted edges")
 arg_parser.add_argument('-n', '--normalization', choices=["Laplacian", "Normal", "None"], default="None", help="Adjanceny matrix normalization strategy (Laplacian, Normal, None)")
 arg_parser.add_argument('-ct', '--add_cell_types', action='store_true', help='Whether to include cell type information')
@@ -103,40 +107,35 @@ class SAGEEncoder(nn.Module):
 
         """
         super().__init__()
-
-        self.conv1 = SAGEConv(input_size, hidden_layers[0], aggr=aggregation_method)
-        hlayers = []
-        for i in range(len(hidden_layers)-1):
-            hlayers.append((SAGEConv(hidden_layers[i], hidden_layers[i+1], aggr=aggregation_method), 'x, edge_index -> x'))
-            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
-        self.hlayers = Sequential('x, edge_index', hlayers)
-        self.conv2 = SAGEConv(hidden_layers[-1], latent_size, aggr=aggregation_method)
-        self.directconv = SAGEConv(input_size, latent_size, aggr=aggregation_method)
-
         self.num_hidden_layers = len(hidden_layers)
+        hlayers = []
+        if self.num_hidden_layers  == 0:
+            hlayers.append((SAGEConv(input_size, latent_size, aggr=aggregation_method), 'x, edge_index -> x'))
+            hlayers.append((nn.ReLU(), 'x -> x'))
+            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+        elif self.num_hidden_layers == 1:
+            hlayers.append((SAGEConv(input_size, hidden_layers[0], aggr=aggregation_method), 'x, edge_index -> x'))
+            hlayers.append((nn.ReLU(), 'x -> x'))
+            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+            hlayers.append((SAGEConv(hidden_layers[0], latent_size, aggr=aggregation_method), 'x, edge_index -> x'))
+            hlayers.append((nn.ReLU(), 'x -> x'))
+            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+        else:
+            hlayers.append((SAGEConv(input_size, hidden_layers[0], aggr=aggregation_method), 'x, edge_index -> x'))
+            hlayers.append((nn.ReLU(), 'x -> x'))
+            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+            for i in range(len(hidden_layers)-1):
+                hlayers.append((SAGEConv(hidden_layers[i], hidden_layers[i+1], aggr=aggregation_method), 'x, edge_index -> x'))
+                hlayers.append((nn.ReLU(), 'x -> x'))
+                hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+            hlayers.append((SAGEConv(hidden_layers[-1], latent_size, aggr=aggregation_method), 'x, edge_index -> x'))
+            hlayers.append((nn.ReLU(), 'x -> x'))
+            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+        print(hlayers)
+        self.hlayers = Sequential('x, edge_index', hlayers)
 
     def forward(self, x, edge_index):
-        """Feeds input x constrained by connectivity captured in edge_index through
-        the GraphSAGE-based encoder layers. Also applies dropout if training mode
-        is on.
-
-        Parameters:
-            x: tensor
-                Tensor containing the gene expression matrix of the dataset
-            edge_index: Tensor
-                Pytorch geometric edge_index tensor which contains the connectivity
-                of the cells in the input graph
-
-        Returns:
-            Tensor with output of the second convolutional layer (latent space)
-        """
-        if len(hidden_layers) < 1:
-            return self.directconv(x, edge_index)
-        x = self.conv1(x, edge_index).relu()
-        if TRAINING:
-            F.dropout(x, p=0.2)
-        x = self.hlayers(x, edge_index)
-        return self.conv2(x, edge_index)
+        return self.hlayers(x, edge_index)
 
 class VSAGEEncoder(nn.Module):
     """GraphSAGE-based variational encoder class
@@ -176,54 +175,38 @@ class VSAGEEncoder(nn.Module):
 
         """
         super().__init__()
-        self.conv1 = SAGEConv(input_size, hidden_layers[0], aggr=aggregation_method)
-        hlayers = []
-        for i in range(len(hidden_layers)-1):
-            hlayers.append((SAGEConv(hidden_layers[i], hidden_layers[i+1], aggr=aggregation_method), 'x, edge_index -> x'))
-            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
-        self.hlayers = Sequential('x, edge_index', hlayers)
-        self.conv_mu = SAGEConv(hidden_layers[-1], latent_size, aggr=aggregation_method)
-        self.conv_logstd = SAGEConv(hidden_layers[-1], latent_size, aggr=aggregation_method)
-        self.directconv_mu = SAGEConv(input_size, latent_size, aggr=aggregation_method)
-        self.directconv_logstd = SAGEConv(input_size, latent_size, aggr=aggregation_method)
+        self.num_hidden_layers = len(hidden_layers)
+        self.hlayers = []
+        if self.num_hidden_layers == 0:
+            self.conv_mu = SAGEConv(input_size, latent_size, aggr=aggregation_method)
+            self.conv_logstd = SAGEConv(input_size, latent_size, aggr=aggregation_method)
+        elif self.num_hidden_layers == 1:
+            self.hlayers.append((SAGEConv(input_size, hidden_layers[0], aggr=aggregation_method), 'x, edge_index -> x'))
+            self.hlayers.append((nn.ReLU(), 'x -> x'))
+            self.hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+            self.conv_mu = SAGEConv(hidden_layers[0], latent_size, aggr=aggregation_method)
+            self.conv_logstd = SAGEConv(hidden_layers[0], latent_size, aggr=aggregation_method)
+        else:
+            self.hlayers.append((SAGEConv(input_size, hidden_layers[0], aggr=aggregation_method), 'x, edge_index -> x'))
+            self.hlayers.append((nn.ReLU(), 'x -> x'))
+            self.hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+            for i in range(len(hidden_layers)-1):
+                self.hlayers.append((SAGEConv(hidden_layers[i], hidden_layers[i+1], aggr=aggregation_method), 'x, edge_index -> x'))
+                self.hlayers.append(nn.ReLU())
+                self.hlayers.append(nn.Dropout(p=0.2))
+            self.conv_mu = SAGEConv(hidden_layers[-1], latent_size, aggr=aggregation_method)
+            self.conv_logstd = SAGEConv(hidden_layers[-1], latent_size, aggr=aggregation_method)
+
+        self.hlayers = Sequential('x, edge_index', self.hlayers)
         self.N = torch.distributions.Normal(0, 1)
         self.N.loc = self.N.loc.cuda()
         self.N.scale = self.N.scale.cuda()
 
-        self.num_hidden_layers = len(hidden_layers)
-
     def forward(self, x, edge_index):
-        """Feeds input x constrained by connectivity captured in edge_index through
-        the GraphSAGE-based encoder layers. Also applies dropout if training mode
-        is on. Latent space vector z is sampled based from a normal distribution
-        along with the mu and sigma outputted by the convolutional layers for the mu and std.
-        Additionally, the KL-divergence is calculated using the sampled sigma and mu.
-
-        Parameters:
-            x: tensor
-                Tensor containing the gene expression matrix of the dataset
-            edge_index: Tensor
-                Pytorch geometric edge_index tensor which contains the connectivity
-                of the cells in the input graph
-
-        Returns:
-            z: tensor
-                Latent space vector sampled
-            kl: tensor
-                KL-divergence calculated using the sampled sigma and mu
-        """
-        if self.num_hidden_layers < 1:
-            mu = self.directconv_mu(x, edge_index)
-            sigma = torch.exp(self.directconv_logstd(x, edge_index))
-        else:
-            x = self.conv1(x, edge_index).relu()
-            if TRAINING:
-                F.dropout(x, p=0.2)
-
+        if self.num_hidden_layers > 0:
             x = self.hlayers(x, edge_index)
-
-            mu = self.conv_mu(x, edge_index)
-            sigma = torch.exp(self.conv_logstd(x, edge_index))
+        mu = self.conv_mu(x, edge_index)
+        sigma = torch.exp(self.conv_logstd(x, edge_index))
         z = mu + sigma * self.N.sample(mu.shape)
         kl  = (sigma**2 + mu**2 - torch.log(sigma) - 1/2).sum()
         return z, kl
@@ -259,62 +242,75 @@ class GATEncoder(nn.Module):
 
         """
         super().__init__()
-        self.conv1 = GATConv(input_size, hidden_layers[0])
+        self.num_hidden_layers = len(hidden_layers)
         hlayers = []
-        for i in range(len(hidden_layers)-1):
-            hlayers.append((GATConv(hidden_layers[i], hidden_layers[i+1]), 'x, edge_index, weight -> x'))
+        if self.num_hidden_layers  == 0:
+            hlayers.append((GATConv(input_size, latent_size), 'x, edge_index, weight -> x'))
+            hlayers.append((nn.ReLU(), 'x -> x'))
+            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+        elif self.num_hidden_layers == 1:
+            hlayers.append((GATConv(input_size, hidden_layers[0]), 'x, edge_index, weight -> x'))
+            hlayers.append((nn.ReLU(), 'x -> x'))
+            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+            hlayers.append((GATConv(hidden_layers[0], latent_size), 'x, edge_index, weight -> x'))
+            hlayers.append((nn.ReLU(), 'x -> x'))
+            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+        else:
+            hlayers.append((GATConv(input_size, hidden_layers[0]), 'x, edge_index, weight -> x'))
+            hlayers.append((nn.ReLU(), 'x -> x'))
+            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+            for i in range(len(hidden_layers)-1):
+                hlayers.append((GATConv(hidden_layers[i], hidden_layers[i+1]), 'x, edge_index, weight -> x'))
+                hlayers.append((nn.ReLU(), 'x -> x'))
+                hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+            hlayers.append((GATConv(hidden_layers[-1], latent_size), 'x, edge_index, weight -> x'))
+            hlayers.append((nn.ReLU(), 'x -> x'))
             hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
         self.hlayers = Sequential('x, edge_index, weight', hlayers)
-        self.conv2 = GATConv(hidden_layers[-1], latent_size)
-        self.directconv = GATConv(input_size, latent_size)
-
-        self.num_hidden_layers = len(hidden_layers)
 
     def forward(self, x, edge_index, weight):
-        if self.num_hidden_layers < 1:
-            return self.directconv(x, edge_index, weight)
-        x = self.conv1(x, edge_index, weight).relu()
-        if TRAINING:
-            x = F.dropout(x, p=0.2)
-
-        x = self.hlayers(x, edge_index, weight)
-        return self.conv2(x, edge_index, weight)
+        return self.hlayers(x, edge_index, weight)
 
 
 class VGATEncoder(nn.Module):
     def __init__(self, input_size, hidden_layers, latent_size):
         super().__init__()
-        self.conv = GATConv(input_size, hidden_layers[0])
-        hlayers = []
-        for i in range(len(hidden_layers)-1):
-            hlayers.append((GATConv(hidden_layers[i], hidden_layers[i+1]), 'x, edge_index, weight -> x'))
-            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
-        self.hlayers = Sequential('x, edge_index, weight', hlayers)
-        self.conv_mu = GATConv(hidden_layers[-1], latent_size)
-        self.conv_logstd = GATConv(hidden_layers[-1], latent_size)
-        self.directconv_mu = GATConv(input_size, latent_size)
-        self.directconv_logstd = GATConv(input_size, latent_size)
+        self.num_hidden_layers = len(hidden_layers)
+        self.hlayers = []
+        if self.num_hidden_layers == 0:
+            self.conv_mu = GATConv(input_size, latent_size)
+            self.conv_logstd = GATConv(input_size, latent_size)
+        elif self.num_hidden_layers == 1:
+            self.hlayers.append((GATConv(input_size, hidden_layers[0]), 'x, edge_index, weight -> x'))
+            self.hlayers.append((nn.ReLU(), 'x -> x'))
+            self.hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+            self.conv_mu = GATConv(hidden_layers[0], latent_size)
+            self.conv_logstd = GATConv(hidden_layers[0], latent_size)
+        else:
+            self.hlayers.append((GATConv(input_size, hidden_layers[0]), 'x, edge_index, weight -> x'))
+            self.hlayers.append((nn.ReLU(), 'x -> x'))
+            self.hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+            for i in range(len(hidden_layers)-1):
+                self.hlayers.append((GATConv(hidden_layers[i], hidden_layers[i+1]), 'x, edge_index, weight -> x'))
+                self.hlayers.append(nn.ReLU())
+                self.hlayers.append(nn.Dropout(p=0.2))
+            self.conv_mu = GATConv(hidden_layers[-1], latent_size)
+            self.conv_logstd = GATConv(hidden_layers[-1], latent_size)
+
+        self.hlayers = Sequential('x, edge_index, weight', self.hlayers)
         self.N = torch.distributions.Normal(0, 1)
         self.N.loc = self.N.loc.cuda()
         self.N.scale = self.N.scale.cuda()
 
-        self.num_hidden_layers = len(hidden_layers)
-
     def forward(self, x, edge_index, weight):
-        if self.num_hidden_layers < 1:
-            mu = self.directconv_mu(x, edge_index, weight)
-            sigma = torch.exp(self.directconv_logstd(x, edge_index, weight))
-        else:
-            x = self.conv1(x, edge_index, weight).relu()
-            if TRAINING:
-                x = F.dropout(x, p=0.2)
-
+        if self.num_hidden_layers > 0:
             x = self.hlayers(x, edge_index, weight)
-            mu = self.conv_mu(x, edge_index, weight)
-            sigma = torch.exp(self.conv_logstd(x, edge_index, weight))
+        mu = self.conv_mu(x, edge_index, weight)
+        sigma = torch.exp(self.conv_logstd(x, edge_index, weight))
         z = mu + sigma * self.N.sample(mu.shape)
         kl  = (sigma**2 + mu**2 - torch.log(sigma) - 1/2).sum()
         return z, kl
+
 
 class GCNEncoder(nn.Module):
     """Graph Convolutional Network-based encoder class
@@ -347,59 +343,72 @@ class GCNEncoder(nn.Module):
 
         """
         super().__init__()
-        self.conv1 = GCNConv(input_size, hidden_layers[0])
+        self.num_hidden_layers = len(hidden_layers)
         hlayers = []
-        for i in range(len(hidden_layers)-1):
-            hlayers.append((GCNConv(hidden_layers[i], hidden_layers[i+1]), 'x, edge_index, weight -> x'))
+        if self.num_hidden_layers  == 0:
+            hlayers.append((GCNConv(input_size, latent_size), 'x, edge_index, weight -> x'))
+            hlayers.append((nn.ReLU(), 'x -> x'))
+            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+        elif self.num_hidden_layers == 1:
+            hlayers.append((GCNConv(input_size, hidden_layers[0]), 'x, edge_index, weight -> x'))
+            hlayers.append((nn.ReLU(), 'x -> x'))
+            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+            hlayers.append((GCNConv(hidden_layers[0], latent_size), 'x, edge_index, weight -> x'))
+            hlayers.append((nn.ReLU(), 'x -> x'))
+            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+        else:
+            hlayers.append((GCNConv(input_size, hidden_layers[0]), 'x, edge_index, weight -> x'))
+            hlayers.append((nn.ReLU(), 'x -> x'))
+            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+            for i in range(len(hidden_layers)-1):
+                hlayers.append((GCNConv(hidden_layers[i], hidden_layers[i+1]), 'x, edge_index, weight -> x'))
+                hlayers.append((nn.ReLU(), 'x -> x'))
+                hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+            hlayers.append((GCNConv(hidden_layers[-1], latent_size), 'x, edge_index, weight -> x'))
+            hlayers.append((nn.ReLU(), 'x -> x'))
             hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
         self.hlayers = Sequential('x, edge_index, weight', hlayers)
-        self.conv2 = GCNConv(hidden_layers[-1], latent_size)
-        self.directconv = GCNConv(input_size, latent_size)
 
-        self.num_hidden_layers = len(hidden_layers)
 
     def forward(self, x, edge_index, weight):
-        if self.num_hidden_layers < 1:
-            return self.directconv(x, edge_index, weight)
-        x = self.conv1(x, edge_index, weight).relu()
-        if TRAINING:
-            x = F.dropout(x, p=0.2)
-
         x = self.hlayers(x, edge_index, weight)
-
-        return self.conv2(x, edge_index, weight)
+        return x
 
 class VGCNEncoder(nn.Module):
     def __init__(self, input_size, hidden_layers, latent_size):
         super().__init__()
-        self.conv1 = GCNConv(input_size, hidden_layers[0])
-        hlayers = []
-        for i in range(len(hidden_layers)-1):
-            hlayers.append((GCNConv(hidden_layers[i], hidden_layers[i+1]), 'x, edge_index, weight -> x'))
-            hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
-        self.hlayers = Sequential('x, edge_index, weight', hlayers)
-        self.conv_mu = GCNConv(hidden_layers[-1], latent_size)
-        self.conv_logstd = GCNConv(hidden_layers[-1], latent_size)
-        self.directconv_mu = GCNConv(input_size, latent_size)
-        self.directconv_logstd = GCNConv(input_size, latent_size)
+        self.num_hidden_layers = len(hidden_layers)
+        self.hlayers = []
+        if self.num_hidden_layers == 0:
+            self.conv_mu = GCNConv(input_size, latent_size)
+            self.conv_logstd = GCNConv(input_size, latent_size)
+        elif self.num_hidden_layers == 1:
+            self.hlayers.append((GCNConv(input_size, hidden_layers[0]), 'x, edge_index, weight -> x'))
+            self.hlayers.append((nn.ReLU(), 'x -> x'))
+            self.hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+            self.conv_mu = GCNConv(hidden_layers[0], latent_size)
+            self.conv_logstd = GCNConv(hidden_layers[0], latent_size)
+        else:
+            self.hlayers.append((GCNConv(input_size, hidden_layers[0]), 'x, edge_index, weight -> x'))
+            self.hlayers.append((nn.ReLU(), 'x -> x'))
+            self.hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
+            for i in range(len(hidden_layers)-1):
+                self.hlayers.append((GCNConv(hidden_layers[i], hidden_layers[i+1]), 'x, edge_index, weight -> x'))
+                self.hlayers.append(nn.ReLU())
+                self.hlayers.append(nn.Dropout(p=0.2))
+            self.conv_mu = GCNConv(hidden_layers[-1], latent_size)
+            self.conv_logstd = GCNConv(hidden_layers[-1], latent_size)
+
+        self.hlayers = Sequential('x, edge_index, weight', self.hlayers)
         self.N = torch.distributions.Normal(0, 1)
         self.N.loc = self.N.loc.cuda()
         self.N.scale = self.N.scale.cuda()
 
-        self.num_hidden_layers = len(hidden_layers)
-
     def forward(self, x, edge_index, weight):
-        if self.num_hidden_layers < 1:
-            mu = self.directconv_mu(x, edge_index, weight)
-            sigma = self.directconv_logstd(x, edge_index, weight)
-        else:
-            x = self.conv1(x, edge_index, weight).relu()
-            if TRAINING:
-                x = F.dropout(x, p=0.2)
-
+        if self.num_hidden_layers > 0:
             x = self.hlayers(x, edge_index, weight)
-            mu = self.conv_mu(x, edge_index, weight)
-            sigma = torch.exp(self.conv_logstd(x, edge_index, weight))
+        mu = self.conv_mu(x, edge_index, weight)
+        sigma = torch.exp(self.conv_logstd(x, edge_index, weight))
         z = mu + sigma * self.N.sample(mu.shape)
         kl  = (sigma**2 + mu**2 - torch.log(sigma) - 1/2).sum()
         return z, kl
@@ -436,61 +445,103 @@ class LinearEncoder(nn.Module):
 
         """
         super().__init__()
-        self.linear1 = nn.Linear(input_size, hidden_layers[0])
-        self.hlayers = nn.Sequential()
-        for i in range(len(hidden_layers)-1):
-            self.hlayers.append(nn.Linear(hidden_layers[i], hidden_layers[i+1]))
-            self.hlayers.append(nn.Dropout(p=0.2))
-        self.linear2 = nn.Linear(hidden_layers[-1], latent_size)
-        self.directlinear = nn.Linear(input_size, latent_size)
-
         self.num_hidden_layers = len(hidden_layers)
+        self.hlayers = nn.Sequential()
+        if self.num_hidden_layers == 0:
+            self.hlayers.append(nn.Linear(input_size, latent_size))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
+        elif self.num_hidden_layers == 1:
+            self.hlayers.append(nn.Linear(input_size, hidden_layers[0]))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
+            self.hlayers.append(nn.Linear(hidden_layers[0], latent_size))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
+        else:
+            self.hlayers.append(nn.Linear(input_size, hidden_layers[0]))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
+            for i in range(len(hidden_layers)-1):
+                self.hlayers.append(nn.Linear(hidden_layers[i], hidden_layers[i+1]))
+                self.hlayers.append(nn.ReLU())
+                self.hlayers.append(nn.Dropout(p=0.2))
+            self.hlayers.append(nn.Linear(hidden_layers[-1], latent_size))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
 
     def forward(self, x):
-        if self.num_hidden_layers < 1:
-            return self.directlinear(x)
-        x = self.linear1(x).relu()
-        if TRAINING:
-            x = F.dropout(x, p=0.2)
-
-        x = self.hlayers(x)
-        return self.linear2(x)
+        return self.hlayers(x)
 
 class VLinearEncoder(nn.Module):
     def __init__(self, input_size, hidden_layers, latent_size):
         super().__init__()
-        self.linear1 = nn.Linear(input_size, hidden_layers[0])
+        self.num_hidden_layers = len(hidden_layers)
         self.hlayers = nn.Sequential()
-        for i in range(len(hidden_layers)-1):
-            self.hlayers.append(nn.Linear(hidden_layers[i], hidden_layers[i+1]))
+        if self.num_hidden_layers == 0:
+            self.linear_mu = nn.Linear(input_size, latent_size)
+            self.linear_logstd = nn.Linear(input_size, latent_size)
+        elif self.num_hidden_layers == 1:
+            self.hlayers.append(nn.Linear(input_size, hidden_layers[0]))
+            self.hlayers.append(nn.ReLU())
             self.hlayers.append(nn.Dropout(p=0.2))
-        self.linear_mu = nn.Linear(hidden_layers[-1], latent_size)
-        self.linear_logstd = nn.Linear(hidden_1, latent_size)
-        self.directlinear_mu = nn.Linear(input_size, latent_size)
-        self.directlinear_logstd = nn.Linear(input_size, latent_size)
+            self.linear_mu = nn.Linear(hidden_layers[0], latent_size)
+            self.linear_logstd = nn.Linear(hidden_layers[0], latent_size)
+        else:
+            self.hlayers.append(nn.Linear(input_size, hidden_layers[0]))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
+            for i in range(len(hidden_layers)-1):
+                self.hlayers.append(nn.Linear(hidden_layers[i], hidden_layers[i+1]))
+                self.hlayers.append(nn.ReLU())
+                self.hlayers.append(nn.Dropout(p=0.2))
+            self.linear_mu = nn.Linear(hidden_layers[0], latent_size)
+            self.linear_logstd = nn.Linear(hidden_layers[0], latent_size)
         self.N = torch.distributions.Normal(0, 1)
         self.N.loc = self.N.loc.cuda()
         self.N.scale = self.N.scale.cuda()
 
-        self.num_hidden_layers = len(hidden_layers)
-
 
     def forward(self, x):
-        if self.num_hidden_layers < 1:
-            mu = self.directlinear_mu(x)
-            sigma = torch.exp(self.directlinear_logstd(x))
-        else:
-            x = self.linear1(x).relu()
-            if TRAINING:
-                x = F.dropout(x, p=0.2)
-
-            x = self.hlayer(x)
-            mu = self.linear_mu(x)
-            sigma = torch.exp(self.linear_logstd(x))
+        if self.num_hidden_layers != 0:
+            x = self.hlayers(x)
+        mu = self.linear_mu(x)
+        sigma = torch.exp(self.linear_logstd(x))
         z = mu + sigma * self.N.sample(mu.shape)
         kl  = (sigma**2 + mu**2 - torch.log(sigma) - 1/2).sum()
         return z, kl
 
+
+class Discriminator(nn.Module):
+    def __init__(self, input_size, hidden_layers, latent_size):
+        super().__init__()
+        self.num_hidden_layers = len(hidden_layers)
+        self.hlayers = nn.Sequential()
+        if self.num_hidden_layers == 0:
+            self.hlayers.append(nn.Linear(latent_size, input_size))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
+        elif self.num_hidden_layers == 1:
+            self.hlayers.append(nn.Linear(latent_size, hidden_layers[0]))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
+            self.hlayers.append(nn.Linear(hidden_layers[0], input_size))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
+        else:
+            self.hlayers.append(nn.Linear(latent_size, hidden_layers[-1]))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
+            for i in range(len(hidden_layers), 1, -1):
+                self.hlayers.append(nn.Linear(hidden_layers[i-1], hidden_layers[i-2]))
+                self.hlayers.append(nn.ReLU())
+                self.hlayers.append(nn.Dropout(p=0.2))
+            self.hlayers.append(nn.Linear(hidden_layers[0], input_size))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
+
+    def forward(self, x):
+        return self.hlayers(x)
 
 
 class Decoder(nn.Module):
@@ -526,24 +577,35 @@ class Decoder(nn.Module):
 
         """
         super().__init__()
-        self.linear1 = nn.Linear(latent_size, hidden_layers[-1])
-        self.hlayers = nn.Sequential()
-        for i in range(len(hidden_layers), 1, -1):
-            self.hlayers.append(nn.Linear(hidden_layers[i-1], hidden_layers[i-2]))
-            self.hlayers.append(nn.Dropout(p=0.2))
-        self.linear2 = nn.Linear(hidden_layers[0], output_size)
-        self.directlinear = nn.Linear(latent_size, output_size)
-
         self.num_hidden_layers = len(hidden_layers)
+        self.hlayers = nn.Sequential()
+        if self.num_hidden_layers == 0:
+            self.hlayers.append(nn.Linear(latent_size, output_size))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
+        elif self.num_hidden_layers == 1:
+            self.hlayers.append(nn.Linear(latent_size, hidden_layers[0]))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
+            self.hlayers.append(nn.Linear(hidden_layers[0], output_size))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
+        else:
+            self.hlayers.append(nn.Linear(latent_size, hidden_layers[-1]))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
+            for i in range(len(hidden_layers), 1, -1):
+                self.hlayers.append(nn.Linear(hidden_layers[i-1], hidden_layers[i-2]))
+                self.hlayers.append(nn.ReLU())
+                self.hlayers.append(nn.Dropout(p=0.2))
+            self.hlayers.append(nn.Linear(hidden_layers[0], output_size))
+            self.hlayers.append(nn.ReLU())
+            self.hlayers.append(nn.Dropout(p=0.2))
+
 
     def forward(self, z):
-        if self.num_hidden_layers < 1:
-            return self.directlinear(z)
-        x_hat = self.linear1(z).relu()
-        if TRAINING:
-            x_hat = F.dropout(x_hat, p=0.2)
-        x_hat = self.hlayers(x_hat)
-        return self.linear2(x_hat)
+        return self.hlayers(z)
+
 
 class GAE(nn.Module):
     """Graph AutoEncoder Aggregation class
@@ -638,23 +700,38 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     fig = plot.get_figure()
     fig.savefig(f'umap_latentspace_{name}.png', dpi=200)
 
-
 def train_model(model, train_data, x, cell_id, weight):
-    model.train()
-    optimizer.zero_grad()
-    if args.variational:
+    if args.adversarial:
+        if args.variational:
+            z, kl = model.encoder(train_data.expr, train_data.edge_index,  weight)
+        else:
+            z = model.encoder(train_data.expr, train_data.edge_index,  weight)
+
+        for i in range(5):
+            discriminator.train()
+            discriminator_optimizer.zero_grad()
+            real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:])))
+            fake = torch.sigmoid(discriminator(z[cell_id,:].detach()))
+            real_loss = -torch.log(real + 1e-15).mean()
+            fake_loss = -torch.log(1 - fake + 1e-15).mean()
+            discriminator_loss = real_loss + fake_loss
+            x_hat = model.discriminator(z[cell_id, :])
+            discriminator_loss.backward(retain_graph=True)
+            discriminator_optimizer.step()
+
+    elif args.variational:
         x_hat, kl = model(train_data.expr, train_data.edge_index, cell_id, weight)
     else:
         x_hat = model(train_data.expr, train_data.edge_index, cell_id, weight)
 
     loss = (1/train_data.expr.size(dim=1)) * ((x - x_hat)**2).sum()
+
     if args.variational:
         loss += (1 / train_data.num_nodes) * kl
-    loss.backward()
-    torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
-                                  error_if_nonfinite=True)
-    optimizer.step()
-    return float(loss)
+    if args.adversarial:
+        loss += model.reg_loss(z[cell_id])
+
+    return loss
 
 @torch.no_grad()
 def apply_on_dataset(model, dataset, name, celltype_key):
@@ -667,6 +744,8 @@ def apply_on_dataset(model, dataset, name, celltype_key):
     pred_expr = np.zeros(shape=(dataset.X.shape[0], dataset.X.shape[1]))
     print(true_expr.shape, pred_expr.shape)
 
+    _, _, _, _ = variance_decomposition(pred_expr, celltype_key)
+
     total_loss = 0
     for cell in tqdm(G.nodes()):
         batch = pyG_graph.clone()
@@ -675,6 +754,8 @@ def apply_on_dataset(model, dataset, name, celltype_key):
         loss, x_hat = validate(model, batch, pyG_graph.expr[cell], cell, pyG_graph.weight)
         pred_expr[cell, :] = x_hat.cpu().detach().numpy()
         total_loss += loss
+    r2 = r2_score(true_expr, pred_expr)
+    print(f"R2 score: {r2}")
 
     dataset.obs['total_counts'] = np.sum(dataset.X, axis=1)
     print(dataset.obs['total_counts'])
@@ -716,7 +797,8 @@ def apply_on_dataset(model, dataset, name, celltype_key):
     average_error_per_gene = total_error_per_gene/dataset.shape[1]
     print(average_error_per_gene)
     #Get error relative to amount of expression for that gene over all cells
-    relative_error_per_gene = total_error_per_gene / np.sum(dataset.X, axis=0)
+    sum_x = np.sum(dataset.X, axis=0) + 1e-9
+    relative_error_per_gene = total_error_per_gene / sum_x
     print(relative_error_per_gene)
 
     error_per_gene = {}
@@ -760,51 +842,67 @@ def apply_on_dataset(model, dataset, name, celltype_key):
         pickle.dump(error_per_cell_type, f)
 
 
-
-
-
-
-
-
-
-
-
 @torch.no_grad()
 def validate(model, val_data, x, cell_id, weight):
     model.eval()
-    if args.variational:
+    if args.adversarial:
+        if args.variational:
+            z, kl = model.encoder(val_data.expr, val_data.edge_index,  weight)
+        else:
+            z = model.encoder(val_data.expr, val_data.edge_index,  weight)
+
+        for i in range(5):
+            discriminator.eval()
+            real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:])))
+            fake = torch.sigmoid(discriminator(z[cell_id,:].detach()))
+            real_loss = -torch.log(real + 1e-15).mean()
+            fake_loss = -torch.log(1 - fake + 1e-15).mean()
+            discriminator_loss = real_loss + fake_loss
+            x_hat = model.discriminator(z[cell_id, :])
+
+    elif args.variational:
         x_hat, kl = model(val_data.expr, val_data.edge_index, cell_id, weight)
     else:
         x_hat = model(val_data.expr, val_data.edge_index, cell_id, weight)
 
     loss = (1/val_data.expr.size(dim=1)) * ((x - x_hat)**2).sum()
+
     if args.variational:
         loss += (1 / val_data.num_nodes) * kl
     return float(loss), x_hat
 
 def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph'):
-    if args.normalization == 'Normal':
-        adj_mat = normalize_adjacency_matrix(adj_mat.toarray())
-        G = nx.from_numpy_matrix(adj_mat)
+    if args.normalization == 'Normal' or args.normalization == 'Laplacian':
+        print("Normalizing adjacency matrix...")
+        N, L = normalize_adjacency_matrix(adj_mat)
+        if args.normalization == 'Normal':
+            G = nx.from_numpy_matrix(N.toarray())
+        else:
+            G = nx.from_numpy_matrix(L.toarray())
+
     else:
         #Make graph from adjanceny matrix
         G = nx.from_numpy_matrix(adj_mat.toarray())
 
+    print("Setting node attributes")
     nx.set_node_attributes(G, {i: {"expr" : x, 'cell_type' : y} for i, x in enumerate(expr_mat) for i, y in enumerate(cell_types)})
 
     #Remove edges between same-type nodes
     if args.remove_same_type_edges:
+        print("Removing same cell type edges...")
         G = remove_same_cell_type_edges(G)
 
     #Remove edges between subtypes of the same cell type
     if args.remove_subtype_edges:
+        print("Removing edges between similar cell types")
         G = remove_similar_celltype_edges(G)
 
     #If any isolated nodes present, remove them:
-    G = remove_isolated_nodes(G)
+    #G = remove_isolated_nodes(G)
 
     #Calculate a graph statistics summary
     if args.graph_summary:
+        print("Calculating graph statistics...")
         graph_summary(G, name)
 
     #Add cell type information to the networkx graph
@@ -812,8 +910,12 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph'):
         G = remove_node_attributes(G, 'cell_type')
 
     #Calculate the weights for each edge
+    print("Weighting edges")
     for edge in G.edges():
-        G[edge[0]][edge[1]]['weight'] = 1/G[edge[0]][edge[1]]['weight']
+        if args.normalization == 'Laplacian':
+            G[edge[0]][edge[1]]['weight'] = abs(1/G[edge[0]][edge[1]]['weight'])
+        else:
+            G[edge[0]][edge[1]]['weight'] = 1/G[edge[0]][edge[1]]['weight']
 
 
     #Check graph
@@ -833,7 +935,8 @@ def remove_same_cell_type_edges(G):
     return G
 
 def remove_isolated_nodes(G):
-    return G.remove_nodes_from(list(nx.isolates(G)))
+    G.remove_nodes_from(list(nx.isolates(G)))
+    return G
 
 def remove_node_attributes(G, attr):
     for node in G.nodes():
@@ -855,7 +958,7 @@ def remove_similar_celltype_edges(G):
 
     return G
 
-def variance_decomposition(dataset, celltype_key):
+def variance_decomposition(expr, celltype_key):
     """
     Total variance consists of:
     mean expression over all cells line{y},
@@ -867,38 +970,31 @@ def variance_decomposition(dataset, celltype_key):
     For intercell variance we need to calculate the mean expression overall
     for gene j over all cel types.
     """
+    # Add small constant value to dataset.X to avoid zero values
+    expr += 0.00001
 
-    y_line = np.mean(dataset.X, axis=(0,1))
-    #y_ij equals dataset.X
-    mean_per_celltype = {}
-    mean_per_gene = {}
-    for gene in tqdm(dataset.var_names):
-        mean_per_celltype[gene] = {}
-        mean_per_gene[gene] = np.mean(dataset[:, [gene]].X)
-        for celltype in dataset.obs[celltype_key].unique():
-            mean_per_celltype[gene][celltype] = np.mean(dataset[dataset.obs[celltype_key] == celltype][:,gene].X)
+    print("Decomposing variance of dataset...")
+    # Compute mean expression over all cells
+    y_bar = np.mean(expr)
 
-    intracell_variance = 0
-    intercell_variance = 0
-    gene_variance = 0
-    known_total_variance = 0
-    for i, cell in tqdm(enumerate(dataset.obs_names)):
-        celltype = dataset.obs[celltype_key][i]
-        for gene in dataset.var_names:
-            intracell_variance += np.sqrt(dataset[[cell], [gene]].X - mean_per_celltype[gene][celltype])
-            intercell_variance += np.sqrt(mean_per_celltype[gene][celltype] - mean_per_gene[gene])
-            gene_variance += np.sqrt(mean_per_gene[gene] - y_line)
-            known_total_variance += np.sqrt(dataset[[cell], [gene]].X - y_line)
-    print('intracell_variance, intercell_variance, gene_variance')
-    print(intracell_variance)
-    print(intercell_variance)
-    print(gene_variance)
-    predicted_total_variance = intracell_variance + intercell_variance + gene_variance
-    print("Known vs. predicted")
-    print(known_total_variance)
-    print(predicted_total_variance)
-    assert known_total_variance == predicted_total_variance
-    return predicted_total_variance, intracell_variance, intercell_variance, gene_variance
+    y_bar_cell = np.mean(expr, axis=1)
+    y_bar_gene = np.mean(expr, axis=0)
+
+    intracell_var = np.sum(np.square(expr - y_bar_cell[:, np.newaxis]), axis=None)
+
+    y_bar_cell_broadcast = np.broadcast_to(y_bar_cell[:, np.newaxis], dataset.X.shape)
+    intercell_var = np.sum(np.square(y_bar_cell_broadcast - y_bar_gene), axis=None)
+    gene_var = np.sum(np.square(y_bar_gene - y_bar), axis=None)
+
+    total_var = intracell_var + intercell_var + gene_var
+    # Compute known total variance
+    known_total_variance = np.sum((expr - y_bar)**2)
+
+    print(f"Predicted {total_var} versus known {known_total_variance}")
+    print(f"Intracell variance: {intracell_var}, fraction={intracell_var/total_var}")
+    print(f"Intercell variance: {intercell_var}, fraction={intercell_var/total_var}")
+    print(f"Gene variance: {gene_var}, fraction={gene_var/total_var}")
+    return total_var, intracell_var, intercell_var, gene_var
 
 
 
@@ -906,10 +1002,11 @@ def variance_decomposition(dataset, celltype_key):
 
 
 def normalize_adjacency_matrix(M):
-    d = np.sum(M, axis=1)
-    d = 1/np.sqrt(d)
-    D = np.diag(d)
-    return D @ M @ D
+    d = M.sum(axis=1).A.flatten() + 1e-7  # Get row sums as a dense array
+    D = sp.diags(1/np.sqrt(d), 0, format='csr')  # Calculate diagonal matrix
+    N = D @ M @ D
+    L = D -N
+    return N, L
 
 def plot_loss_curve(data, xlabel, name):
     plt.plot(list(data.keys()), list(data.values()))
@@ -1007,6 +1104,8 @@ def graph_summary(G, name):
         pickle.dump(summary_dict, f)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#Empty cuda memory
+torch.cuda.empty_cache()
 
 #Get current directory, make sure output directory exists
 dirpath = os.getcwd()
@@ -1039,6 +1138,7 @@ elif args.dataset == 'seqfish':
     name='mouse_seqfish'
     celltype_key = 'celltype_mapped_refined'
 
+
 elif args.dataset == 'nanostring':
     dataset = sq.read.nanostring(path="data/Lung5_Rep1",
                        counts_file="Lung5_Rep1_exprMat_file.csv",
@@ -1053,34 +1153,31 @@ print(dataset)
 if not isinstance(dataset.X, np.ndarray):
     dataset.X = dataset.X.toarray()
 
-_, _, _, _ = variance_decomposition(dataset, celltype_key)
+_, _, _, _ = variance_decomposition(dataset.X, celltype_key)
 
-val_i = random.sample(range(len(dataset.obs)), k=1000)
-val, train = dataset[val_i], dataset[[x for x in range(len(dataset.obs)) if x not in val_i]]
-print(val.X.shape, train.X.shape)
 
 if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
     print("Constructing graph...")
-    train = construct_graph(train)
-    val = construct_graph(val)
+    dataset = construct_graph(dataset)
 
 print("Converting graph to PyG format...")
-
 if args.weight:
-    G_train = convert_to_graph(train.obsp['spatial_distances'], train.X, train.obs[celltype_key], name+'_train')
-    G_val = convert_to_graph(val.obsp['spatial_distances'], val.X, val.obs[celltype_key], name+"_val")
+    G = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train')
 else:
-    G_train = convert_to_graph(train.obsp['spatial_connectivities'], train.X, train.obs[celltype_key], name+"_train")
-    G_val = convert_to_graph(val.obsp['spatial_connectivities'], val.X, val.obs[celltype_key], name+"_val")
+    G = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train")
 
-pyg_train, pyg_val = pyg.utils.from_networkx(G_train), pyg.utils.from_networkx(G_val)
+pyg_graph = pyg.utils.from_networkx(G)
+print(pyg_graph.expr.size())
 #TODO: Split into train and validation
-print(pyg_train, pyg_val)
-pyg_train.to(device)
-pyg_val.to(device)
-
+pyg_graph.to(device)
 #Set layer sizes
-input_size, hidden_layers, latent_size = pyg_train.expr.size(dim=1), [int(x) for x in args.hidden.split(',')], args.latent
+if ',' in args.hidden:
+    lengths = [int(x) for x in args.hidden.split(',')]
+    input_size, hidden_layers, latent_size = pyg_graph.expr.size()[1], lengths, args.latent
+elif args.hidden == '':
+    input_size, hidden_layers, latent_size = pyg_graph.expr.size()[1], [], args.latent
+else:
+    input_size, hidden_layers, latent_size = pyg_graph.expr.size()[1], [int(args.hidden)], args.latent
 
 #Build model architecture based on given arguments
 if not args.variational and args.type == 'GCN':
@@ -1100,10 +1197,20 @@ elif args.variational and args.type == 'SAGE':
 elif args.variational and args.type == 'Linear':
     encoder = VLinearEncoder(input_size, hidden_layers, latent_size)
 
+if args.adversarial:
+    discriminator = Discriminator(input_size, hidden_layers, latent_size)
+
 #Build Decoder
 decoder = Decoder(input_size, hidden_layers, latent_size)
 #Build model
-model = GAE(encoder, decoder)
+if not args.adversarial:
+    model = GAE(encoder, decoder)
+else:
+    if args.variational:
+        model = ARGVA(encoder, discriminator, decoder)
+    else:
+        model = ARGA(encoder, discriminator, decoder)
+
 print("Model:")
 print(model)
 
@@ -1114,12 +1221,20 @@ pyg.transforms.ToDevice(device)
 
 #Set optimizer
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+if args.adversarial:
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.001)
 
 #Set number of nodes to sample per epoch
 if args.cells == -1:
-    k = G_train.number_of_nodes()
+    k = G.number_of_nodes()
 else:
     k = args.cells
+
+val_i = random.sample(G.nodes(), k=1000)
+test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
+train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
+
+
 
 loss_over_cells = {}
 train_loss_over_epochs = {}
@@ -1127,35 +1242,68 @@ val_loss_over_epochs = {}
 #Set normalization for training data expression
 #normalizer = NormalizeFeatures(["expr"])
 #Train the model
+print("Training the model...")
 for epoch in range(1, args.epochs+1):
+    model.train()
+    optimizer.zero_grad()
     total_loss_over_cells = 0
-    for i, cell in tqdm(enumerate(random.sample(G_train.nodes(), k=k))):
-        batch = pyg_train.clone()
+    for i, cell in tqdm(enumerate(random.sample(train_i, k=k))):
+        batch = pyg_graph.clone()
+        if args.prediction_mode == 'spatial':
+            batch.expr.fill_(0.0)
+            assert batch.expr.sum() == 0
         batch.expr[cell, :].fill_(0.0)
         assert batch.expr[cell, :].sum() == 0
-        loss = train_model(model, batch, pyg_train.expr[cell], cell, pyg_train.weight)
+        loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
         total_loss_over_cells += loss
         if i % 50 == 0 and i != 0:
             print(f"Cells seen: {i}, average MSE:{total_loss_over_cells/i}")
             loss_over_cells[i] = total_loss_over_cells/i
 
+    total_loss_over_cells.backward()
+    torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
+                                      error_if_nonfinite=True)
+    optimizer.step()
+
     total_val_loss = 0
-    for cell in tqdm(random.sample(G_val.nodes(), k=G_val.number_of_nodes())):
-        val_batch = pyg_val.clone()
+    total_r2 = 0
+    for cell in tqdm(random.sample(val_i, k=1000)):
+        val_batch = pyg_graph.clone()
+        if args.prediction_mode == 'spatial':
+            val_batch.expr.fill_(0.0)
+            assert val_batch.expr.sum() == 0
         val_batch.expr[cell, :].fill_(0.0)
         assert val_batch.expr[cell, :].sum() == 0
-        val_loss, _ = validate(model, val_batch, pyg_val.expr[cell], cell, pyg_val.weight)
+        val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
+        total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
         total_val_loss += val_loss
 
-    train_loss_over_epochs[epoch] = total_loss_over_cells/k
-    val_loss_over_epochs[epoch] = total_val_loss/G_val.number_of_nodes()
-    print(f"Epoch {epoch}, average training loss:{train_loss_over_epochs[epoch]}, average validation loss:{val_loss_over_epochs[epoch]}")
 
+    train_loss_over_epochs[epoch] = total_loss_over_cells/k
+    val_loss_over_epochs[epoch] = total_val_loss/1000
+    print(f"Epoch {epoch}, average training loss:{train_loss_over_epochs[epoch]}, average validation loss:{val_loss_over_epochs[epoch]}")
+    print(f"Validation R2: {total_r2/1000}")
+
+print("Testing the model...")
+total_test_loss = 0
+total_r2_test = 0
+for cell in tqdm(random.sample(test_i, k=1000)):
+    test_batch = pyg_graph.clone()
+    if args.prediction_mode == 'spatial':
+        test_batch.expr.fill_(0.0)
+        assert test_batch.expr.sum() == 0
+    test_batch.expr[cell, :].fill_(0.0)
+    assert test_batch.expr[cell, :].sum() == 0
+    test_loss, x_hat = validate(model, test_batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
+    total_r2_test += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
+    total_test_loss += test_loss
+
+print(f"Test loss: {total_test_loss/1000}, Test R2 {total_r2_test/1000}")
 #Save trained model
 torch.save(model, f"model_{args.type}.pt")
 try:
     torch.onnx.export(model, pyg_graph.expr, f'{args.type}_model.onnx', export_params=True,
-                  input_names=['neighborhood expression+spatial graph'], output_Names=['cell expression'])
+                  input_names=['neighborhood expression+spatial graph'], output_names=['cell expression'])
 except:
     'ONNX FAILED'
 
@@ -1165,10 +1313,13 @@ else:
     subtype = 'non-variational'
 
 #Plot results
+print("Plotting training plots...")
 plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_{name}_{type}_{subtype}.png')
 plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_{name}_{type}_{subtype}.png')
-plot_latent(model, pyg_val, dataset, list(dataset.obs[celltype_key].unique()),
-            device, name=f'{name}_{type}_{subtype}', number_of_cells=500, celltype_key=celltype_key)
-
+print("Plotting latent space...")
+#Plot the latent test set
+plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
+            device, name=f'set_{name}_{type}_{subtype}', number_of_cells=1000, celltype_key=celltype_key)
+print("Applying model on entire dataset...")
 #Apply on dataset
 apply_on_dataset(model, dataset, 'GVAE_GCN_SeqFISH', celltype_key)
