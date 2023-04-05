@@ -1168,6 +1168,7 @@ if args.weight:
 else:
     G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train")
 
+G = nx.convert_node_labels_to_integer(G)
 
 pyg_graph = pyg.utils.from_networkx(G)
 print(pyg_graph.expr.size())
@@ -1233,7 +1234,6 @@ if args.cells == -1:
 else:
     k = args.cells
 
-G = nx.convert_node_labels_to_integer(G)
 
 val_i = random.sample(G.nodes(), k=1000)
 test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
