@@ -1263,7 +1263,7 @@ for epoch in range(1, args.epochs+1):
 
     cells_seen += len(cells)
     print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
-    loss_over_cells[cells_seen] = total_loss_over_cells/len(cells)
+    loss_over_cells[cells_seen] = total_loss_over_cells.cpu()/len(cells)
 
     total_loss_over_cells.backward()
     torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
