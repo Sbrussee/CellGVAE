@@ -1252,11 +1252,10 @@ for epoch in range(1, args.epochs+1):
     print(cells)
     batch = pyg_graph.clone()
     if args.prediction_mode == 'spatial':
-        batch.expr.fill_(0)
+        batch.expr.fill_(0.0)
         assert batch.expr.sum() < 0.1
     else:
-        batch.expr[cells].fill_(0)
-        print(batch.expr[cells])
+        batch.expr[cells].index_fill_(0, torch.tensor(cells), 0.0)
         assert batch.expr[cells].sum() < 0.1
     for cell in cells:
         loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
@@ -1279,7 +1278,7 @@ for epoch in range(1, args.epochs+1):
         val_batch.expr.fill_(0)
         assert val_batch.expr.sum() < 0.1
     else:
-        val_batch.expr[val_cells].fill_(0)
+        val_batch.expr[cells].index_fill_(0, torch.tensor(cells), 0.0)
         assert val_batch.expr[val_cells].sum() < 0.1
     for cell in cells:
         val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
