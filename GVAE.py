@@ -1248,7 +1248,7 @@ for epoch in range(1, args.epochs+1):
     model.train()
     optimizer.zero_grad()
     total_loss_over_cells = 0
-    cells = random.sample(train_i, k=k):
+    cells = random.sample(train_i, k=k)
     batch = pyg_graph.clone()
     if args.prediction_mode == 'spatial':
         batch.expr.fill_(0.0)
