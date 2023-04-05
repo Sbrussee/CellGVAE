@@ -1249,12 +1249,14 @@ for epoch in range(1, args.epochs+1):
     optimizer.zero_grad()
     total_loss_over_cells = 0
     cells = random.sample(train_i, k=k)
+    print(cells)
     batch = pyg_graph.clone()
     if args.prediction_mode == 'spatial':
         batch.expr.fill_(0.0)
         assert batch.expr.sum() == 0
     else:
         batch.expr[cells, :].fill_(0.0)
+        print(batch.expr[cells, :])
         assert batch.expr[cells, :].sum() == 0
     for cell in cells:
         loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
