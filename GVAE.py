@@ -1287,8 +1287,8 @@ for epoch in range(1, args.epochs+1):
         total_val_loss += val_loss
 
 
-    train_loss_over_epochs[epoch] = total_loss_over_cells/len(cells)
-    val_loss_over_epochs[epoch] = total_val_loss/500
+    train_loss_over_epochs[epoch] = total_loss_over_cells.cpu()/len(cells)
+    val_loss_over_epochs[epoch] = total_val_loss.cpu()/500
     print(f"Epoch {epoch}, average training loss:{train_loss_over_epochs[epoch]}, average validation loss:{val_loss_over_epochs[epoch]}")
     print(f"Validation R2: {total_r2/500}")
 
@@ -1322,7 +1322,7 @@ else:
 
 #Plot results
 print("Plotting training plots...")
-plot_loss_curve(loss_over_cells.cpu(), 'cells', f'loss_curve_cells_{name}_{type}_{subtype}.png')
+plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_{name}_{type}_{subtype}.png')
 plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_{name}_{type}_{subtype}.png')
 print("Plotting latent space...")
 #Plot the latent test set
