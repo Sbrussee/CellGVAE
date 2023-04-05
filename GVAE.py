@@ -726,7 +726,7 @@ def train_model(model, train_data, x, cell_id, weight):
     if args.adversarial:
         loss += model.reg_loss(z[cell_id])
 
-    if not args.adverarial:
+    if not args.adversarial:
         return loss
     else:
         return loss, discriminator_loss
