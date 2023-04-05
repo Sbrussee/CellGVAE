@@ -737,7 +737,7 @@ def train_model(model, train_data, x, cell_id, weight):
 @torch.no_grad()
 def apply_on_dataset(model, dataset, name, celltype_key):
     dataset = construct_graph(dataset)
-    G = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name)
+    G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name)
     pyG_graph = pyg.utils.from_networkx(G)
     pyG_graph.to(device)
 
@@ -900,6 +900,7 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph'):
 
     #If any isolated nodes present, remove them:
     isolates = list(nx.isolates(G))
+    print(f"Removed {len(isolates)} isolate cells")
     G = remove_isolated_nodes(G)
 
     #Calculate a graph statistics summary
