@@ -899,7 +899,8 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph'):
         G = remove_similar_celltype_edges(G)
 
     #If any isolated nodes present, remove them:
-    #G = remove_isolated_nodes(G)
+    isolates = list(nx.isolates(G))
+    G = remove_isolated_nodes(G)
 
     #Calculate a graph statistics summary
     if args.graph_summary:
@@ -924,7 +925,7 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph'):
     print(G.nodes[2])
     for e in G.edges(0):
         print(G[e[0]][e[1]])
-    return G
+    return G, isolates
 
 def remove_same_cell_type_edges(G):
     for node in G.nodes():
@@ -1163,9 +1164,10 @@ if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
 
 print("Converting graph to PyG format...")
 if args.weight:
-    G = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train')
+    G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train')
 else:
-    G = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train")
+    G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train")
+
 
 pyg_graph = pyg.utils.from_networkx(G)
 print(pyg_graph.expr.size())
