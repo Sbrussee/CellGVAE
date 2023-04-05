@@ -1233,6 +1233,8 @@ if args.cells == -1:
 else:
     k = args.cells
 
+G = nx.convert_node_labels_to_integer(G)
+
 val_i = random.sample(G.nodes(), k=1000)
 test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
 train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
