@@ -858,10 +858,21 @@ def validate(model, val_data, x, cell_id, weight):
     model.eval()
     if args.adversarial:
         if args.variational:
-            z, kl = model.encoder(val_data.expr, val_data.edge_index,  weight)
+            if args.type == 'GCN' or args.type == 'GAT':
+                z, kl = model.encoder(val_data.expr.to(device), val_data.edge_index.to(device),
+                                  val_data.weight.to(device))
+            elif args.type == 'SAGE':
+                z, kl = model.encoder(val_data.expr.to(device), val_data.edge_index.to(device))
+            else:
+                z, kl = model.encoder(val_data.expr.to(device))
         else:
-            z = model.encoder(val_data.expr, val_data.edge_index,  weight)
-        discriminator.eval()
+            if args.type == 'GCN'or args.type == 'GAT':
+                z = model.encoder(val_data.expr.to(device), val_data.edge_index.to(device),
+                                          val_data.weight.to(device))
+            elif args.type == 'SAGE':
+                z = model.encoder(val_data.expr.to(device), val_data.edge_index.to(device))
+            else:
+                z = model.encoder(val_data.expr.to(device))
         real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:])))
         fake = torch.sigmoid(discriminator(z[cell_id,:].detach()))
         real_loss = -torch.log(real + 1e-15).mean()
