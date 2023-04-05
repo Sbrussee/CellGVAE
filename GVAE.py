@@ -1168,7 +1168,7 @@ if args.weight:
 else:
     G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train")
 
-G = nx.convert_node_labels_to_integer(G)
+G = nx.convert_node_labels_to_integers(G)
 
 pyg_graph = pyg.utils.from_networkx(G)
 print(pyg_graph.expr.size())
