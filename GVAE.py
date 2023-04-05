@@ -1243,13 +1243,13 @@ val_loss_over_epochs = {}
 #Set normalization for training data expression
 #normalizer = NormalizeFeatures(["expr"])
 #Train the model
+cells_seen = 0
 print("Training the model...")
 for epoch in range(1, args.epochs+1):
     model.train()
     optimizer.zero_grad()
     total_loss_over_cells = 0
     cells = random.sample(train_i, k=k)
-    print(cells)
     batch = pyg_graph.clone()
     if args.prediction_mode == 'spatial':
         batch.expr.fill_(0.0)
@@ -1261,8 +1261,9 @@ for epoch in range(1, args.epochs+1):
         loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
         total_loss_over_cells += loss
 
-    print(f"Cells seen: {len(cells)}, average MSE:{total_loss_over_cells/len(cells)}")
-    loss_over_cells[i] = total_loss_over_cells/len(cells)
+    cells_seen += len(cells)
+    print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
+    loss_over_cells[cells_seen] = total_loss_over_cells/len(cells)
 
     total_loss_over_cells.backward()
     torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
@@ -1271,7 +1272,7 @@ for epoch in range(1, args.epochs+1):
 
     total_val_loss = 0
     total_r2 = 0
-    val_cells = random.sample(val_i, k=1000)
+    val_cells = random.sample(val_i, k=500)
     model.eval()
     val_batch = pyg_graph.clone()
     if args.prediction_mode == 'spatial':
@@ -1287,9 +1288,9 @@ for epoch in range(1, args.epochs+1):
 
 
     train_loss_over_epochs[epoch] = total_loss_over_cells/len(cells)
-    val_loss_over_epochs[epoch] = total_val_loss/1000
+    val_loss_over_epochs[epoch] = total_val_loss/500
     print(f"Epoch {epoch}, average training loss:{train_loss_over_epochs[epoch]}, average validation loss:{val_loss_over_epochs[epoch]}")
-    print(f"Validation R2: {total_r2/1000}")
+    print(f"Validation R2: {total_r2/500}")
 
 print("Testing the model...")
 total_test_loss = 0
