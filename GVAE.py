@@ -1260,9 +1260,9 @@ for epoch in range(1, args.epochs+1):
     for cell in cells:
         loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
         total_loss_over_cells += loss
-    if i % 50 == 0 and i != 0:
-        print(f"Cells seen: {i}, average MSE:{total_loss_over_cells/i}")
-        loss_over_cells[i] = total_loss_over_cells/i
+
+    print(f"Cells seen: {len(cells)}, average MSE:{total_loss_over_cells/len(cells)}")
+    loss_over_cells[i] = total_loss_over_cells/len(cells)
 
     total_loss_over_cells.backward()
     torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
