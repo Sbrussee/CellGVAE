@@ -3,7 +3,6 @@ import argparse
 import pickle
 from GVAE import *
 
-seqfish = read_dataset('seqfish')
 
 def objective(trial):
     # define hyperparameters to optimize
@@ -41,6 +40,8 @@ def objective(trial):
     args.latent = latent
     args.hidden = hidden
     args.dataset = 'seqfish'
+
+    dataset = read_dataset(args.dataset, args)
 
     #Define device based on cuda availability
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
