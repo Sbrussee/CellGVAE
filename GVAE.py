@@ -617,25 +617,25 @@ class GAE(nn.Module):
         self.args = args
 
     def forward(self, x, edge_index=None, cell_id=None, weight=None):
-        if args.variational == False:
-            if args.type == "Linear":
+        if self.args.variational == False:
+            if self.args.type == "Linear":
                 z = self.encoder(x)
-            elif args.type == "GCN":
+            elif self.args.type == "GCN":
                 z = self.encoder(x, edge_index, weight)
-            elif args.type == 'GAT':
+            elif self.args.type == 'GAT':
                 z = self.encoder(x, edge_index, weight)
-            elif args.type == 'SAGE':
+            elif self.args.type == 'SAGE':
                 z = self.encoder(x, edge_index)
             x_hat = decoder(z[cell_id, :])
             return x_hat
         else:
-            if args.type == "Linear":
+            if self.args.type == "Linear":
                 z, kl= self.encoder(x)
-            elif args.type == "GCN":
+            elif self.args.type == "GCN":
                 z, kl = self.encoder(x, edge_index, weight)
-            elif args.type == 'GAT':
+            elif self.args.type == 'GAT':
                 z, kl = self.encoder(x, edge_index, weight)
-            elif args.type == 'SAGE':
+            elif self.args.type == 'SAGE':
                 z, kl = self.encoder(x, edge_index)
             x_hat = decoder(z[cell_id, :])
             return x_hat, kl
@@ -874,7 +874,7 @@ def validate(model, val_data, x, cell_id, weight, args):
 
     return float(loss), x_hat
 
-def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args):
+def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None):
     if args.normalization == 'Normal' or args.normalization == 'Laplacian':
         print("Normalizing adjacency matrix...")
         N, L = normalize_adjacency_matrix(adj_mat)
