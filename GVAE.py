@@ -1310,6 +1310,28 @@ def test(model, test_i, pyg_graph, args):
     return test_dict
 
 if __name__ == '__main__':
+
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument('-v', "--variational", action='store_true', help="Whether to use a variational AE model", default=False)
+    arg_parser.add_argument('-a', "--adversarial", action="store_true", help="Whether to use a adversarial AE model", default=False)
+    arg_parser.add_argument('-d', "--dataset", help="Which dataset to use", required=True)
+    arg_parser.add_argument('-e', "--epochs", type=int, help="How many training epochs to use", default=1)
+    arg_parser.add_argument('-c', "--cells", type=int, default=-1,  help="How many cells to sample per epoch.")
+    arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE', 'Linear'], help="Model type to use (GCN, GAT, SAGE, Linear)", default='GCN')
+    arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression information only")
+    arg_parser.add_argument('-w', '--weight', action='store_true', help="Whether to use distance-weighted edges")
+    arg_parser.add_argument('-n', '--normalization', choices=["Laplacian", "Normal", "None"], default="None", help="Adjanceny matrix normalization strategy (Laplacian, Normal, None)")
+    arg_parser.add_argument('-ct', '--add_cell_types', action='store_true', help='Whether to include cell type information')
+    arg_parser.add_argument('-rm', '--remove_same_type_edges', action='store_true', help="Whether to remove edges between same cell types")
+    arg_parser.add_argument('-rms', '--remove_subtype_edges', action='store_true', help='Whether to remove edges between subtypes of the same cell')
+    arg_parser.add_argument('-aggr', '--aggregation_method', choices=['max', 'mean'], help='Which aggregation method to use for GraphSAGE')
+    arg_parser.add_argument('-th', '--threshold', type=float, help='Distance threshold to use when constructing graph. If neighbors is specified, threshold is ignored.', default=-1)
+    arg_parser.add_argument('-ng', '--neighbors', type=int, help='Number of neighbors per cell to select when constructing graph. If threshold is specified, neighbors are ignored.', default=-1)
+    arg_parser.add_argument('-ls', '--latent', type=int, help='Size of the latent space to use', default=4)
+    arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layers', default='64,32')
+    arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
+    args = arg_parser.parse_args()
+    
     dataset = read_dataset(args.dataset, args=args)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
