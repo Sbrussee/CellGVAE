@@ -21,25 +21,26 @@ def objective(trial):
     latent = trial.suggest_int('latent', 2, 12)
     hidden = trial.suggest_categorical('hidden', ['', '32', '64,32', '128,64,32', '256,128,64,32', '512,256,128,64,32'])
 
-    epochs = 50
-    cells = 1000
-    prediction_mode = 'full'
-    graph_summary = False
+    args.epochs = 50
+    args.cells = 1000
+    args.prediction_mode = 'full'
+    args.graph_summary = False
 
     # update argparse arguments with optimized hyperparameters
-    variational = variational
-    adversarial = adversarial
-    type = model_type
-    weight = weight
-    normalization = normalization
-    add_cell_types = add_cell_types
-    remove_same_type_edges = remove_same_type_edges
-    remove_subtype_edges = remove_subtype_edges
-    aggregation_method = aggregation_method
-    threshold = threshold
-    neighbors = neighbors
-    latent = latent
-    hidden = hidden
+    args.variational = variational
+    args.adversarial = adversarial
+    args.type = model_type
+    args.weight = weight
+    args.normalization = normalization
+    args.add_cell_types = add_cell_types
+    args.remove_same_type_edges = remove_same_type_edges
+    args.remove_subtype_edges = remove_subtype_edges
+    args.aggregation_method = aggregation_method
+    args.threshold = threshold
+    args.neighbors = neighbors
+    args.latent = latent
+    args.hidden = hidden
+    args.dataset = 'seqfish'
 
     #Define device based on cuda availability
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -56,22 +57,23 @@ def objective(trial):
 
     _, _, _, _ = variance_decomposition(dataset.X, celltype_key)
 
-    print("Constructing graph...")
-    dataset = construct_graph(dataset)
+    if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
+        print("Constructing graph...")
+        dataset = construct_graph(dataset, args=args)
 
     print("Converting graph to PyG format...")
-    if weight:
-        G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train')
+    if args.weight:
+        G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
     else:
-        G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train")
+        G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
 
     G = nx.convert_node_labels_to_integers(G)
 
     pyg_graph = pyg.utils.from_networkx(G)
 
     pyg_graph.to(device)
-    input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph)
-    model = retrieve_model(input_size, hidden_layers, latent_size)
+    input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
+    model = retrieve_model(input_size, hidden_layers, latent_size, args=args)
 
     print("Model:")
     print(model)
@@ -79,26 +81,21 @@ def objective(trial):
     model = model.to(device)
     pyg.transforms.ToDevice(device)
 
-    #Set optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-    if adversarial:
-        discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.001)
-
     #Set number of nodes to sample per epoch
-    if cells == -1:
+    if args.cells == -1:
         k = G.number_of_nodes()
     else:
-        k = cells
+        k = args.cells
 
     #Split dataset
     val_i = random.sample(G.nodes(), k=1000)
     test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
     train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
 
-    optimizer_list = get_optimizer_list()
+    optimizer_list = get_optimizer_list(args=args)
     # train and evaluate model with updated hyperparameters
     (loss_over_cells, train_loss_over_epochs,
-     val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list, train_i, val_i)
+     val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list, train_i, val_i, args=args)
 
     # Optimize for the best r2 validation found
     return np.max(list(r2_over_epochs.values))

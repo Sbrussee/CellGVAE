@@ -111,7 +111,6 @@ class SAGEEncoder(nn.Module):
             hlayers.append((SAGEConv(hidden_layers[-1], latent_size, aggr=aggregation_method), 'x, edge_index -> x'))
             hlayers.append((nn.ReLU(), 'x -> x'))
             hlayers.append((nn.Dropout(p=0.2), 'x -> x'))
-        print(hlayers)
         self.hlayers = Sequential('x, edge_index', hlayers)
 
     def forward(self, x, edge_index):
@@ -601,7 +600,7 @@ class GAE(nn.Module):
         forward: Feeds input x through the encoder to retrieve latent space z and
                  feed this to the decoder to retrieve predicted expression x_hat.
     """
-    def __init__(self, encoder, decoder):
+    def __init__(self, encoder, decoder, args):
         """Initialization function for GCN-based encoder, constructs 2 GCN
            convolutional layers, based on the specified layer sizes.
 
@@ -615,6 +614,7 @@ class GAE(nn.Module):
         super().__init__()
         self.encoder = encoder
         self.decoder = decoder
+        self.args = args
 
     def forward(self, x, edge_index=None, cell_id=None, weight=None):
         if args.variational == False:
@@ -642,7 +642,7 @@ class GAE(nn.Module):
 
 
 @torch.no_grad()
-def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_cells, celltype_key):
+def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_cells, celltype_key, args):
     TRAINING = False
     plt.figure()
     if args.variational:
@@ -680,7 +680,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     fig = plot.get_figure()
     fig.savefig(f'umap_latentspace_{name}.png', dpi=200)
 
-def train_model(model, train_data, x, cell_id, weight):
+def train_model(model, train_data, x, cell_id, weight, args):
     if args.adversarial:
         if args.variational:
             if args.type == 'GCN' or args.type == 'GAT':
@@ -723,9 +723,9 @@ def train_model(model, train_data, x, cell_id, weight):
         return loss, discriminator_loss
 
 @torch.no_grad()
-def apply_on_dataset(model, dataset, name, celltype_key):
-    dataset = construct_graph(dataset)
-    G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name)
+def apply_on_dataset(model, dataset, name, celltype_key, args):
+    dataset = construct_graph(dataset, args=args)
+    G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
     G = nx.convert_node_labels_to_integers(G)
     pyG_graph = pyg.utils.from_networkx(G)
     pyG_graph.to(device)
@@ -741,7 +741,7 @@ def apply_on_dataset(model, dataset, name, celltype_key):
         batch = pyG_graph.clone()
         batch.expr[cell, :].fill_(0.0)
         assert batch.expr[cell, :].sum() == 0
-        loss, x_hat = validate(model, batch, pyG_graph.expr[cell], cell, pyG_graph.weight)
+        loss, x_hat = validate(model, batch, pyG_graph.expr[cell], cell, pyG_graph.weight, args=args)
         pred_expr[cell, :] = x_hat.cpu().detach().numpy()
         total_loss += loss
     r2 = r2_score(true_expr, pred_expr)
@@ -833,7 +833,7 @@ def apply_on_dataset(model, dataset, name, celltype_key):
 
 
 @torch.no_grad()
-def validate(model, val_data, x, cell_id, weight):
+def validate(model, val_data, x, cell_id, weight, args):
     model.eval()
     if args.adversarial:
         if args.variational:
@@ -874,7 +874,7 @@ def validate(model, val_data, x, cell_id, weight):
 
     return float(loss), x_hat
 
-def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph'):
+def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args):
     if args.normalization == 'Normal' or args.normalization == 'Laplacian':
         print("Normalizing adjacency matrix...")
         N, L = normalize_adjacency_matrix(adj_mat)
@@ -1031,7 +1031,7 @@ def plot_val_curve(train_loss, val_loss, name):
     plt.savefig(name, dpi=300)
     plt.close()
 
-def construct_graph(dataset):
+def construct_graph(dataset, args):
     if args.threshold != float(-1):
         threshold = args.threshold
         sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
@@ -1109,7 +1109,7 @@ def graph_summary(G, name):
         pickle.dump(summary_dict, f)
 
 
-def read_dataset(name):
+def read_dataset(name, args):
     #Get current directory, make sure output directory exists
     dirpath = os.getcwd()
     outpath = dirpath + "/output"
@@ -1155,7 +1155,7 @@ def read_dataset(name):
 
     return dataset
 
-def set_layer_sizes(pyg_graph):
+def set_layer_sizes(pyg_graph, args):
     if ',' in args.hidden:
         lengths = [int(x) for x in args.hidden.split(',')]
         input_size, hidden_layers, latent_size = pyg_graph.expr.size()[1], lengths, args.latent
@@ -1166,7 +1166,7 @@ def set_layer_sizes(pyg_graph):
     return input_size, hidden_layers, latent_size
 
 
-def retrieve_model(input_size, hidden_layers, latent_size):
+def retrieve_model(input_size, hidden_layers, latent_size, args):
     #Build model architecture based on given arguments
     if not args.variational and args.type == 'GCN':
         encoder = GCNEncoder(input_size, hidden_layers, latent_size)
@@ -1192,7 +1192,7 @@ def retrieve_model(input_size, hidden_layers, latent_size):
     decoder = Decoder(input_size, hidden_layers, latent_size)
     #Build model
     if not args.adversarial:
-        model = GAE(encoder, decoder)
+        model = GAE(encoder, decoder, args)
     else:
         if args.variational:
             model = ARGVA(encoder, discriminator, decoder)
@@ -1200,7 +1200,7 @@ def retrieve_model(input_size, hidden_layers, latent_size):
             model = ARGA(encoder, discriminator, decoder)
     return model
 
-def get_optimizer_list():
+def get_optimizer_list(args):
     opt_list = []
     #Set optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
@@ -1210,7 +1210,7 @@ def get_optimizer_list():
         opt_list.append(discriminator_optimizer)
     return opt_list
 
-def train(model, pyg_graph, optimizer_list, train_i, val_i):
+def train(model, pyg_graph, optimizer_list, train_i, val_i, args):
     loss_over_cells = {}
     train_loss_over_epochs = {}
     val_loss_over_epochs = {}
@@ -1241,9 +1241,9 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i):
             assert batch.expr[cells, :].sum() < 0.1
         for cell in cells:
             if args.adversarial:
-                loss, discriminator_loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
+                loss, discriminator_loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args)
             else:
-                loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
+                loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args)
             total_loss_over_cells += loss
             if args.adversarial:
                 total_disc_loss += discriminator_loss
@@ -1272,7 +1272,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i):
             val_batch.expr.index_fill_(0, torch.tensor(val_cells).to(device), 0.0)
             assert val_batch.expr[val_cells, :].sum() < 0.1
         for cell in val_cells:
-            val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
+            val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args)
             total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
             total_val_loss += val_loss
 
@@ -1287,7 +1287,8 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i):
 
         return loss_over_cells, train_loss_over_epochs, val_loss_over_epochs, r2_over_epochs
 
-def test(model, test_i, pyg_graph):
+@torch.no_grad()
+def test(model, test_i, pyg_graph, args):
     print("Testing the model...")
     test_dict = {}
     total_test_loss = 0
@@ -1299,7 +1300,7 @@ def test(model, test_i, pyg_graph):
             assert test_batch.expr.sum() == 0
         test_batch.expr[cell, :].fill_(0.0)
         assert test_batch.expr[cell, :].sum() == 0
-        test_loss, x_hat = validate(model, test_batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
+        test_loss, x_hat = validate(model, test_batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args)
         total_r2_test += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
         total_test_loss += test_loss
 
@@ -1309,29 +1310,7 @@ def test(model, test_i, pyg_graph):
     return test_dict
 
 if __name__ == '__main__':
-    #Build argument parser
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument('-v', "--variational", action='store_true', help="Whether to use a variational AE model", default=False)
-    arg_parser.add_argument('-a', "--adversarial", action="store_true", help="Whether to use a adversarial AE model", default=False)
-    arg_parser.add_argument('-d', "--dataset", help="Which dataset to use", required=True)
-    arg_parser.add_argument('-e', "--epochs", type=int, help="How many training epochs to use", default=1)
-    arg_parser.add_argument('-c', "--cells", type=int, default=-1,  help="How many cells to sample per epoch.")
-    arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE', 'Linear'], help="Model type to use (GCN, GAT, SAGE, Linear)", default='GCN')
-    arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression information only")
-    arg_parser.add_argument('-w', '--weight', action='store_true', help="Whether to use distance-weighted edges")
-    arg_parser.add_argument('-n', '--normalization', choices=["Laplacian", "Normal", "None"], default="None", help="Adjanceny matrix normalization strategy (Laplacian, Normal, None)")
-    arg_parser.add_argument('-ct', '--add_cell_types', action='store_true', help='Whether to include cell type information')
-    arg_parser.add_argument('-rm', '--remove_same_type_edges', action='store_true', help="Whether to remove edges between same cell types")
-    arg_parser.add_argument('-rms', '--remove_subtype_edges', action='store_true', help='Whether to remove edges between subtypes of the same cell')
-    arg_parser.add_argument('-aggr', '--aggregation_method', choices=['max', 'mean'], help='Which aggregation method to use for GraphSAGE')
-    arg_parser.add_argument('-th', '--threshold', type=float, help='Distance threshold to use when constructing graph. If neighbors is specified, threshold is ignored.', default=-1)
-    arg_parser.add_argument('-ng', '--neighbors', type=int, help='Number of neighbors per cell to select when constructing graph. If threshold is specified, neighbors are ignored.', default=-1)
-    arg_parser.add_argument('-ls', '--latent', type=int, help='Size of the latent space to use', default=4)
-    arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layers', default='64,32')
-    arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
-    args = arg_parser.parse_args()
-
-    dataset = read_dataset(args.dataset)
+    dataset = read_dataset(args.dataset, args=args)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     #Empty cuda memory
@@ -1344,32 +1323,27 @@ if __name__ == '__main__':
 
     if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
         print("Constructing graph...")
-        dataset = construct_graph(dataset)
+        dataset = construct_graph(dataset, args=args)
 
     print("Converting graph to PyG format...")
     if args.weight:
-        G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train')
+        G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
     else:
-        G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train")
+        G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
 
     G = nx.convert_node_labels_to_integers(G)
 
     pyg_graph = pyg.utils.from_networkx(G)
 
     pyg_graph.to(device)
-    input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph)
-    model = retrieve_model(input_size, hidden_layers, latent_size)
+    input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
+    model = retrieve_model(input_size, hidden_layers, latent_size, args=args)
 
     print("Model:")
     print(model)
     #Send model to GPU
     model = model.to(device)
     pyg.transforms.ToDevice(device)
-
-    #Set optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-    if args.adversarial:
-        discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.001)
 
     #Set number of nodes to sample per epoch
     if args.cells == -1:
@@ -1382,10 +1356,10 @@ if __name__ == '__main__':
     test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
     train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
 
-    optimizer_list = get_optimizer_list()
+    optimizer_list = get_optimizer_list(args=args)
     (loss_over_cells, train_loss_over_epochs,
-     val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list, train_i, val_i)
-    test_dict = test(model, test_i, pyg_graph)
+     val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list, train_i, val_i, args=args)
+    test_dict = test(model, test_i, pyg_graph, args=args)
 
     if args.variational:
         subtype = 'variational'
@@ -1399,7 +1373,7 @@ if __name__ == '__main__':
     print("Plotting latent space...")
     #Plot the latent test set
     plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                device, name=f'set_{name}_{type}_{subtype}', number_of_cells=1000, celltype_key=celltype_key)
+                device, name=f'set_{name}_{type}_{subtype}', number_of_cells=1000, celltype_key=celltype_key, args=args)
     print("Applying model on entire dataset...")
     #Apply on dataset
-    apply_on_dataset(model, dataset, 'GVAE_GCN_SeqFISH', celltype_key)
+    apply_on_dataset(model, dataset, 'GVAE_GCN_SeqFISH', celltype_key, args=args)
