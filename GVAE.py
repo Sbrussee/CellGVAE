@@ -1153,7 +1153,7 @@ def read_dataset(name, args):
     print("Dataset:")
     print(dataset)
 
-    return dataset
+    return dataset, organism, name, celltype_key
 
 def set_layer_sizes(pyg_graph, args):
     if ',' in args.hidden:
@@ -1331,8 +1331,8 @@ if __name__ == '__main__':
     arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layers', default='64,32')
     arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
     args = arg_parser.parse_args()
-    
-    dataset = read_dataset(args.dataset, args=args)
+
+    dataset, organism, name, celltype_key = read_dataset(args.dataset, args=args)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     #Empty cuda memory

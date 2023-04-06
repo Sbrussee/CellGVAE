@@ -63,7 +63,7 @@ def objective(trial):
     args.hidden = hidden
     args.dataset = 'seqfish'
 
-    dataset = read_dataset(args.dataset, args)
+    dataset, organism, name, celltype_key = read_dataset(args.dataset, args)
 
     #Define device based on cuda availability
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
