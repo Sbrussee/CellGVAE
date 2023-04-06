@@ -1,4 +1,5 @@
 import optuna
+import optuna.logging as ol
 import argparse
 import pickle
 from GVAE import *
@@ -102,7 +103,7 @@ def objective(trial):
     return np.max(list(r2_over_epochs.values))
 
 if __name__ == "__main__":
-    optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
+    ol.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     study = optuna.create_study(sampler=optune.samplers.TPESampler(), pruner=optuna.pruners.HyperbandPruner())
     study.optimze(objective, n_trials=100)
     print(study)
