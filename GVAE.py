@@ -34,27 +34,6 @@ from datetime import datetime
 
 from tqdm import tqdm
 
-#Build argument parser
-arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument('-v', "--variational", action='store_true', help="Whether to use a variational AE model", default=False)
-arg_parser.add_argument('-a', "--adversarial", action="store_true", help="Whether to use a adversarial AE model", default=False)
-arg_parser.add_argument('-d', "--dataset", help="Which dataset to use", required=True)
-arg_parser.add_argument('-e', "--epochs", type=int, help="How many training epochs to use", default=1)
-arg_parser.add_argument('-c', "--cells", type=int, default=-1,  help="How many cells to sample per epoch.")
-arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE', 'Linear'], help="Model type to use (GCN, GAT, SAGE, Linear)", default='GCN')
-arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression information only")
-arg_parser.add_argument('-w', '--weight', action='store_true', help="Whether to use distance-weighted edges")
-arg_parser.add_argument('-n', '--normalization', choices=["Laplacian", "Normal", "None"], default="None", help="Adjanceny matrix normalization strategy (Laplacian, Normal, None)")
-arg_parser.add_argument('-ct', '--add_cell_types', action='store_true', help='Whether to include cell type information')
-arg_parser.add_argument('-rm', '--remove_same_type_edges', action='store_true', help="Whether to remove edges between same cell types")
-arg_parser.add_argument('-rms', '--remove_subtype_edges', action='store_true', help='Whether to remove edges between subtypes of the same cell')
-arg_parser.add_argument('-aggr', '--aggregation_method', choices=['max', 'mean'], help='Which aggregation method to use for GraphSAGE')
-arg_parser.add_argument('-th', '--threshold', type=float, help='Distance threshold to use when constructing graph. If neighbors is specified, threshold is ignored.', default=-1)
-arg_parser.add_argument('-ng', '--neighbors', type=int, help='Number of neighbors per cell to select when constructing graph. If threshold is specified, neighbors are ignored.', default=-1)
-arg_parser.add_argument('-ls', '--latent', type=int, help='Size of the latent space to use', default=4)
-arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layers', default='64,32')
-arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
-args = arg_parser.parse_args()
 #Define device based on cuda availability
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Found device: {device}")
@@ -1129,245 +1108,298 @@ def graph_summary(G, name):
     with open(f'graph_summary_{name}.pkl', 'wb') as f:
         pickle.dump(summary_dict, f)
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-#Empty cuda memory
-torch.cuda.empty_cache()
 
-#Get current directory, make sure output directory exists
-dirpath = os.getcwd()
-outpath = dirpath + "/output"
-if not os.path.exists(outpath):
-    os.mkdir("output")
+def read_dataset(name):
+    #Get current directory, make sure output directory exists
+    dirpath = os.getcwd()
+    outpath = dirpath + "/output"
+    if not os.path.exists(outpath):
+        os.mkdir("output")
 
-if not os.path.exists(dirpath+"/data"):
-    os.mkdir("data")
+    if not os.path.exists(dirpath+"/data"):
+        os.mkdir("data")
 
-if args.dataset == 'resolve':
-    if not os.path.exists(dirpath+"/data/resolve.h5ad"):
-        print("Downloading RESOLVE dataset:")
-        link = requests.get("https://dl01.irc.ugent.be/spatial/adata_objects/adataA1-1.h5ad")
-        with open('data/resolve.h5ad', 'wb') as f:
-            f.write(link.content)
-    dataset = sc.read_h5ad("data/resolve.h5ad")
-    name = 'resolve'
-    organism = 'mouse'
-    celltype_key = 'maxScores'
+    if args.dataset == 'resolve':
+        if not os.path.exists(dirpath+"/data/resolve.h5ad"):
+            print("Downloading RESOLVE dataset:")
+            link = requests.get("https://dl01.irc.ugent.be/spatial/adata_objects/adataA1-1.h5ad")
+            with open('data/resolve.h5ad', 'wb') as f:
+                f.write(link.content)
+        dataset = sc.read_h5ad("data/resolve.h5ad")
+        name = 'resolve'
+        organism = 'mouse'
+        celltype_key = 'maxScores'
 
-elif args.dataset == 'merfish':
-    dataset = sq.datasets.merfish("data/merfish")
-    organism='mouse'
-    name='mouse_merfish'
+    elif args.dataset == 'merfish':
+        dataset = sq.datasets.merfish("data/merfish")
+        organism='mouse'
+        name='mouse_merfish'
 
-elif args.dataset == 'seqfish':
-    dataset = sq.datasets.seqfish("data/seqfish")
-    organism='mouse'
-    name='mouse_seqfish'
-    celltype_key = 'celltype_mapped_refined'
+    elif args.dataset == 'seqfish':
+        dataset = sq.datasets.seqfish("data/seqfish")
+        organism='mouse'
+        name='mouse_seqfish'
+        celltype_key = 'celltype_mapped_refined'
 
 
-elif args.dataset == 'nanostring':
-    dataset = sq.read.nanostring(path="data/Lung5_Rep1",
-                       counts_file="Lung5_Rep1_exprMat_file.csv",
-                       meta_file="Lung5_Rep1_metadata_file.csv",
-                       fov_file="Lung5_Rep1_fov_positions_file.csv")
-    organism = 'human'
-    name= 'Lung5_Rep1'
+    elif args.dataset == 'nanostring':
+        dataset = sq.read.nanostring(path="data/Lung5_Rep1",
+                           counts_file="Lung5_Rep1_exprMat_file.csv",
+                           meta_file="Lung5_Rep1_metadata_file.csv",
+                           fov_file="Lung5_Rep1_fov_positions_file.csv")
+        organism = 'human'
+        name= 'Lung5_Rep1'
 
-print("Dataset:")
-print(dataset)
+    print("Dataset:")
+    print(dataset)
 
-if not isinstance(dataset.X, np.ndarray):
-    dataset.X = dataset.X.toarray()
+    return dataset
 
-_, _, _, _ = variance_decomposition(dataset.X, celltype_key)
-
-
-if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
-    print("Constructing graph...")
-    dataset = construct_graph(dataset)
-
-print("Converting graph to PyG format...")
-if args.weight:
-    G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train')
-else:
-    G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train")
-
-G = nx.convert_node_labels_to_integers(G)
-
-pyg_graph = pyg.utils.from_networkx(G)
-print(pyg_graph.expr.size())
-#TODO: Split into train and validation
-pyg_graph.to(device)
-#Set layer sizes
-if ',' in args.hidden:
-    lengths = [int(x) for x in args.hidden.split(',')]
-    input_size, hidden_layers, latent_size = pyg_graph.expr.size()[1], lengths, args.latent
-elif args.hidden == '':
-    input_size, hidden_layers, latent_size = pyg_graph.expr.size()[1], [], args.latent
-else:
-    input_size, hidden_layers, latent_size = pyg_graph.expr.size()[1], [int(args.hidden)], args.latent
-
-#Build model architecture based on given arguments
-if not args.variational and args.type == 'GCN':
-    encoder = GCNEncoder(input_size, hidden_layers, latent_size)
-elif not args.variational and args.type == 'GAT':
-    encoder = GATEncoder(input_size, hidden_layers, latent_size)
-elif not args.variational and args.type == 'SAGE':
-    encoder = SAGEEncoder(input_size, hidden_layers, latent_size, args.aggregation_method)
-elif not args.variational and args.type == 'Linear':
-    encoder = LinearEncoder(input_size, hidden_layers, latent_size)
-elif args.variational and args.type == 'GCN':
-    encoder = VGCNEncoder(input_size, hidden_layers, latent_size)
-elif args.variational and args.type == 'GAT':
-    encoder = VGATEncoder(input_size, hidden_layers, latent_size)
-elif args.variational and args.type == 'SAGE':
-    encoder = VSAGEEncoder(input_size, hidden_layers, latent_size, args.aggregation_method)
-elif args.variational and args.type == 'Linear':
-    encoder = VLinearEncoder(input_size, hidden_layers, latent_size)
-
-if args.adversarial:
-    discriminator = Discriminator(input_size, hidden_layers, latent_size)
-
-#Build Decoder
-decoder = Decoder(input_size, hidden_layers, latent_size)
-#Build model
-if not args.adversarial:
-    model = GAE(encoder, decoder)
-else:
-    if args.variational:
-        model = ARGVA(encoder, discriminator, decoder)
+def set_layer_sizes(pyg_graph):
+    if ',' in args.hidden:
+        lengths = [int(x) for x in args.hidden.split(',')]
+        input_size, hidden_layers, latent_size = pyg_graph.expr.size()[1], lengths, args.latent
+    elif args.hidden == '':
+        input_size, hidden_layers, latent_size = pyg_graph.expr.size()[1], [], args.latent
     else:
-        model = ARGA(encoder, discriminator, decoder)
-
-print("Model:")
-print(model)
-
-#Send model to GPU
-model = model.to(device)
-
-pyg.transforms.ToDevice(device)
-
-#Set optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-if args.adversarial:
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.001)
-
-#Set number of nodes to sample per epoch
-if args.cells == -1:
-    k = G.number_of_nodes()
-else:
-    k = args.cells
+        input_size, hidden_layers, latent_size = pyg_graph.expr.size()[1], [int(args.hidden)], args.latent
+    return input_size, hidden_layers, latent_size
 
 
-val_i = random.sample(G.nodes(), k=1000)
-test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
-train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
+def retrieve_model(input_size, hidden_layers, latent_size):
+    #Build model architecture based on given arguments
+    if not args.variational and args.type == 'GCN':
+        encoder = GCNEncoder(input_size, hidden_layers, latent_size)
+    elif not args.variational and args.type == 'GAT':
+        encoder = GATEncoder(input_size, hidden_layers, latent_size)
+    elif not args.variational and args.type == 'SAGE':
+        encoder = SAGEEncoder(input_size, hidden_layers, latent_size, args.aggregation_method)
+    elif not args.variational and args.type == 'Linear':
+        encoder = LinearEncoder(input_size, hidden_layers, latent_size)
+    elif args.variational and args.type == 'GCN':
+        encoder = VGCNEncoder(input_size, hidden_layers, latent_size)
+    elif args.variational and args.type == 'GAT':
+        encoder = VGATEncoder(input_size, hidden_layers, latent_size)
+    elif args.variational and args.type == 'SAGE':
+        encoder = VSAGEEncoder(input_size, hidden_layers, latent_size, args.aggregation_method)
+    elif args.variational and args.type == 'Linear':
+        encoder = VLinearEncoder(input_size, hidden_layers, latent_size)
 
-
-
-loss_over_cells = {}
-train_loss_over_epochs = {}
-val_loss_over_epochs = {}
-#Set normalization for training data expression
-#normalizer = NormalizeFeatures(["expr"])
-#Train the model
-cells_seen = 0
-print("Training the model...")
-for epoch in range(1, args.epochs+1):
-    model.train()
-    optimizer.zero_grad()
     if args.adversarial:
-        discriminator.train()
-        discriminator_optimizer.zero_grad()
-        total_disc_loss = 0
-    total_loss_over_cells = 0
-    cells = random.sample(train_i, k=k)
-    batch = pyg_graph.clone()
-    if args.prediction_mode == 'spatial':
-        batch.expr.fill_(0.0)
-        assert batch.expr.sum() < 0.1
+        discriminator = Discriminator(input_size, hidden_layers, latent_size)
+
+    #Build Decoder
+    decoder = Decoder(input_size, hidden_layers, latent_size)
+    #Build model
+    if not args.adversarial:
+        model = GAE(encoder, decoder)
     else:
-        batch.expr.index_fill_(0, torch.tensor(cells).to(device), 0.0)
-        assert batch.expr[cells, :].sum() < 0.1
-    for cell in cells:
-        if args.adversarial:
-            loss, discriminator_loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
+        if args.variational:
+            model = ARGVA(encoder, discriminator, decoder)
         else:
-            loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
-        total_loss_over_cells += loss
-        if args.adversarial:
-            total_disc_loss += discriminator_loss
-    cells_seen += len(cells)
-    print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
+            model = ARGA(encoder, discriminator, decoder)
+    return model
 
-    total_loss_over_cells.backward()
-    torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
-                                      error_if_nonfinite=True)
-    optimizer.step()
+def get_optimizer_list():
+    opt_list = []
+    #Set optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    opt_list.append(optimizer)
+    if args.adversarial:
+        discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.001)
+        opt_list.append(discriminator_optimizer)
+    return opt_list
+
+def train(model, pyg_graph, optimizer_list, train_i, val_i):
+    loss_over_cells = {}
+    train_loss_over_epochs = {}
+    val_loss_over_epochs = {}
+    r2_over_epochs = {}
+    cells_seen = 0
 
     if args.adversarial:
-        discriminator_loss.backward(retain_graph=True)
-        discriminator_optimizer.step()
-
-    loss_over_cells[cells_seen] = total_loss_over_cells.detach().cpu()/len(cells)
-    total_val_loss = 0
-    total_r2 = 0
-    val_cells = random.sample(val_i, k=500)
-    model.eval()
-    val_batch = pyg_graph.clone()
-    if args.prediction_mode == 'spatial':
-        val_batch.expr.fill_(0)
-        assert val_batch.expr.sum() < 0.1
+        optimizer, discriminator_optimizer = optimizer_list[0], optimizer_list[1]
     else:
-        val_batch.expr.index_fill_(0, torch.tensor(val_cells).to(device), 0.0)
-        assert val_batch.expr[val_cells, :].sum() < 0.1
-    for cell in val_cells:
-        val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
-        total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
-        total_val_loss += val_loss
+        optimizer = optimizer_list[0]
+
+    print("Training the model...")
+    for epoch in range(1, args.epochs+1):
+        model.train()
+        optimizer.zero_grad()
+        if args.adversarial:
+            discriminator.train()
+            discriminator_optimizer.zero_grad()
+            total_disc_loss = 0
+        total_loss_over_cells = 0
+        cells = random.sample(train_i, k=k)
+        batch = pyg_graph.clone()
+        if args.prediction_mode == 'spatial':
+            batch.expr.fill_(0.0)
+            assert batch.expr.sum() < 0.1
+        else:
+            batch.expr.index_fill_(0, torch.tensor(cells).to(device), 0.0)
+            assert batch.expr[cells, :].sum() < 0.1
+        for cell in cells:
+            if args.adversarial:
+                loss, discriminator_loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
+            else:
+                loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
+            total_loss_over_cells += loss
+            if args.adversarial:
+                total_disc_loss += discriminator_loss
+        cells_seen += len(cells)
+        print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
+
+        total_loss_over_cells.backward()
+        torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
+                                          error_if_nonfinite=True)
+        optimizer.step()
+
+        if args.adversarial:
+            discriminator_loss.backward(retain_graph=True)
+            discriminator_optimizer.step()
+
+        loss_over_cells[cells_seen] = total_loss_over_cells.detach().cpu()/len(cells)
+        total_val_loss = 0
+        total_r2 = 0
+        val_cells = random.sample(val_i, k=500)
+        model.eval()
+        val_batch = pyg_graph.clone()
+        if args.prediction_mode == 'spatial':
+            val_batch.expr.fill_(0)
+            assert val_batch.expr.sum() < 0.1
+        else:
+            val_batch.expr.index_fill_(0, torch.tensor(val_cells).to(device), 0.0)
+            assert val_batch.expr[val_cells, :].sum() < 0.1
+        for cell in val_cells:
+            val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
+            total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
+            total_val_loss += val_loss
 
 
-    train_loss_over_epochs[epoch] = total_loss_over_cells.detach().cpu()/len(cells)
-    val_loss_over_epochs[epoch] = total_val_loss/500
-    print(f"Epoch {epoch}, average training loss:{train_loss_over_epochs[epoch]}, average validation loss:{val_loss_over_epochs[epoch]}")
-    print(f"Validation R2: {total_r2/500}")
+        train_loss_over_epochs[epoch] = total_loss_over_cells.detach().cpu()/len(cells)
+        val_loss_over_epochs[epoch] = total_val_loss/500
+        print(f"Epoch {epoch}, average training loss:{train_loss_over_epochs[epoch]}, average validation loss:{val_loss_over_epochs[epoch]}")
+        print(f"Validation R2: {total_r2/500}")
+        r2_over_epochs[epoch] = total_r2/500
+        #Save trained model
+        torch.save(model, f"model_{args.type}.pt")
 
-print("Testing the model...")
-total_test_loss = 0
-total_r2_test = 0
-for cell in tqdm(random.sample(test_i, k=1000)):
-    test_batch = pyg_graph.clone()
-    if args.prediction_mode == 'spatial':
-        test_batch.expr.fill_(0.0)
-        assert test_batch.expr.sum() == 0
-    test_batch.expr[cell, :].fill_(0.0)
-    assert test_batch.expr[cell, :].sum() == 0
-    test_loss, x_hat = validate(model, test_batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
-    total_r2_test += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
-    total_test_loss += test_loss
+        return loss_over_cells, train_loss_over_epochs, val_loss_over_epochs, r2_over_epochs
 
-print(f"Test loss: {total_test_loss/1000}, Test R2 {total_r2_test/1000}")
-#Save trained model
-torch.save(model, f"model_{args.type}.pt")
-try:
-    torch.onnx.export(model, pyg_graph.expr, f'{args.type}_model.onnx', export_params=True,
-                  input_names=['neighborhood expression+spatial graph'], output_names=['cell expression'])
-except:
-    'ONNX FAILED'
+def test(model, test_i, pyg_graph):
+    print("Testing the model...")
+    test_dict = {}
+    total_test_loss = 0
+    total_r2_test = 0
+    for cell in tqdm(random.sample(test_i, k=1000)):
+        test_batch = pyg_graph.clone()
+        if args.prediction_mode == 'spatial':
+            test_batch.expr.fill_(0.0)
+            assert test_batch.expr.sum() == 0
+        test_batch.expr[cell, :].fill_(0.0)
+        assert test_batch.expr[cell, :].sum() == 0
+        test_loss, x_hat = validate(model, test_batch, pyg_graph.expr[cell], cell, pyg_graph.weight)
+        total_r2_test += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
+        total_test_loss += test_loss
 
-if args.variational:
-    subtype = 'variational'
-else:
-    subtype = 'non-variational'
 
-#Plot results
-print("Plotting training plots...")
-plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_{name}_{type}_{subtype}.png')
-plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_{name}_{type}_{subtype}.png')
-print("Plotting latent space...")
-#Plot the latent test set
-plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-            device, name=f'set_{name}_{type}_{subtype}', number_of_cells=1000, celltype_key=celltype_key)
-print("Applying model on entire dataset...")
-#Apply on dataset
-apply_on_dataset(model, dataset, 'GVAE_GCN_SeqFISH', celltype_key)
+    print(f"Test loss: {total_test_loss/1000}, Test R2 {total_r2_test/1000}")
+    test_dict['loss'], test_dict['r2'] = total_test_loss/1000, total_r2_test/1000
+    return test_dict
+
+if __name__ == '__main__':
+    #Build argument parser
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument('-v', "--variational", action='store_true', help="Whether to use a variational AE model", default=False)
+    arg_parser.add_argument('-a', "--adversarial", action="store_true", help="Whether to use a adversarial AE model", default=False)
+    arg_parser.add_argument('-d', "--dataset", help="Which dataset to use", required=True)
+    arg_parser.add_argument('-e', "--epochs", type=int, help="How many training epochs to use", default=1)
+    arg_parser.add_argument('-c', "--cells", type=int, default=-1,  help="How many cells to sample per epoch.")
+    arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE', 'Linear'], help="Model type to use (GCN, GAT, SAGE, Linear)", default='GCN')
+    arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression information only")
+    arg_parser.add_argument('-w', '--weight', action='store_true', help="Whether to use distance-weighted edges")
+    arg_parser.add_argument('-n', '--normalization', choices=["Laplacian", "Normal", "None"], default="None", help="Adjanceny matrix normalization strategy (Laplacian, Normal, None)")
+    arg_parser.add_argument('-ct', '--add_cell_types', action='store_true', help='Whether to include cell type information')
+    arg_parser.add_argument('-rm', '--remove_same_type_edges', action='store_true', help="Whether to remove edges between same cell types")
+    arg_parser.add_argument('-rms', '--remove_subtype_edges', action='store_true', help='Whether to remove edges between subtypes of the same cell')
+    arg_parser.add_argument('-aggr', '--aggregation_method', choices=['max', 'mean'], help='Which aggregation method to use for GraphSAGE')
+    arg_parser.add_argument('-th', '--threshold', type=float, help='Distance threshold to use when constructing graph. If neighbors is specified, threshold is ignored.', default=-1)
+    arg_parser.add_argument('-ng', '--neighbors', type=int, help='Number of neighbors per cell to select when constructing graph. If threshold is specified, neighbors are ignored.', default=-1)
+    arg_parser.add_argument('-ls', '--latent', type=int, help='Size of the latent space to use', default=4)
+    arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layers', default='64,32')
+    arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
+    args = arg_parser.parse_args()
+
+    dataset = read_dataset(args.dataset)
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    #Empty cuda memory
+    torch.cuda.empty_cache()
+
+    if not isinstance(dataset.X, np.ndarray):
+        dataset.X = dataset.X.toarray()
+
+    _, _, _, _ = variance_decomposition(dataset.X, celltype_key)
+
+    if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
+        print("Constructing graph...")
+        dataset = construct_graph(dataset)
+
+    print("Converting graph to PyG format...")
+    if args.weight:
+        G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train')
+    else:
+        G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train")
+
+    G = nx.convert_node_labels_to_integers(G)
+
+    pyg_graph = pyg.utils.from_networkx(G)
+
+    pyg_graph.to(device)
+    input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph)
+    model = retrieve_model(input_size, hidden_layers, latent_size)
+
+    print("Model:")
+    print(model)
+    #Send model to GPU
+    model = model.to(device)
+    pyg.transforms.ToDevice(device)
+
+    #Set optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    if args.adversarial:
+        discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.001)
+
+    #Set number of nodes to sample per epoch
+    if args.cells == -1:
+        k = G.number_of_nodes()
+    else:
+        k = args.cells
+
+    #Split dataset
+    val_i = random.sample(G.nodes(), k=1000)
+    test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
+    train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
+
+    optimizer_list = get_optimizer_list()
+    (loss_over_cells, train_loss_over_epochs,
+     val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list, train_i, val_i)
+    test_dict = test(model, test_i, pyg_graph)
+
+    if args.variational:
+        subtype = 'variational'
+    else:
+        subtype = 'non-variational'
+
+    #Plot results
+    print("Plotting training plots...")
+    plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_{name}_{type}_{subtype}.png')
+    plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_{name}_{type}_{subtype}.png')
+    print("Plotting latent space...")
+    #Plot the latent test set
+    plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
+                device, name=f'set_{name}_{type}_{subtype}', number_of_cells=1000, celltype_key=celltype_key)
+    print("Applying model on entire dataset...")
+    #Apply on dataset
+    apply_on_dataset(model, dataset, 'GVAE_GCN_SeqFISH', celltype_key)
