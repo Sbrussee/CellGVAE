@@ -120,8 +120,9 @@ def objective(trial):
     (loss_over_cells, train_loss_over_epochs,
      val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list, train_i, val_i, args=args)
 
-    # Optimize for the best r2 validation found
-    return np.max(list(r2_over_epochs.values()))
+    test_dict = test(model, test_i, pyg_graph, args=args)
+    # Optimize for the best r2 of test set
+    return np.max(list(test_dict.values()))
 
 if __name__ == "__main__":
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
