@@ -64,6 +64,7 @@ def objective(trial):
     args.hidden = hidden
     args.dataset = 'seqfish'
 
+    print(f"Parameters {args}")
     dataset, organism, name, celltype_key = read_dataset(args.dataset, args)
 
     #Define device based on cuda availability
