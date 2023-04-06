@@ -3,7 +3,7 @@ from optuna.visualization.matplotlib import plot_optimization_history, plot_para
 import logging
 import argparse
 import pickle
-from random
+import random
 from GVAE import *
 
 #Set seed for reproducability
