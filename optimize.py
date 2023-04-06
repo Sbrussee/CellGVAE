@@ -73,8 +73,6 @@ def objective(trial):
     #Empty cuda memory
     torch.cuda.empty_cache()
 
-    dataset = seqfish
-
     if not isinstance(dataset.X, np.ndarray):
         dataset.X = dataset.X.toarray()
 
