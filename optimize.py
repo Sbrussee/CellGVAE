@@ -104,8 +104,8 @@ def objective(trial):
 
 if __name__ == "__main__":
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
-    study = optuna.create_study(sampler=optune.samplers.TPESampler(), pruner=optuna.pruners.HyperbandPruner())
-    study.optimze(objective, n_trials=100)
+    study = optuna.create_study(sampler=optuna.samplers.TPESampler(), pruner=optuna.pruners.HyperbandPruner())
+    study.optimize(objective, n_trials=100)
     print(study)
     print(study.best_params)
     print(study.best_value)
