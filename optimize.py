@@ -3,64 +3,7 @@ import argparse
 import pickle
 from GVAE import *
 
-#Define device based on cuda availability
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f"Found device: {device}")
-#Set training mode to true
-TRAINING = True
-
-dataset = read_dataset('seqfish')
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-#Empty cuda memory
-torch.cuda.empty_cache()
-
-if not isinstance(dataset.X, np.ndarray):
-    dataset.X = dataset.X.toarray()
-
-_, _, _, _ = variance_decomposition(dataset.X, celltype_key)
-
-if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
-    print("Constructing graph...")
-    dataset = construct_graph(dataset)
-
-print("Converting graph to PyG format...")
-if args.weight:
-    G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train')
-else:
-    G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train")
-
-G = nx.convert_node_labels_to_integers(G)
-
-pyg_graph = pyg.utils.from_networkx(G)
-
-pyg_graph.to(device)
-input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph)
-model = retrieve_model(input_size, hidden_layers, latent_size)
-
-print("Model:")
-print(model)
-#Send model to GPU
-model = model.to(device)
-pyg.transforms.ToDevice(device)
-
-#Set optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-if args.adversarial:
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.001)
-
-#Set number of nodes to sample per epoch
-if args.cells == -1:
-    k = G.number_of_nodes()
-else:
-    k = args.cells
-
-#Split dataset
-val_i = random.sample(G.nodes(), k=1000)
-test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
-train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
-
-optimizer_list = get_optimizer_list()
+seqfish = read_dataset('seqfish')
 
 def objective(trial):
     # define hyperparameters to optimize
@@ -98,6 +41,62 @@ def objective(trial):
     args.latent = latent
     args.hidden = hidden
 
+    #Define device based on cuda availability
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Found device: {device}")
+    #Set training mode to true
+    TRAINING = True
+    #Empty cuda memory
+    torch.cuda.empty_cache()
+
+    dataset = seqfish
+
+    if not isinstance(dataset.X, np.ndarray):
+        dataset.X = dataset.X.toarray()
+
+    _, _, _, _ = variance_decomposition(dataset.X, celltype_key)
+
+    if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
+        print("Constructing graph...")
+        dataset = construct_graph(dataset)
+
+    print("Converting graph to PyG format...")
+    if args.weight:
+        G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train')
+    else:
+        G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train")
+
+    G = nx.convert_node_labels_to_integers(G)
+
+    pyg_graph = pyg.utils.from_networkx(G)
+
+    pyg_graph.to(device)
+    input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph)
+    model = retrieve_model(input_size, hidden_layers, latent_size)
+
+    print("Model:")
+    print(model)
+    #Send model to GPU
+    model = model.to(device)
+    pyg.transforms.ToDevice(device)
+
+    #Set optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    if args.adversarial:
+        discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.001)
+
+    #Set number of nodes to sample per epoch
+    if args.cells == -1:
+        k = G.number_of_nodes()
+    else:
+        k = args.cells
+
+    #Split dataset
+    val_i = random.sample(G.nodes(), k=1000)
+    test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
+    train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
+
+    optimizer_list = get_optimizer_list()
     # train and evaluate model with updated hyperparameters
     (loss_over_cells, train_loss_over_epochs,
      val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list, train_i, val_i)
