@@ -911,7 +911,7 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None
         graph_summary(G, name)
 
     #Add cell type information to the networkx graph
-    if args.add_cell_types == False:
+    if args.prediction_mode != 'full':
         G = remove_node_attributes(G, 'cell_type')
 
     #Calculate the weights for each edge
@@ -1318,10 +1318,9 @@ if __name__ == '__main__':
     arg_parser.add_argument('-e', "--epochs", type=int, help="How many training epochs to use", default=1)
     arg_parser.add_argument('-c', "--cells", type=int, default=-1,  help="How many cells to sample per epoch.")
     arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE', 'Linear'], help="Model type to use (GCN, GAT, SAGE, Linear)", default='GCN')
-    arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression information only")
+    arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial', 'expression'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression+spatial information only")
     arg_parser.add_argument('-w', '--weight', action='store_true', help="Whether to use distance-weighted edges")
     arg_parser.add_argument('-n', '--normalization', choices=["Laplacian", "Normal", "None"], default="None", help="Adjanceny matrix normalization strategy (Laplacian, Normal, None)")
-    arg_parser.add_argument('-ct', '--add_cell_types', action='store_true', help='Whether to include cell type information')
     arg_parser.add_argument('-rm', '--remove_same_type_edges', action='store_true', help="Whether to remove edges between same cell types")
     arg_parser.add_argument('-rms', '--remove_subtype_edges', action='store_true', help='Whether to remove edges between subtypes of the same cell')
     arg_parser.add_argument('-aggr', '--aggregation_method', choices=['max', 'mean'], help='Which aggregation method to use for GraphSAGE')
