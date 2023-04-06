@@ -24,7 +24,7 @@ def objective(trial):
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument('-v', "--variational", action='store_true', help="Whether to use a variational AE model", default=False)
     arg_parser.add_argument('-a', "--adversarial", action="store_true", help="Whether to use a adversarial AE model", default=False)
-    arg_parser.add_argument('-d', "--dataset", help="Which dataset to use", required=True)
+    arg_parser.add_argument('-d', "--dataset", help="Which dataset to use", required=False)
     arg_parser.add_argument('-e', "--epochs", type=int, help="How many training epochs to use", default=1)
     arg_parser.add_argument('-c', "--cells", type=int, default=-1,  help="How many cells to sample per epoch.")
     arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE', 'Linear'], help="Model type to use (GCN, GAT, SAGE, Linear)", default='GCN')
@@ -41,7 +41,7 @@ def objective(trial):
     arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layers', default='64,32')
     arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
     args = arg_parser.parse_args()
-    
+
     args.epochs = 50
     args.cells = 1000
     args.prediction_mode = 'full'
