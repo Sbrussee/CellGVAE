@@ -3,9 +3,11 @@ from optuna.visualization.matplotlib import plot_optimization_history, plot_para
 import logging
 import argparse
 import pickle
-from random import sample
+from random
 from GVAE import *
 
+#Set seed for reproducability
+random.seed(42)
 
 def objective(trial):
     # define hyperparameters to optimize
@@ -67,8 +69,8 @@ def objective(trial):
     dataset, organism, name, celltype_key = read_dataset(args.dataset, args)
 
     #Subsample to k=10000
-    idx = random.sample(dataset.shape[0], k=1000)
-    dataset = dataset[idx]
+    idx = random.sample(range(dataset.shape[0]), k=10000)
+    dataset = dataset[idx, :]
     #Define device based on cuda availability
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Found device: {device}")
