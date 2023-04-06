@@ -13,9 +13,9 @@ def objective(trial):
     model_type = trial.suggest_categorical('model_type', ['GCN', 'GAT', 'SAGE', 'Linear'])
     weight = trial.suggest_categorical('weight', [True, False])
     normalization = trial.suggest_categorical('normalization', ["Laplacian", "Normal", "None"])
-    add_cell_types = trial.suggest_categorical('add_cell_types', [True, False])
     remove_same_type_edges = trial.suggest_categorical('remove_same_type_edges', [True, False])
     remove_subtype_edges = trial.suggest_categorical('remove_subtype_edges', [True, False])
+    prediction_mode = trial.suggest_categorical('prediction_mode', ['full', 'spatial', 'expression'])
     aggregation_method = trial.suggest_categorical('aggregation_method', ['max', 'mean'])
     threshold = trial.suggest_int('threshold', 5, 100)
     neighbors = trial.suggest_int('neighbors', 2, 10)
@@ -44,7 +44,6 @@ def objective(trial):
 
     args.epochs = 50
     args.cells = 1000
-    args.prediction_mode = 'full'
     args.graph_summary = False
 
     # update argparse arguments with optimized hyperparameters
@@ -53,7 +52,7 @@ def objective(trial):
     args.type = model_type
     args.weight = weight
     args.normalization = normalization
-    args.add_cell_types = add_cell_types
+    args.prediction_mode = prediction_mode
     args.remove_same_type_edges = remove_same_type_edges
     args.remove_subtype_edges = remove_subtype_edges
     args.aggregation_method = aggregation_method
