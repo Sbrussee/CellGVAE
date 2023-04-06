@@ -987,7 +987,7 @@ def variance_decomposition(expr, celltype_key):
 
     intracell_var = np.sum(np.square(expr - y_bar_cell[:, np.newaxis]), axis=None)
 
-    y_bar_cell_broadcast = np.broadcast_to(y_bar_cell[:, np.newaxis], dataset.X.shape)
+    y_bar_cell_broadcast = np.broadcast_to(y_bar_cell[:, np.newaxis], expr.shape)
     intercell_var = np.sum(np.square(y_bar_cell_broadcast - y_bar_gene), axis=None)
     gene_var = np.sum(np.square(y_bar_gene - y_bar), axis=None)
 
