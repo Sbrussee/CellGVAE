@@ -1034,8 +1034,12 @@ def plot_val_curve(train_loss, val_loss, name):
 def construct_graph(dataset, args):
     if args.threshold != float(-1):
         threshold = args.threshold
-        sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
-                                radius=float(threshold), n_neighs=100)
+        if args.neighbors != -1:
+            sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
+                                    radius=float(threshold), n_neighs=args.neighbors)
+        else:
+            sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
+                                    radius=float(threshold), n_neighs=6)
     else:
         n_neighs = args.neighbors
         sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
