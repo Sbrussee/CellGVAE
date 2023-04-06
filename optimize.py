@@ -1,5 +1,5 @@
 import optuna
-from optuna.visualization.matplotlib import plot_optimization_history, plot_param_importance
+from optuna.visualization.matplotlib import plot_optimization_history, plot_param_importances
 import logging
 import argparse
 import pickle
@@ -132,9 +132,9 @@ if __name__ == "__main__":
     print(study.best_trial)
     with open("study.pkl", 'rb') as f:
         pickle.dump(study, f)
-    fig = plot_param_importance(study)
+    fig = plot_param_importances(study)
     fig.savefig("param_imp.png", dpi=300)
     plt.close()
-    fig = plot_optimization_history
+    fig = plot_optimization_history(study)
     fig.savefig("opt_hist.png", dpi=300)
     plt.close()
