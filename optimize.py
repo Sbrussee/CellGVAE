@@ -42,8 +42,8 @@ def objective(trial):
     arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
     args = arg_parser.parse_args()
 
-    args.epochs = 50
-    args.cells = 1000
+    args.epochs = 200
+    args.cells = 100
     args.graph_summary = False
 
     # update argparse arguments with optimized hyperparameters
