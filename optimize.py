@@ -119,11 +119,11 @@ def objective(trial):
      val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list, train_i, val_i, args=args)
 
     # Optimize for the best r2 validation found
-    return np.max(list(r2_over_epochs.values))
+    return np.max(list(r2_over_epochs.values()))
 
 if __name__ == "__main__":
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
-    study = optuna.create_study(sampler=optuna.samplers.TPESampler(), pruner=optuna.pruners.HyperbandPruner())
+    study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler(), pruner=optuna.pruners.HyperbandPruner())
     study.optimize(objective, n_trials=100)
     print(study)
     print(study.best_params)
