@@ -1158,7 +1158,6 @@ def read_dataset(name, args):
         print(dataset)
         organism='mouse'
         name='mouse_slideseq'
-        celltype_key =
 
 
     elif args.dataset == 'nanostring':
