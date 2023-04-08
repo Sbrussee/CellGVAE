@@ -916,11 +916,13 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None
 
     #Calculate the weights for each edge
     print("Weighting edges")
-    for edge in G.edges():
-        if args.normalization == 'Laplacian':
-            G[edge[0]][edge[1]]['weight'] = abs(1/G[edge[0]][edge[1]]['weight'])
-        else:
-            G[edge[0]][edge[1]]['weight'] = 1/G[edge[0]][edge[1]]['weight']
+
+    if args.weight:
+        for edge in G.edges():
+            if args.normalization == 'Laplacian':
+                G[edge[0]][edge[1]]['weight'] = abs(1/G[edge[0]][edge[1]]['weight'])
+            else:
+                G[edge[0]][edge[1]]['weight'] = 1/G[edge[0]][edge[1]]['weight']
 
 
     #Check graph
@@ -1011,6 +1013,8 @@ def normalize_adjacency_matrix(M):
     D = sp.diags(1/np.sqrt(d), 0, format='csr')  # Calculate diagonal matrix
     N = D @ M @ D
     L = D -N
+    print(type(N))
+    print(type(L))
     return N, L
 
 def plot_loss_curve(data, xlabel, name):
@@ -1147,6 +1151,13 @@ def read_dataset(name, args):
         organism='mouse'
         name='mouse_seqfish'
         celltype_key = 'celltype_mapped_refined'
+
+    elif args.dataset == 'slideseq':
+        dataset = sq.datsets.slideseqv2("data/slideseqv2")
+        print(dataset)
+        organism='mouse'
+        name='mouse_slideseq'
+        celltype_key =
 
 
     elif args.dataset == 'nanostring':
