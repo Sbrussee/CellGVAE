@@ -1043,7 +1043,7 @@ def construct_graph(dataset, args):
     else:
         if args.neighbors != -1:
             sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
-                                    n_neighs=float(args.neighbors), n_neighs=6)
+                                    n_neighs=float(args.neighbors))
         else:
             sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
                                     radius=20, n_neighs=6)
