@@ -1032,7 +1032,7 @@ def plot_val_curve(train_loss, val_loss, name):
     plt.close()
 
 def construct_graph(dataset, args):
-    if args.threshold != float(-1):
+    if args.threshold != -1:
         threshold = args.threshold
         if args.neighbors != -1:
             sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
@@ -1041,9 +1041,12 @@ def construct_graph(dataset, args):
             sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
                                     radius=float(threshold), n_neighs=6)
     else:
-        n_neighs = args.neighbors
-        sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
-                                n_neighs=int(n_neighs), delaunay=False)
+        if args.neighbors != -1:
+            sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
+                                    n_neighs=float(args.neighbors), n_neighs=6)
+        else:
+            sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
+                                    radius=20, n_neighs=6)
     return dataset
 
 def plot_degree(degree_dist, type='degree', graph_name=''):
