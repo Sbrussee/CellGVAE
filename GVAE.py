@@ -1176,11 +1176,11 @@ def read_dataset(name, args):
 def set_layer_sizes(pyg_graph, args):
     if ',' in args.hidden:
         lengths = [int(x) for x in args.hidden.split(',')]
-        input_size, hidden_layers, latent_size = pyg_graph.expr.size()[1], lengths, args.latent
+        input_size, hidden_layers, latent_size = pyg_graph.expr.shape[1], lengths, args.latent
     elif args.hidden == '':
-        input_size, hidden_layers, latent_size = pyg_graph.expr.size()[1], [], args.latent
+        input_size, hidden_layers, latent_size = pyg_graph.expr.shape[1], [], args.latent
     else:
-        input_size, hidden_layers, latent_size = pyg_graph.expr.size()[1], [int(args.hidden)], args.latent
+        input_size, hidden_layers, latent_size = pyg_graph.expr.shape[1], [int(args.hidden)], args.latent
     return input_size, hidden_layers, latent_size
 
 
