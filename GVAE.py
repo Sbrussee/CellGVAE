@@ -879,13 +879,13 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None
         print("Normalizing adjacency matrix...")
         N, L = normalize_adjacency_matrix(adj_mat)
         if args.normalization == 'Normal':
-            G = nx.from_numpy_array(N.toarray())
+            G = nx.from_scipy_sparse_array(N)
         else:
-            G = nx.from_numpy_array(L.toarray())
+            G = nx.from_scipy_sparse_array(L)
 
     else:
         #Make graph from adjanceny matrix
-        G = nx.from_numpy_array(adj_mat.toarray())
+        G = nx.from_scipy_sparse_array(adj_mat)
 
     print("Setting node attributes")
     nx.set_node_attributes(G, {i: {"expr" : x, 'cell_type' : y} for i, x in enumerate(expr_mat) for i, y in enumerate(cell_types)})
@@ -1010,11 +1010,12 @@ def variance_decomposition(expr, celltype_key):
 
 def normalize_adjacency_matrix(M):
     d = M.sum(axis=1).A.flatten() + 1e-7  # Get row sums as a dense array
-    D = sp.diags(1/np.sqrt(d), 0, format='csr')  # Calculate diagonal matrix
+    D_data = np.reciprocal(np.sqrt(d))
+    D_row_indices = np.arange(M.shape[0], dtype=np.int32)
+    D_col_indices = np.arange(M.shape[1], dtype=np.int32)
+    D = sp.csr_matrix((D_data, (D_row_indices, D_col_indices)), shape=M.shape) # Calculate diagonal matrix
     N = D @ M @ D
-    L = D -N
-    print(type(N))
-    print(type(L))
+    L = D - N
     return N, L
 
 def plot_loss_curve(data, xlabel, name):
