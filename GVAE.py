@@ -1226,7 +1226,7 @@ def retrieve_model(input_size, hidden_layers, latent_size, args):
             model = ARGA(encoder, discriminator, decoder)
     return model
 
-def get_optimizer_list(args):
+def get_optimizer_list(model, args):
     opt_list = []
     #Set optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
@@ -1403,7 +1403,7 @@ if __name__ == '__main__':
     test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
     train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
 
-    optimizer_list = get_optimizer_list(args=args)
+    optimizer_list = get_optimizer_list(model=model, args=args)
     (loss_over_cells, train_loss_over_epochs,
      val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list, train_i, val_i, args=args)
     test_dict = test(model, test_i, pyg_graph, args=args)
