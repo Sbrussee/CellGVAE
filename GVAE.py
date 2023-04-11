@@ -874,7 +874,7 @@ def validate(model, val_data, x, cell_id, weight, args):
 
     return float(loss), x_hat
 
-def normalize_weights(graph, args):
+def normalize_weights(G, args):
     sigma = 0.5
     for edge in G.edges():
         if args.normalization == 'Laplacian':
