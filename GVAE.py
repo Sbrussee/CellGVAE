@@ -873,7 +873,13 @@ def validate(model, val_data, x, cell_id, weight, args):
         loss += model.reg_loss(z[cell_id])
 
     return float(loss), x_hat
-
+def normalize_weights(graph):
+    sigma = 0.5
+    for edge in G.edges():
+        if args.normalization == 'Laplacian':
+            G[edge[0]][edge[1]]['weight'] = abs(np.exp(-G[edge[0]][edge[1]]['weight']**2 / sigma**2))
+        else:
+            G[edge[0]][edge[1]]['weight'] = np.exp(-G[edge[0]][edge[1]]['weight']**2 / sigma**2)
 def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None):
     if args.normalization == 'Normal' or args.normalization == 'Laplacian':
         print("Normalizing adjacency matrix...")
