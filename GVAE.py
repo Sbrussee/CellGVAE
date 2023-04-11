@@ -1174,6 +1174,8 @@ def read_dataset(name, args):
     return dataset, organism, name, celltype_key
 
 def set_layer_sizes(pyg_graph, args):
+    print(pyg_graph.expr)
+    print(type(pyg_graph.expr))
     if ',' in args.hidden:
         lengths = [int(x) for x in args.hidden.split(',')]
         input_size, hidden_layers, latent_size = pyg_graph.expr.shape[1], lengths, args.latent
