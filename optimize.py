@@ -46,16 +46,17 @@ print(f"Parameters {args}")
 dataset, organism, name, celltype_key = read_dataset(args.dataset, args)
 
 #Subsample to k=10000
-idx = random.sample(range(dataset.shape[0]), k=10000)
-dataset = dataset[idx, :]
+#idx = random.sample(range(dataset.shape[0]), k=10000)
+#dataset = dataset[idx, :]
+
 #Define device based on cuda availability
-device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+print(torch.cuda.device_count())
+device = torch.device(torch.cuda.get_device_name(1) if torch.cuda.is_available() else 'cpu')
 print(f"Found device: {device}")
 #Set training mode to true
 TRAINING = True
 #Empty cuda memory
 torch.cuda.empty_cache()
-os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 
 #if not isinstance(dataset.X, np.ndarray):
