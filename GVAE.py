@@ -900,7 +900,7 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None
         G = nx.from_scipy_sparse_array(adj_mat)
 
     print("Setting node attributes")
-    nx.set_node_attributes(G, {i: {"expr" : x, 'cell_type' : y} for i, x in enumerate(expr_mat.toarray()) for i, y in enumerate(cell_types)})
+    nx.set_node_attributes(G, {i: {"expr" : x, 'cell_type' : y} for i, x in enumerate(np.float32(expr_mat.toarray())) for i, y in enumerate(cell_types)})
 
     #Remove edges between same-type nodes
     if args.remove_same_type_edges:
@@ -1390,7 +1390,6 @@ if __name__ == '__main__':
     pyg_graph = pyg.utils.from_networkx(G)
 
     pyg_graph.to(device)
-    pyg_graph.to(torch.float)
     input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
     model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
 
