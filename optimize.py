@@ -37,8 +37,8 @@ args.normalization = 'Normal'
 args.remove_same_type_edges = True
 args.remove_subtype_edges = False
 args.prediction_mode = 'Full'
-args.theshold = 30
-args.neighbors = -1
+args.theshold = -1
+args.neighbors = 6
 args.dataset = 'seqfish'
 
 print(f"Parameters {args}")
@@ -72,6 +72,11 @@ else:
 
 G = nx.convert_node_labels_to_integers(G)
 
+print("Converting graph to PyTorch Geometric dataset...")
+pyg_graph = pyg.utils.from_networkx(G)
+
+pyg_graph.to(device)
+
 def objective(trial):
     # define hyperparameters to optimize
     variational = trial.suggest_categorical('variational', [True, False])
@@ -96,9 +101,7 @@ def objective(trial):
     args.latent = latent
     args.hidden = hidden
 
-    pyg_graph = pyg.utils.from_networkx(G)
-
-    pyg_graph.to(device)
+    print("Constructing model...")
     input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
     model = retrieve_model(input_size, hidden_layers, latent_size, args=args)
 
@@ -113,6 +116,7 @@ def objective(trial):
         k = G.number_of_nodes()
     else:
         k = args.cells
+
 
     #Split dataset
     val_i = random.sample(G.nodes(), k=1000)
