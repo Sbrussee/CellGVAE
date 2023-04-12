@@ -179,8 +179,8 @@ class VSAGEEncoder(nn.Module):
         if self.num_hidden_layers > 0:
             self.hlayers = Sequential('x, edge_index', self.hlayers)
         self.N = torch.distributions.Normal(0, 1)
-        self.N.loc = self.N.loc.cuda()
-        self.N.scale = self.N.scale.cuda()
+        self.N.loc = self.N.loc.cuda(device)
+        self.N.scale = self.N.scale.cuda(device)
 
     def forward(self, x, edge_index):
         if self.num_hidden_layers > 0:
@@ -280,8 +280,8 @@ class VGATEncoder(nn.Module):
         if self.num_hidden_layers > 0:
             self.hlayers = Sequential('x, edge_index, weight', self.hlayers)
         self.N = torch.distributions.Normal(0, 1)
-        self.N.loc = self.N.loc.cuda()
-        self.N.scale = self.N.scale.cuda()
+        self.N.loc = self.N.loc.cuda(device)
+        self.N.scale = self.N.scale.cuda(device)
 
     def forward(self, x, edge_index, weight):
         if self.num_hidden_layers > 0:
@@ -383,8 +383,8 @@ class VGCNEncoder(nn.Module):
         if self.num_hidden_layers > 0:
             self.hlayers = Sequential('x, edge_index, weight', self.hlayers)
         self.N = torch.distributions.Normal(0, 1)
-        self.N.loc = self.N.loc.cuda()
-        self.N.scale = self.N.scale.cuda()
+        self.N.loc = self.N.loc.cuda(device)
+        self.N.scale = self.N.scale.cuda(device)
 
     def forward(self, x, edge_index, weight):
         if self.num_hidden_layers > 0:
@@ -480,8 +480,8 @@ class VLinearEncoder(nn.Module):
             self.linear_mu = nn.Linear(hidden_layers[-1], latent_size)
             self.linear_logstd = nn.Linear(hidden_layers[-1], latent_size)
         self.N = torch.distributions.Normal(0, 1)
-        self.N.loc = self.N.loc.cuda()
-        self.N.scale = self.N.scale.cuda()
+        self.N.loc = self.N.loc.cuda(device)
+        self.N.scale = self.N.scale.cuda(device)
 
 
     def forward(self, x):
