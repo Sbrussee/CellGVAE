@@ -35,7 +35,7 @@ from datetime import datetime
 from tqdm import tqdm
 
 #Define device based on cuda availability
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 print(f"Found device: {device}")
 #Set training mode to true
 TRAINING = True
@@ -1366,7 +1366,7 @@ if __name__ == '__main__':
 
     dataset, organism, name, celltype_key = read_dataset(args.dataset, args=args)
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
     #Empty cuda memory
     torch.cuda.empty_cache()
 
