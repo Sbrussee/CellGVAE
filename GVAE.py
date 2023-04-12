@@ -1046,14 +1046,14 @@ def construct_graph(dataset, args):
         threshold = args.threshold
         if args.neighbors != -1:
             sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
-                                    radius=float(threshold), n_neighs=args.neighbors)
+                                    radius=float(threshold), n_neighs=int(args.neighbors))
         else:
             sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
                                     radius=float(threshold), n_neighs=6)
     else:
         if args.neighbors != -1:
             sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
-                                    n_neighs=float(args.neighbors))
+                                    n_neighs=int(args.neighbors))
         else:
             sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
                                     radius=20, n_neighs=6)
