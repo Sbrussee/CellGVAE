@@ -1387,8 +1387,8 @@ if __name__ == '__main__':
 
     G = nx.convert_node_labels_to_integers(G)
 
-    pyg_graph = pyg.utils.from_networkx(G, dtype=torch.float32)
-
+    pyg_graph = pyg.utils.from_networkx(G)
+    pyg_graph.expr = pygraph.expr.float()
     pyg_graph.to(device)
     input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
     model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
