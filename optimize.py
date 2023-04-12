@@ -55,6 +55,7 @@ print(f"Found device: {device}")
 TRAINING = True
 #Empty cuda memory
 torch.cuda.empty_cache()
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = '16384'
 
 #if not isinstance(dataset.X, np.ndarray):
