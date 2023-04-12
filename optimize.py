@@ -90,6 +90,7 @@ test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000
 train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
 
 def objective(trial):
+    torch.cuda.empty_cache()
     # define hyperparameters to optimize
     variational = trial.suggest_categorical('variational', [True, False])
     adversarial = trial.suggest_categorical('adversarial', [True, False])
@@ -122,7 +123,6 @@ def objective(trial):
     #Send model to GPU
     model = model.to(device)
     model.float()
-    pyg.transforms.ToDevice(device)
 
     #Set number of nodes to sample per epoch
     if args.cells == -1:
