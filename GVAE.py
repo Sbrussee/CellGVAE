@@ -1221,12 +1221,12 @@ def retrieve_model(input_size, hidden_layers, latent_size, args):
     decoder = Decoder(input_size, hidden_layers, latent_size)
     #Build model
     if not args.adversarial:
-        model = GAE(encoder, decoder, args)
+        model = GAE(encoder.float(), decoder.float(), args)
     else:
         if args.variational:
-            model = ARGVA(encoder, discriminator, decoder)
+            model = ARGVA(encoder.float(), discriminator.float(), decoder.float())
         else:
-            model = ARGA(encoder, discriminator, decoder)
+            model = ARGA(encoder.float(), discriminator.float(), decoder.float())
     if args.adversarial:
         return model, discriminator
     else:
@@ -1315,10 +1315,10 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         print(f"Epoch {epoch}, average training loss:{train_loss_over_epochs[epoch]}, average validation loss:{val_loss_over_epochs[epoch]}")
         print(f"Validation R2: {total_r2/500}")
         r2_over_epochs[epoch] = total_r2/500
-        #Save trained model
-        torch.save(model, f"model_{args.type}.pt")
+    #Save trained model
+    torch.save(model, f"model_{args.type}.pt")
 
-        return loss_over_cells, train_loss_over_epochs, val_loss_over_epochs, r2_over_epochs
+    return loss_over_cells, train_loss_over_epochs, val_loss_over_epochs, r2_over_epochs
 
 @torch.no_grad()
 def test(model, test_i, pyg_graph, args, discriminator=None):
