@@ -1228,7 +1228,7 @@ def retrieve_model(input_size, hidden_layers, latent_size, args):
         else:
             model = ARGA(encoder.float(), discriminator.float(), decoder.float())
     if args.adversarial:
-        return model, discriminator
+        return model, discriminator.float()
     else:
         return model, None
 
