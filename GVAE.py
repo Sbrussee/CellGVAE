@@ -875,7 +875,7 @@ def validate(model, val_data, x, cell_id, weight, args):
     return float(loss), x_hat
 
 def normalize_weights(G, args):
-    sigma = 0.5
+    sigma = 0.2
     for edge in G.edges():
         if args.normalization == 'Laplacian':
             G[edge[0]][edge[1]]['weight'] = abs(np.exp(-G[edge[0]][edge[1]]['weight']**2 / sigma**2))
