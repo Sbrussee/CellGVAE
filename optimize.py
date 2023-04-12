@@ -79,6 +79,7 @@ pyg_graph.weight = pyg_graph.weight.float()
 pyg_graph.to(device)
 
 def objective(trial):
+    torch.cuda.empty_cache()
     # define hyperparameters to optimize
     variational = trial.suggest_categorical('variational', [True, False])
     adversarial = trial.suggest_categorical('adversarial', [True, False])
