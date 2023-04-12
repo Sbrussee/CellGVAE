@@ -881,6 +881,7 @@ def normalize_weights(G, args):
             G[edge[0]][edge[1]]['weight'] = abs(np.exp(-G[edge[0]][edge[1]]['weight']**2 / sigma**2))
         else:
             G[edge[0]][edge[1]]['weight'] = np.exp(-G[edge[0]][edge[1]]['weight']**2 / sigma**2)
+    return G
 
 def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None):
     if args.normalization == 'Normal' or args.normalization == 'Laplacian':
