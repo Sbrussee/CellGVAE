@@ -1242,7 +1242,7 @@ def get_optimizer_list(model, args):
         opt_list.append(discriminator_optimizer)
     return opt_list
 
-def train(model, pyg_graph, optimizer_list, train_i, val_i, args, discriminator=None):
+def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminator=None):
     loss_over_cells = {}
     train_loss_over_epochs = {}
     val_loss_over_epochs = {}
@@ -1413,7 +1413,7 @@ if __name__ == '__main__':
     optimizer_list = get_optimizer_list(model=model, args=args)
     (loss_over_cells, train_loss_over_epochs,
      val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
-                                                   train_i, val_i, args=args, discriminator=discriminator)
+                                                   train_i, val_i, k=k, args=args, discriminator=discriminator)
     test_dict = test(model, test_i, pyg_graph, args=args)
 
     if args.variational:

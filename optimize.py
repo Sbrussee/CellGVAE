@@ -127,7 +127,7 @@ def objective(trial):
     # train and evaluate model with updated hyperparameters
     (loss_over_cells, train_loss_over_epochs,
      val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
-                                                    train_i, val_i, args=args, discriminator=discriminator)
+                                                    train_i, val_i, k=k, args=args, discriminator=discriminator)
 
     test_dict = test(model, test_i, pyg_graph, args=args)
     # Optimize for the best r2 of test set
