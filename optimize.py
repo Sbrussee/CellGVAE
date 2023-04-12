@@ -4,6 +4,7 @@ import logging
 import argparse
 import pickle
 import random
+import os
 from GVAE import *
 
 #Set seed for reproducability
@@ -54,7 +55,7 @@ print(f"Found device: {device}")
 TRAINING = True
 #Empty cuda memory
 torch.cuda.empty_cache()
-torch.cuda.set_per_process_memory_fraction(0.9)
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = '16384'
 
 #if not isinstance(dataset.X, np.ndarray):
 #    dataset.X = dataset.X.toarray()
