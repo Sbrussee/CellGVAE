@@ -1264,7 +1264,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             total_disc_loss = 0
         total_loss_over_cells = 0
         cells = random.sample(train_i, k=k)
-        batch = pyg_graph.clone()
+        batch = pyg_graph.clone().to(torch.float32)
         if args.prediction_mode == 'spatial':
             batch.expr.fill_(0.0)
             assert batch.expr.sum() < 0.1
