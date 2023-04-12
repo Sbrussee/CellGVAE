@@ -37,7 +37,7 @@ from tqdm import tqdm
 print(torch.cuda.device_count())
 print([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())])
 
-device = torch.device("cuda:1" if torch.cuda.is_available() else 'cpu')
+device = torch.device("cuda:6" if torch.cuda.is_available() else 'cpu')
 print(f"Found device: {device}")
 #Set training mode to true
 TRAINING = True
