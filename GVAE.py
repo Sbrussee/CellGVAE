@@ -932,9 +932,12 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None
 
     #Check graph
     print(G)
-    print(G.nodes[2])
-    for e in G.edges(0):
+    for node in G.nodes:
+        print(node)
+        break
+    for e in G.edges():
         print(G[e[0]][e[1]])
+        break
     return G, isolates
 
 def remove_same_cell_type_edges(G):
