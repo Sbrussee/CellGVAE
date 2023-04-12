@@ -123,7 +123,7 @@ def objective(trial):
     test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
     train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
 
-    optimizer_list = get_optimizer_list(args=args)
+    optimizer_list = get_optimizer_list(model=model,args=args)
     # train and evaluate model with updated hyperparameters
     (loss_over_cells, train_loss_over_epochs,
      val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list, train_i, val_i, args=args)
