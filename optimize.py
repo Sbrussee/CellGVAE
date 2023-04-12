@@ -103,7 +103,7 @@ def objective(trial):
 
     print("Constructing model...")
     input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
-    model = retrieve_model(input_size, hidden_layers, latent_size, args=args)
+    model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
 
     print("Model:")
     print(model)
@@ -126,7 +126,8 @@ def objective(trial):
     optimizer_list = get_optimizer_list(model=model,args=args)
     # train and evaluate model with updated hyperparameters
     (loss_over_cells, train_loss_over_epochs,
-     val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list, train_i, val_i, args=args)
+     val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+                                                    train_i, val_i, args=args, discriminator=discriminator)
 
     test_dict = test(model, test_i, pyg_graph, args=args)
     # Optimize for the best r2 of test set

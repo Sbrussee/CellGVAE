@@ -683,7 +683,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     fig = plot.get_figure()
     fig.savefig(f'umap_latentspace_{name}.png', dpi=200)
 
-def train_model(model, train_data, x, cell_id, weight, args):
+def train_model(model, train_data, x, cell_id, weight, args, discriminator=None):
     if args.adversarial:
         if args.variational:
             if args.type == 'GCN' or args.type == 'GAT':
@@ -1227,7 +1227,10 @@ def retrieve_model(input_size, hidden_layers, latent_size, args):
             model = ARGVA(encoder, discriminator, decoder)
         else:
             model = ARGA(encoder, discriminator, decoder)
-    return model
+    if args.adversarial:
+        return model, discriminator
+    else:
+        return model, None
 
 def get_optimizer_list(model, args):
     opt_list = []
@@ -1239,7 +1242,7 @@ def get_optimizer_list(model, args):
         opt_list.append(discriminator_optimizer)
     return opt_list
 
-def train(model, pyg_graph, optimizer_list, train_i, val_i, args):
+def train(model, pyg_graph, optimizer_list, train_i, val_i, args, discriminator=None):
     loss_over_cells = {}
     train_loss_over_epochs = {}
     val_loss_over_epochs = {}
@@ -1270,9 +1273,10 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, args):
             assert batch.expr[cells, :].sum() < 0.1
         for cell in cells:
             if args.adversarial:
-                loss, discriminator_loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args)
+                loss, discriminator_loss = train_model(model, batch, pyg_graph.expr[cell],
+                 cell, pyg_graph.weight, args=args, discriminator=discriminator)
             else:
-                loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args)
+                loss = train_model(model, batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args, discriminator=discriminator)
             total_loss_over_cells += loss
             if args.adversarial:
                 total_disc_loss += discriminator_loss
@@ -1387,7 +1391,7 @@ if __name__ == '__main__':
 
     pyg_graph.to(device)
     input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
-    model = retrieve_model(input_size, hidden_layers, latent_size, args=args)
+    model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
 
     print("Model:")
     print(model)
@@ -1408,7 +1412,8 @@ if __name__ == '__main__':
 
     optimizer_list = get_optimizer_list(model=model, args=args)
     (loss_over_cells, train_loss_over_epochs,
-     val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list, train_i, val_i, args=args)
+     val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+                                                   train_i, val_i, args=args, discriminator=discriminator)
     test_dict = test(model, test_i, pyg_graph, args=args)
 
     if args.variational:
