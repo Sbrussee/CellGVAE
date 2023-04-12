@@ -48,7 +48,7 @@ dataset, organism, name, celltype_key = read_dataset(args.dataset, args)
 idx = random.sample(range(dataset.shape[0]), k=10000)
 dataset = dataset[idx, :]
 #Define device based on cuda availability
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 print(f"Found device: {device}")
 #Set training mode to true
 TRAINING = True
