@@ -629,7 +629,7 @@ class GAE(nn.Module):
                 z = self.encoder(x, edge_index, weight)
             elif self.args.type == 'SAGE':
                 z = self.encoder(x, edge_index)
-            x_hat = decoder(z[cell_id, :])
+            x_hat = self.decoder(z[cell_id, :])
             return x_hat
         else:
             if self.args.type == "Linear":
@@ -640,7 +640,7 @@ class GAE(nn.Module):
                 z, kl = self.encoder(x, edge_index, weight)
             elif self.args.type == 'SAGE':
                 z, kl = self.encoder(x, edge_index)
-            x_hat = decoder(z[cell_id, :])
+            x_hat = self.decoder(z[cell_id, :])
             return x_hat, kl
 
 
