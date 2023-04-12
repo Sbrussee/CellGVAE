@@ -73,7 +73,8 @@ else:
 G = nx.convert_node_labels_to_integers(G)
 
 print("Converting graph to PyTorch Geometric dataset...")
-pyg_graph = pyg.utils.from_networkx(G, dtype=torch.float32)
+pyg_graph = pyg.utils.from_networkx(G)
+pyg_graph.expr = py_graph.expr.float()
 pyg_graph.to(device)
 
 def objective(trial):
