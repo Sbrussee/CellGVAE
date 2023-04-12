@@ -109,6 +109,7 @@ def objective(trial):
     print(model)
     #Send model to GPU
     model = model.to(device)
+    model.float()
     pyg.transforms.ToDevice(device)
 
     #Set number of nodes to sample per epoch
