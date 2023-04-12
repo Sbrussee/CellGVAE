@@ -51,7 +51,7 @@ dataset, organism, name, celltype_key = read_dataset(args.dataset, args)
 
 #Define device based on cuda availability
 print(torch.cuda.device_count())
-print([torch.cuda.get_device_name(i) for i in torch.cuda_device_count()])
+print([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())])
 
 device = torch.device("cuda:1" if torch.cuda.is_available() else 'cpu')
 print(f"Found device: {device}")
