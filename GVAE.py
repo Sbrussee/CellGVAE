@@ -701,7 +701,7 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
                 z = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device))
             else:
                 z = model.encoder(pyg_graph.expr.to(device))
-        real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:])))
+        real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:].float())))
         fake = torch.sigmoid(discriminator(z[cell_id,:].detach()))
         real_loss = -torch.log(real + 1e-15).mean()
         fake_loss = -torch.log(1 - fake + 1e-15).mean()
