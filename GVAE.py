@@ -1389,6 +1389,7 @@ if __name__ == '__main__':
 
     pyg_graph = pyg.utils.from_networkx(G)
     pyg_graph.expr = pyg_graph.expr.float()
+    pyg_graph.weight = pyg_graph.weight.float()
     pyg_graph.to(device)
     input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
     model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
