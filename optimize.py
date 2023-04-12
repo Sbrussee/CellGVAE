@@ -54,6 +54,7 @@ print(f"Found device: {device}")
 TRAINING = True
 #Empty cuda memory
 torch.cuda.empty_cache()
+torch.cuda.set_per_process_memory_growth(True)
 
 #if not isinstance(dataset.X, np.ndarray):
 #    dataset.X = dataset.X.toarray()
@@ -79,7 +80,6 @@ pyg_graph.weight = pyg_graph.weight.float()
 pyg_graph.to(device)
 
 def objective(trial):
-    torch.cuda.empty_cache()
     # define hyperparameters to optimize
     variational = trial.suggest_categorical('variational', [True, False])
     adversarial = trial.suggest_categorical('adversarial', [True, False])
