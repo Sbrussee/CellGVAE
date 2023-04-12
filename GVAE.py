@@ -1264,7 +1264,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             total_disc_loss = 0
         total_loss_over_cells = 0
         cells = random.sample(train_i, k=k)
-        batch = pyg_graph.clone().to(torch.float32)
+        batch = pyg_graph.clone()
         if args.prediction_mode == 'spatial':
             batch.expr.fill_(0.0)
             assert batch.expr.sum() < 0.1
@@ -1387,7 +1387,7 @@ if __name__ == '__main__':
 
     G = nx.convert_node_labels_to_integers(G)
 
-    pyg_graph = pyg.utils.from_networkx(G)
+    pyg_graph = pyg.utils.from_networkx(G, dtype=torch.float32)
 
     pyg_graph.to(device)
     input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
