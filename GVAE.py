@@ -836,7 +836,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
 
 
 @torch.no_grad()
-def validate(model, val_data, x, cell_id, weight, args):
+def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     model.eval()
     if args.adversarial:
         if args.variational:
@@ -1305,7 +1305,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             val_batch.expr.index_fill_(0, torch.tensor(val_cells).to(device), 0.0)
             assert val_batch.expr[val_cells, :].sum() < 0.1
         for cell in val_cells:
-            val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args)
+            val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args, discriminator=discriminator)
             total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
             total_val_loss += val_loss
 
@@ -1321,7 +1321,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         return loss_over_cells, train_loss_over_epochs, val_loss_over_epochs, r2_over_epochs
 
 @torch.no_grad()
-def test(model, test_i, pyg_graph, args):
+def test(model, test_i, pyg_graph, args, discriminator=None):
     print("Testing the model...")
     test_dict = {}
     total_test_loss = 0
@@ -1333,7 +1333,7 @@ def test(model, test_i, pyg_graph, args):
             assert test_batch.expr.sum() == 0
         test_batch.expr[cell, :].fill_(0.0)
         assert test_batch.expr[cell, :].sum() == 0
-        test_loss, x_hat = validate(model, test_batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args)
+        test_loss, x_hat = validate(model, test_batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args, discriminator=discriminator)
         total_r2_test += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
         total_test_loss += test_loss
 
@@ -1415,7 +1415,7 @@ if __name__ == '__main__':
     (loss_over_cells, train_loss_over_epochs,
      val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
                                                    train_i, val_i, k=k, args=args, discriminator=discriminator)
-    test_dict = test(model, test_i, pyg_graph, args=args)
+    test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
 
     if args.variational:
         subtype = 'variational'
