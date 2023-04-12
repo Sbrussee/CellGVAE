@@ -81,6 +81,11 @@ pyg_graph.expr = pyg_graph.expr.float()
 pyg_graph.weight = pyg_graph.weight.float()
 pyg_graph.to(device)
 
+#Split dataset
+val_i = random.sample(G.nodes(), k=1000)
+test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
+train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
+
 def objective(trial):
     # define hyperparameters to optimize
     variational = trial.suggest_categorical('variational', [True, False])
@@ -122,12 +127,6 @@ def objective(trial):
     else:
         k = args.cells
 
-
-    #Split dataset
-    val_i = random.sample(G.nodes(), k=1000)
-    test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
-    train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
-
     optimizer_list = get_optimizer_list(model=model,args=args, discriminator=discriminator)
     # train and evaluate model with updated hyperparameters
     (loss_over_cells, train_loss_over_epochs,
@@ -135,8 +134,8 @@ def objective(trial):
                                                     train_i, val_i, k=k, args=args, discriminator=discriminator)
 
     test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
-    # Optimize for the best r2 of test set
-    return np.max(list(test_dict.values()))
+    # Optimize for the best r2 of the validation set
+    return np.max(list(r2_over_epochs.values()))
 
 if __name__ == "__main__":
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
