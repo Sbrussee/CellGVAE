@@ -54,7 +54,7 @@ print(f"Found device: {device}")
 TRAINING = True
 #Empty cuda memory
 torch.cuda.empty_cache()
-torch.cuda.set_per_process_memory_growth(True)
+torch.cuda.set_per_process_memory_fraction(0.9)
 
 #if not isinstance(dataset.X, np.ndarray):
 #    dataset.X = dataset.X.toarray()
