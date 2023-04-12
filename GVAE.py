@@ -176,7 +176,8 @@ class VSAGEEncoder(nn.Module):
             self.conv_mu = SAGEConv(hidden_layers[-1], latent_size, aggr=aggregation_method)
             self.conv_logstd = SAGEConv(hidden_layers[-1], latent_size, aggr=aggregation_method)
 
-        self.hlayers = Sequential('x, edge_index', self.hlayers)
+        if self.num_hidden_layers > 0:
+            self.hlayers = Sequential('x, edge_index', self.hlayers)
         self.N = torch.distributions.Normal(0, 1)
         self.N.loc = self.N.loc.cuda()
         self.N.scale = self.N.scale.cuda()
@@ -276,7 +277,8 @@ class VGATEncoder(nn.Module):
             self.conv_mu = GATConv(hidden_layers[-1], latent_size)
             self.conv_logstd = GATConv(hidden_layers[-1], latent_size)
 
-        self.hlayers = Sequential('x, edge_index, weight', self.hlayers)
+        if self.num_hidden_layers > 0:
+            self.hlayers = Sequential('x, edge_index, weight', self.hlayers)
         self.N = torch.distributions.Normal(0, 1)
         self.N.loc = self.N.loc.cuda()
         self.N.scale = self.N.scale.cuda()
@@ -378,7 +380,8 @@ class VGCNEncoder(nn.Module):
             self.conv_mu = GCNConv(hidden_layers[-1], latent_size)
             self.conv_logstd = GCNConv(hidden_layers[-1], latent_size)
 
-        self.hlayers = Sequential('x, edge_index, weight', self.hlayers)
+        if self.num_hidden_layers > 0:
+            self.hlayers = Sequential('x, edge_index, weight', self.hlayers)
         self.N = torch.distributions.Normal(0, 1)
         self.N.loc = self.N.loc.cuda()
         self.N.scale = self.N.scale.cuda()
@@ -1182,8 +1185,6 @@ def read_dataset(name, args):
     return dataset, organism, name, celltype_key
 
 def set_layer_sizes(pyg_graph, args):
-    print(pyg_graph.expr)
-    print(type(pyg_graph.expr))
     if ',' in args.hidden:
         lengths = [int(x) for x in args.hidden.split(',')]
         input_size, hidden_layers, latent_size = pyg_graph.expr.shape[1], lengths, args.latent
