@@ -35,8 +35,9 @@ from datetime import datetime
 from tqdm import tqdm
 
 print(torch.cuda.device_count())
-#Define device based on cuda availability
-device = torch.device(torch.cuda.get_device_name(1) if torch.cuda.is_available() else 'cpu')
+print([torch.cuda.get_device_name(i) for i in torch.cuda_device_count()])
+
+device = torch.device("cuda:1" if torch.cuda.is_available() else 'cpu')
 print(f"Found device: {device}")
 #Set training mode to true
 TRAINING = True
