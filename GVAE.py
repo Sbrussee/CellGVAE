@@ -709,14 +709,14 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
         x_hat = model.discriminator(z[cell_id, :])
 
     elif args.variational:
-        x_hat, kl = model(train_data.expr, train_data.edge_index, cell_id, weight)
+        x_hat, kl = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, weight)
     else:
-        x_hat = model(train_data.expr, train_data.edge_index, cell_id, weight)
+        x_hat = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, weight)
 
-    loss = (1/train_data.expr.size(dim=1)) * ((x - x_hat)**2).sum()
+    loss = (1/pyg_graph.expr.size(dim=1)) * ((x - x_hat)**2).sum()
 
     if args.variational:
-        loss += (1 / train_data.num_nodes) * kl
+        loss += (1 / pyg_graph.num_nodes) * kl
     if args.adversarial:
         loss += model.reg_loss(z[cell_id])
 
