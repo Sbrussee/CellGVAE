@@ -56,7 +56,6 @@ TRAINING = True
 #Empty cuda memory
 torch.cuda.empty_cache()
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-os.environ['PYTORCH_CUDA_ALLOC_CONF'] = '8096'
 
 
 #if not isinstance(dataset.X, np.ndarray):
