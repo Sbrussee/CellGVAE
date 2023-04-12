@@ -683,7 +683,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     fig = plot.get_figure()
     fig.savefig(f'umap_latentspace_{name}.png', dpi=200)
 
-def train_model(model, train_data, x, cell_id, weight, args, discriminator=None):
+def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     if args.adversarial:
         if args.variational:
             if args.type == 'GCN' or args.type == 'GAT':
