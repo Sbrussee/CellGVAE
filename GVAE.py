@@ -706,9 +706,9 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
         x_hat = model.discriminator(z[cell_id, :])
 
     elif args.variational:
-        x_hat, kl = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, weight)
+        x_hat, kl = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, pyg_graph.weight)
     else:
-        x_hat = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, weight)
+        x_hat = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, pyg_graph.weight)
 
 
     v_size = pyg_graph.expr.size(dim=1)
@@ -867,7 +867,7 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     else:
         x_hat = model(val_data.expr, val_data.edge_index, cell_id, weight)
 
-    loss = (1/val_data.expr.size(dim=1)) * ((x - x_hat)**2).sum()
+    loss = (1/val_data.expr.size(dim=1)) * ((x.cpu() - x_hat.cpu())**2).sum()
 
     if args.variational:
         loss += (1 / val_data.num_nodes) * kl
