@@ -617,6 +617,7 @@ class GAE(nn.Module):
         self.args = args
 
     def forward(self, x, edge_index=None, cell_id=None, weight=None):
+        x.to(device)
         if self.args.variational == False:
             if self.args.type == "Linear":
                 z = self.encoder(x)
