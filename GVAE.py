@@ -710,7 +710,7 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     else:
         x_hat = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, weight)
 
-    x.to(device)
+    x_hat.to(device)
     loss = (1/pyg_graph.expr.size(dim=1)) * ((x - x_hat)**2).sum()
 
     if args.variational:
