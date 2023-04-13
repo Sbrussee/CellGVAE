@@ -1266,8 +1266,9 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             batch.expr.fill_(0.0)
             assert batch.expr.sum() < 0.1
         else:
-            batch.expr.index_fill_(0, torch.tensor(cells).to(device), 0.0)
+            batch.expr.index_fill_(0, torch.tensor(cells), 0.0)
             assert batch.expr[cells, :].sum() < 0.1
+        batch.to(device)
         for cell in cells:
             if args.adversarial:
                 loss, discriminator_loss = train_model(model, batch, pyg_graph.expr[cell],
@@ -1277,6 +1278,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             total_loss_over_cells += loss
             if args.adversarial:
                 total_disc_loss += discriminator_loss
+        batch.cpu()
         cells_seen += len(cells)
         print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
 
