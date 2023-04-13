@@ -860,9 +860,9 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
         x_hat = model.discriminator(z[cell_id, :])
 
     elif args.variational:
-        x_hat, kl = model(val_data.expr, val_data.edge_index, cell_id, weight)
+        x_hat, kl = model(val_data.expr.to(device), val_data.edge_index.to(device), cell_id, val_data.weight.to(device))
     else:
-        x_hat = model(val_data.expr, val_data.edge_index, cell_id, weight)
+        x_hat = model(val_data.expr.to(device), val_data.edge_index.to(device), cell_id, val_data.weight.to(device))
 
     loss = (1/val_data.expr.size(dim=1)) * ((x.to(device) - x_hat.to(device))**2).sum()
 
