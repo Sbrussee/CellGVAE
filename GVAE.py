@@ -1344,7 +1344,7 @@ def test(model, test_i, pyg_graph, args, discriminator=None):
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 
 os.environ["CUDA_VISIBLE_DEVICES"] = '6,7' # if you only want to make this device visible
-device = torch.cuda.device(6)
+device = torch.cuda.device('cuda:0')
 print(f"Found device: {device}")
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
