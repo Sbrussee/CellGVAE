@@ -684,20 +684,20 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     if args.adversarial:
         if args.variational:
             if args.type == 'GCN' or args.type == 'GAT':
-                z, kl = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device),
-                                  pyg_graph.weight.to(device))
+                z, kl = model.encoder(pyg_graph.expr, pyg_graph.edge_index,
+                                  pyg_graph.weight)
             elif args.type == 'SAGE':
-                z, kl = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device))
+                z, kl = model.encoder(pyg_graph.expr, pyg_graph.edge_index)
             else:
-                z, kl = model.encoder(pyg_graph.expr.to(device))
+                z, kl = model.encoder(pyg_graph.expr)
         else:
             if args.type == 'GCN'or args.type == 'GAT':
-                z = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device),
-                                          pyg_graph.weight.to(device))
+                z = model.encoder(pyg_graph.expr, pyg_graph.edge_index,
+                                          pyg_graph.weight)
             elif args.type == 'SAGE':
-                z = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device))
+                z = model.encoder(pyg_graph.expr, pyg_graph.edge_index)
             else:
-                z = model.encoder(pyg_graph.expr.to(device))
+                z = model.encoder(pyg_graph.expr)
         real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:].float())))
         fake = torch.sigmoid(discriminator(z[cell_id,:].detach()))
         real_loss = -torch.log(real + 1e-15).mean()
@@ -717,6 +717,7 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     if args.adversarial:
         loss += model.reg_loss(z[cell_id])
 
+    pyg_graph.cpu()
     if not args.adversarial:
         return loss
     else:
@@ -838,20 +839,20 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     if args.adversarial:
         if args.variational:
             if args.type == 'GCN' or args.type == 'GAT':
-                z, kl = model.encoder(val_data.expr.to(device), val_data.edge_index.to(device),
-                                  val_data.weight.to(device))
+                z, kl = model.encoder(val_data.expr, val_data.edge_index,
+                                  val_data.weight)
             elif args.type == 'SAGE':
-                z, kl = model.encoder(val_data.expr.to(device), val_data.edge_index.to(device))
+                z, kl = model.encoder(val_data.expr, val_data.edge_index)
             else:
-                z, kl = model.encoder(val_data.expr.to(device))
+                z, kl = model.encoder(val_data.expr)
         else:
             if args.type == 'GCN'or args.type == 'GAT':
-                z = model.encoder(val_data.expr.to(device), val_data.edge_index.to(device),
-                                          val_data.weight.to(device))
+                z = model.encoder(val_data.expr, val_data.edge_index,
+                                          val_data.weight)
             elif args.type == 'SAGE':
-                z = model.encoder(val_data.expr.to(device), val_data.edge_index.to(device))
+                z = model.encoder(val_data.expr, val_data.edge_index)
             else:
-                z = model.encoder(val_data.expr.to(device))
+                z = model.encoder(val_data.expr)
         real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:])))
         fake = torch.sigmoid(discriminator(z[cell_id,:].detach()))
         real_loss = -torch.log(real + 1e-15).mean()
@@ -1266,8 +1267,11 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             batch.expr.fill_(0.0)
             assert batch.expr.sum() < 0.1
         else:
-            batch.expr.index_fill_(0, torch.tensor(cells).to(device), 0.0)
+            batch.expr.index_fill_(0, torch.tensor(cells), 0.0)
             assert batch.expr[cells, :].sum() < 0.1
+        batch.to(device)
+        pyg_graph.expr.to(device)
+        pyg_graph.weight.to(device)
         for cell in cells:
             if args.adversarial:
                 loss, discriminator_loss = train_model(model, batch, pyg_graph.expr[cell],
@@ -1277,6 +1281,9 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             total_loss_over_cells += loss
             if args.adversarial:
                 total_disc_loss += discriminator_loss
+        batch.cpu()
+        pyg_graph.expr.cpu()
+        pyg_graph.weight.cpu()
         cells_seen += len(cells)
         print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
 
@@ -1397,7 +1404,6 @@ if __name__ == '__main__':
     pyg_graph = pyg.utils.from_networkx(G)
     pyg_graph.expr = pyg_graph.expr.float()
     pyg_graph.weight = pyg_graph.weight.float()
-    pyg_graph.to(device)
     input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
     model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
 
@@ -1406,7 +1412,6 @@ if __name__ == '__main__':
     #Send model to GPU
     model = model.to(device)
     model.float()
-    pyg.transforms.ToDevice(device)
 
     #Set number of nodes to sample per epoch
     if args.cells == -1:

@@ -39,7 +39,7 @@ args.remove_same_type_edges = True
 args.remove_subtype_edges = False
 args.prediction_mode = 'Full'
 args.latent = 4
-args.theshold = -1
+args.threshold = -1
 args.neighbors = 6
 args.dataset = 'seqfish'
 
@@ -87,7 +87,6 @@ print("Converting graph to PyTorch Geometric dataset...")
 pyg_graph = pyg.utils.from_networkx(G)
 pyg_graph.expr = pyg_graph.expr.float()
 pyg_graph.weight = pyg_graph.weight.float()
-pyg_graph.to(device)
 
 #Split dataset
 val_i = random.sample(G.nodes(), k=1000)
