@@ -864,7 +864,7 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     else:
         x_hat = model(val_data.expr, val_data.edge_index, cell_id, weight)
 
-    loss = (1/val_data.expr.size(dim=1)) * ((x.to(device) - x_hat.to(device)**2).sum()
+    loss = (1/val_data.expr.size(dim=1)) * ((x.to(device) - x_hat.to(device))**2).sum()
 
     if args.variational:
         loss += (1 / val_data.num_nodes) * kl
