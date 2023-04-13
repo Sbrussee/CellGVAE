@@ -722,7 +722,7 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     loss = (1/v_size) * ((x.cpu() - x_hat.cpu()**2).sum())
 
     if args.variational:
-        loss += (1 / pyg_graph.num_nodes) * kl
+        loss += (1 / pyg_graph.num_nodes.cpu()) * kl.cpu()
     if args.adversarial:
         loss += model.reg_loss(z[cell_id].to(device))
 
@@ -844,6 +844,9 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
 
 @torch.no_grad()
 def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
+    val_data.expr.to(device)
+    val_data.edge_index.to(device)
+    val_data.weight.to(device)
     model.eval()
     if args.adversarial:
         if args.variational:
@@ -877,10 +880,14 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     loss = (1/val_data.expr.size(dim=1)) * ((x.cpu() - x_hat.cpu())**2).sum()
 
     if args.variational:
-        loss += (1 / val_data.num_nodes) * kl
+        loss += (1 / val_data.num_nodes.cpu()) * kl.cpu()
 
     if args.adversarial:
-        loss += model.reg_loss(z[cell_id])
+        loss += model.reg_loss(z[cell_id].cpu())
+
+    val_data.expr.cpu()
+    val_data.edge_index.cpu()
+    val_data.weight.cpu()
 
     return float(loss), x_hat
 
@@ -1278,9 +1285,6 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         else:
             batch.expr.index_fill_(0, torch.tensor(cells), 0.0)
             assert batch.expr[cells, :].sum() < 0.1
-        batch.to(device)
-        pyg_graph.expr.to(device)
-        pyg_graph.weight.to(device)
         for cell in cells:
 
             if args.adversarial:
@@ -1291,9 +1295,6 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             total_loss_over_cells += loss
             if args.adversarial:
                 total_disc_loss += discriminator_loss
-        batch.cpu()
-        pyg_graph.expr.cpu()
-        pyg_graph.weight.cpu()
         cells_seen += len(cells)
         print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
 
@@ -1312,9 +1313,6 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         val_cells = random.sample(val_i, k=500)
         model.eval()
         val_batch = pyg_graph.clone()
-        val_batch.to(device)
-        pyg_graph.expr.to(device)
-        pyg_graph.weight.to_device()
         if args.prediction_mode == 'spatial':
             val_batch.expr.fill_(0)
             assert val_batch.expr.sum() < 0.1
@@ -1325,9 +1323,6 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args, discriminator=discriminator)
             total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
             total_val_loss += val_loss
-        val_batch.cpu()
-        pyg_graph.expr.cpu()
-        pyg_graph.weight.cpu()
 
 
         train_loss_over_epochs[epoch] = total_loss_over_cells.detach().cpu()/len(cells)
