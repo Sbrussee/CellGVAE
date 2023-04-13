@@ -141,6 +141,9 @@ def objective(trial):
                                                     train_i, val_i, k=k, args=args, discriminator=discriminator)
 
     test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
+
+    #Send model back to the cpu
+    model.cpu()
     # Optimize for the best r2 of the validation set
     return np.max(list(r2_over_epochs.values()))
 
