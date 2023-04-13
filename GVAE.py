@@ -710,6 +710,7 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     else:
         x_hat = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, weight)
 
+    x.to(device)
     loss = (1/pyg_graph.expr.size(dim=1)) * ((x - x_hat)**2).sum()
 
     if args.variational:
@@ -1273,7 +1274,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         pyg_graph.expr.to(device)
         pyg_graph.weight.to(device)
         for cell in cells:
-            cell.to(device)
+
             if args.adversarial:
                 loss, discriminator_loss = train_model(model, batch, pyg_graph.expr[cell],
                  cell, pyg_graph.weight, args=args, discriminator=discriminator)
@@ -1282,7 +1283,6 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             total_loss_over_cells += loss
             if args.adversarial:
                 total_disc_loss += discriminator_loss
-            cell.cpu()
         batch.cpu()
         pyg_graph.expr.cpu()
         pyg_graph.weight.cpu()
@@ -1304,6 +1304,9 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         val_cells = random.sample(val_i, k=500)
         model.eval()
         val_batch = pyg_graph.clone()
+        val_batch.to(device)
+        pyg_graph.expr.to(device)
+        pyg_graph.weight.to_device()
         if args.prediction_mode == 'spatial':
             val_batch.expr.fill_(0)
             assert val_batch.expr.sum() < 0.1
@@ -1314,6 +1317,9 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args, discriminator=discriminator)
             total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
             total_val_loss += val_loss
+        val_batch.cpu()
+        pyg_graph.expr.cpu()
+        pyg_graph.weight.cpu()
 
 
         train_loss_over_epochs[epoch] = total_loss_over_cells.detach().cpu()/len(cells)
