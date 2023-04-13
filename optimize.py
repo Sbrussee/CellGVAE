@@ -38,6 +38,7 @@ args.normalization = 'Normal'
 args.remove_same_type_edges = True
 args.remove_subtype_edges = False
 args.prediction_mode = 'Full'
+args.latent = 4
 args.theshold = -1
 args.neighbors = 6
 args.dataset = 'seqfish'
@@ -107,7 +108,7 @@ def objective(trial):
     aggregation_method = trial.suggest_categorical('aggregation_method', ['max', 'mean'])
     #threshold = trial.suggest_int('threshold', 5, 100)
     #neighbors = trial.suggest_int('neighbors', 2, 10)
-    latent = trial.suggest_int('latent', 2, 12)
+    #latent = trial.suggest_int('latent', 2, 12)
     hidden = trial.suggest_categorical('hidden', ['', '32', '64,32', '128,64,32', '256,128,64,32', '512,256,128,64,32'])
 
     # update argparse arguments with optimized hyperparameters
@@ -115,7 +116,6 @@ def objective(trial):
     args.adversarial = adversarial
     args.type = model_type
     args.aggregation_method = aggregation_method
-    args.latent = latent
     args.hidden = hidden
 
     print("Constructing model...")
