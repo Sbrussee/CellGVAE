@@ -40,6 +40,8 @@ TRAINING = True
 #Make sure the plot layout works correctly
 plt.rcParams.update({'figure.autolayout':True, 'savefig.bbox':'tight'})
 
+torch.backends.cuda.max_split_size_mb = 1024 
+
 class SAGEEncoder(nn.Module):
     """GraphSAGE-based encoder class
 

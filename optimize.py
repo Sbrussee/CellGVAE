@@ -30,8 +30,8 @@ arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layer
 arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
 args = arg_parser.parse_args()
 
-args.epochs = 200
-args.cells = 100
+args.epochs = 400
+args.cells = 50
 args.graph_summary = False
 args.weight = True
 args.normalization = 'Normal'
@@ -65,6 +65,7 @@ TRAINING = True
 #Empty cuda memory
 torch.cuda.empty_cache()
 
+torch.backends.cuda.max_split_size_mb = 1024
 
 #if not isinstance(dataset.X, np.ndarray):
 #    dataset.X = dataset.X.toarray()
