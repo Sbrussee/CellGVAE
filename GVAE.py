@@ -706,9 +706,9 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
         x_hat = model.discriminator(z[cell_id, :])
 
     elif args.variational:
-        x_hat, kl = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, weight)
+        x_hat, kl = model(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device), cell_id, pyg_graph.weight.to(device))
     else:
-        x_hat = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, weight)
+        x_hat = model(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device), cell_id, pyg_graph.weight.to(device))
 
     loss = (1/pyg_graph.expr.size(dim=1)) * ((x.to(device) - x_hat.to(device))**2).sum()
 
