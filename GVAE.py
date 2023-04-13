@@ -710,8 +710,11 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     else:
         x_hat = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, weight)
 
-    x_hat.to(device)
-    loss = (1/pyg_graph.expr.size(dim=1)) * ((x - x_hat)**2).sum()
+
+    v_size = pyg_graph.expr.size(dim=1)
+    v_size.to(device)
+    loss = (1/v_size * ((x - x_hat)**2).sum()
+    v_size.cpu()
 
     if args.variational:
         loss += (1 / pyg_graph.num_nodes) * kl
