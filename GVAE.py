@@ -1273,6 +1273,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         pyg_graph.expr.to(device)
         pyg_graph.weight.to(device)
         for cell in cells:
+            cell.to(device)
             if args.adversarial:
                 loss, discriminator_loss = train_model(model, batch, pyg_graph.expr[cell],
                  cell, pyg_graph.weight, args=args, discriminator=discriminator)
@@ -1281,6 +1282,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             total_loss_over_cells += loss
             if args.adversarial:
                 total_disc_loss += discriminator_loss
+            cell.cpu()
         batch.cpu()
         pyg_graph.expr.cpu()
         pyg_graph.weight.cpu()
