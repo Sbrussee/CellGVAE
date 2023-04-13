@@ -864,7 +864,7 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     else:
         x_hat = model(val_data.expr, val_data.edge_index, cell_id, weight)
 
-    loss = (1/val_data.expr.size(dim=1)) * ((x - x_hat)**2).sum()
+    loss = (1/val_data.expr.size(dim=1)) * ((x.to(device) - x_hat.to(device)**2).sum()
 
     if args.variational:
         loss += (1 / val_data.num_nodes) * kl
@@ -1297,6 +1297,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         val_cells = random.sample(val_i, k=500)
         model.eval()
         val_batch = pyg_graph.clone()
+        val_batch.to(device)
         if args.prediction_mode == 'spatial':
             val_batch.expr.fill_(0)
             assert val_batch.expr.sum() < 0.1
@@ -1308,12 +1309,22 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
             total_val_loss += val_loss
 
-
+        val_batch.cpu()
         train_loss_over_epochs[epoch] = total_loss_over_cells.detach().cpu()/len(cells)
         val_loss_over_epochs[epoch] = total_val_loss/500
         print(f"Epoch {epoch}, average training loss:{train_loss_over_epochs[epoch]}, average validation loss:{val_loss_over_epochs[epoch]}")
         print(f"Validation R2: {total_r2/500}")
         r2_over_epochs[epoch] = total_r2/500
+    #Free up GPU memory
+    batch.expr.cpu()
+    batch.weight.cpu()
+    batch.edge_index.cpu()
+    val_batch.expr.cpu()
+    val_batch.weight.cpu()
+    val_batch.edge_index.cpu()
+    pyg_graph.expr.cpu()
+    pyg_graph.weight.cpu()
+    pyg_graph.edge_index.cpu()
     #Save trained model
     torch.save(model, f"model_{args.type}.pt")
 
