@@ -50,10 +50,10 @@ dataset, organism, name, celltype_key = read_dataset(args.dataset, args)
 #dataset = dataset[idx, :]
 
 #Define device based on cuda availability
-print(torch.cuda.device_count())
-print([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())])
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 
-device = torch.device("cuda:1" if torch.cuda.is_available() else 'cpu')
+os.environ["CUDA_VISIBLE_DEVICES"] = 6,7 # if you only want to make this device visible
+device = torch.cuda.device(6)
 print(f"Found device: {device}")
 #Set training mode to true
 TRAINING = True
