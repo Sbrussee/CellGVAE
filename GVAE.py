@@ -617,7 +617,6 @@ class GAE(nn.Module):
         self.args = args
 
     def forward(self, x, edge_index=None, cell_id=None, weight=None):
-        x.to(device)
         if self.args.variational == False:
             if self.args.type == "Linear":
                 z = self.encoder(x)
@@ -682,27 +681,23 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     fig.savefig(f'umap_latentspace_{name}.png', dpi=200)
 
 def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
-    pyg_graph.expr.to(device)
-    pyg_graph.edge_index.to(device)
-    pyg_graph.weight.to(device)
-
     if args.adversarial:
         if args.variational:
             if args.type == 'GCN' or args.type == 'GAT':
-                z, kl = model.encoder(pyg_graph.expr, pyg_graph.edge_index,
-                                  pyg_graph.weight)
+                z, kl = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device),
+                                  pyg_graph.weight.to(device))
             elif args.type == 'SAGE':
-                z, kl = model.encoder(pyg_graph.expr, pyg_graph.edge_index)
+                z, kl = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device))
             else:
-                z, kl = model.encoder(pyg_graph.expr)
+                z, kl = model.encoder(pyg_graph.expr.to(device))
         else:
             if args.type == 'GCN'or args.type == 'GAT':
-                z = model.encoder(pyg_graph.expr, pyg_graph.edge_index,
-                                          pyg_graph.weight)
+                z = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device),
+                                          pyg_graph.weight.to(device))
             elif args.type == 'SAGE':
-                z = model.encoder(pyg_graph.expr, pyg_graph.edge_index)
+                z = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device))
             else:
-                z = model.encoder(pyg_graph.expr)
+                z = model.encoder(pyg_graph.expr.to(device))
         real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:].float())))
         fake = torch.sigmoid(discriminator(z[cell_id,:].detach()))
         real_loss = -torch.log(real + 1e-15).mean()
@@ -711,23 +706,17 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
         x_hat = model.discriminator(z[cell_id, :])
 
     elif args.variational:
-        x_hat, kl = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, pyg_graph.weight)
+        x_hat, kl = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, weight)
     else:
-        x_hat = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, pyg_graph.weight)
+        x_hat = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, weight)
 
-    pyg_graph.expr.cpu()
-    pyg_graph.edge_index.cpu()
-    pyg_graph.weight.cpu()
-
-    v_size = pyg_graph.expr.size(dim=1)
-    loss = (1/v_size) * ((x.cpu() - x_hat.cpu()**2).sum())
+    loss = (1/pyg_graph.expr.size(dim=1)) * ((x - x_hat)**2).sum()
 
     if args.variational:
-        loss += (1 / pyg_graph.num_nodes.cpu()) * kl.cpu()
+        loss += (1 / pyg_graph.num_nodes) * kl
     if args.adversarial:
-        loss += model.reg_loss(z[cell_id].to(device))
+        loss += model.reg_loss(z[cell_id])
 
-    pyg_graph.cpu()
     if not args.adversarial:
         return loss
     else:
@@ -845,27 +834,24 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
 
 @torch.no_grad()
 def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
-    val_data.expr.to(device)
-    val_data.edge_index.to(device)
-    val_data.weight.to(device)
     model.eval()
     if args.adversarial:
         if args.variational:
             if args.type == 'GCN' or args.type == 'GAT':
-                z, kl = model.encoder(val_data.expr, val_data.edge_index,
-                                  val_data.weight)
+                z, kl = model.encoder(val_data.expr.to(device), val_data.edge_index.to(device),
+                                  val_data.weight.to(device))
             elif args.type == 'SAGE':
-                z, kl = model.encoder(val_data.expr, val_data.edge_index)
+                z, kl = model.encoder(val_data.expr.to(device), val_data.edge_index.to(device))
             else:
-                z, kl = model.encoder(val_data.expr)
+                z, kl = model.encoder(val_data.expr.to(device))
         else:
             if args.type == 'GCN'or args.type == 'GAT':
-                z = model.encoder(val_data.expr, val_data.edge_index,
-                                          val_data.weight)
+                z = model.encoder(val_data.expr.to(device), val_data.edge_index.to(device),
+                                          val_data.weight.to(device))
             elif args.type == 'SAGE':
-                z = model.encoder(val_data.expr, val_data.edge_index)
+                z = model.encoder(val_data.expr.to(device), val_data.edge_index.to(device))
             else:
-                z = model.encoder(val_data.expr)
+                z = model.encoder(val_data.expr.to(device))
         real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:])))
         fake = torch.sigmoid(discriminator(z[cell_id,:].detach()))
         real_loss = -torch.log(real + 1e-15).mean()
@@ -878,17 +864,13 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     else:
         x_hat = model(val_data.expr, val_data.edge_index, cell_id, weight)
 
-    loss = (1/val_data.expr.size(dim=1)) * ((x.cpu() - x_hat.cpu())**2).sum()
+    loss = (1/val_data.expr.size(dim=1)) * ((x - x_hat)**2).sum()
 
     if args.variational:
-        loss += (1 / val_data.num_nodes.cpu()) * kl.cpu()
+        loss += (1 / val_data.num_nodes) * kl
 
     if args.adversarial:
-        loss += model.reg_loss(z[cell_id].cpu())
-
-    val_data.expr.cpu()
-    val_data.edge_index.cpu()
-    val_data.weight.cpu()
+        loss += model.reg_loss(z[cell_id])
 
     return float(loss), x_hat
 
@@ -1284,10 +1266,9 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             batch.expr.fill_(0.0)
             assert batch.expr.sum() < 0.1
         else:
-            batch.expr.index_fill_(0, torch.tensor(cells), 0.0)
+            batch.expr.index_fill_(0, torch.tensor(cells).to(device), 0.0)
             assert batch.expr[cells, :].sum() < 0.1
         for cell in cells:
-
             if args.adversarial:
                 loss, discriminator_loss = train_model(model, batch, pyg_graph.expr[cell],
                  cell, pyg_graph.weight, args=args, discriminator=discriminator)
@@ -1424,6 +1405,7 @@ if __name__ == '__main__':
     #Send model to GPU
     model = model.to(device)
     model.float()
+    pyg.transforms.ToDevice(device)
 
     #Set number of nodes to sample per epoch
     if args.cells == -1:
