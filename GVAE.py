@@ -34,11 +34,6 @@ from datetime import datetime
 
 from tqdm import tqdm
 
-print(torch.cuda.device_count())
-print([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())])
-
-device = torch.device("cuda:1" if torch.cuda.is_available() else 'cpu')
-print(f"Found device: {device}")
 #Set training mode to true
 TRAINING = True
 
@@ -1344,8 +1339,14 @@ def test(model, test_i, pyg_graph, args, discriminator=None):
     test_dict['loss'], test_dict['r2'] = total_test_loss/1000, total_r2_test/1000
     return test_dict
 
-if __name__ == '__main__':
 
+#Define device based on cuda availability
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+
+os.environ["CUDA_VISIBLE_DEVICES"] = 6,7 # if you only want to make this device visible
+device = torch.cuda.device(6)
+print(f"Found device: {device}")
+if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument('-v', "--variational", action='store_true', help="Whether to use a variational AE model", default=False)
     arg_parser.add_argument('-a', "--adversarial", action="store_true", help="Whether to use a adversarial AE model", default=False)
