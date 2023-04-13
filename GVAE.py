@@ -681,6 +681,10 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     fig.savefig(f'umap_latentspace_{name}.png', dpi=200)
 
 def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
+    pyg_graph.expr.to(device)
+    pyg_graph.edge_index.to(device)
+    pyg_graph.weight.to(device)
+
     if args.adversarial:
         if args.variational:
             if args.type == 'GCN' or args.type == 'GAT':
@@ -710,6 +714,9 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     else:
         x_hat = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, pyg_graph.weight)
 
+    pyg_graph.expr.cpu()
+    pyg_graph.edge_index.cpu()
+    pyg_graph.weight.cpu()
 
     v_size = pyg_graph.expr.size(dim=1)
     loss = (1/v_size) * ((x.cpu() - x_hat.cpu()**2).sum())
