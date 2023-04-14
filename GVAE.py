@@ -1289,10 +1289,11 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
                                           error_if_nonfinite=False)
 
+        #remove infinite parameters
+        for param in model.parameters():
+            if param.grad is not None:
+                param.grad[~torch.isfinite(param.grad)] = 0
 
-        # Remove nonfinite values from the gradients
-        for gradient in gradients:
-            gradient[~torch.isfinite(gradient)] = 0
 
         optimizer.step()
 
