@@ -40,7 +40,7 @@ TRAINING = True
 #Make sure the plot layout works correctly
 plt.rcParams.update({'figure.autolayout':True, 'savefig.bbox':'tight'})
 
-torch.backends.cuda.max_split_size_mb = 1024 
+torch.backends.cuda.max_split_size_mb = 1024
 
 class SAGEEncoder(nn.Module):
     """GraphSAGE-based encoder class
@@ -1285,19 +1285,15 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
 
         total_loss_over_cells.backward()
+        #Clip gradients
+        torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
+                                          error_if_nonfinite=False)
 
-        try:
-            torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
-                                          error_if_nonfinite=True)
-        except:
-            # Get the gradients from your model
-            gradients = torch.autograd.grad(loss, model.parameters(), retain_graph=True)
 
-            # Remove nonfinite values from the gradients
-            for gradient in gradients:
-                gradient[~torch.isfinite(gradient)] = 0
-            torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
-                                          error_if_nonfinite=True)
+        # Remove nonfinite values from the gradients
+        for gradient in gradients:
+            gradient[~torch.isfinite(gradient)] = 0
+
         optimizer.step()
 
         if args.adversarial:
