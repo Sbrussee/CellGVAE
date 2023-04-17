@@ -109,7 +109,7 @@ def objective(trial):
     #threshold = trial.suggest_int('threshold', 5, 100)
     #neighbors = trial.suggest_int('neighbors', 2, 10)
     #latent = trial.suggest_int('latent', 2, 12)
-    hidden = trial.suggest_categorical('hidden', ['', '32', '64,32', '128,64,32', '256,128,64,32', '512,256,128,64,32'])
+    hidden = trial.suggest_categorical('hidden', ['', '32', '64,32', '128,64,32', '256,128,64,32'])
 
     # update argparse arguments with optimized hyperparameters
     args.variational = variational
@@ -141,6 +141,7 @@ def objective(trial):
                                                     train_i, val_i, k=k, args=args, discriminator=discriminator)
 
     test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
+
 
     #Send model back to the cpu
     model.cpu()
