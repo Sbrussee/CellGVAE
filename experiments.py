@@ -80,7 +80,6 @@ def apply_tsne(data, perplexity=30, learning_rate=200, n_iter=1000):
 
 experiments = [1,2,3,4,5]
 
-
 for name in ['seqfish', 'slideseqv2']:
     args.dataset = name
     dataset, organism, name, celltype_key = read_dataset(name, args)
@@ -142,7 +141,7 @@ for name in ['seqfish', 'slideseqv2']:
 
         #Plot the latent test set
         plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                    device, name=f'set_{name}', number_of_cells=1000, celltype_key=celltype_key, args=args)
+                    device, name=f'set_{name}_exp1, number_of_cells=1000, celltype_key=celltype_key, args=args)
 
     if 2 in experiments:
         core_models = ['adversarial', 'variational', 'normal']
@@ -381,6 +380,111 @@ for name in ['seqfish', 'slideseqv2']:
             print("Applying model on entire dataset...")
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_{name}_{type}_{prediction_mode}', celltype_key, args=args)
+
+
+if 5 in experiments:
+    organism = 'human'
+    full = sc.read("/srv/scratch/chananchidas/LiverData/LiverData_RawNorm.h5ad")
+    #Subset nanostring data in 4 parts
+    size_obs = full.X.shape[0]
+    print(f'full size {size_obs}')
+    #Split by tissue type
+    normal, cancer = (full[full.obs['Run_Tissue_name'] == 'NormalLiver'],
+                       full[full.obs['Run_Tissue_name'] == 'CancerousLiver'])
+    print(normal, cancer)
+    #Delete the full dataset from memory
+    del full
+    fovs = np.unique(normal.obs['fov'])
+    tissue = str(normal.obs['Run_Tissue_name'].unique()[0])
+    for i in range(0,len(fovs)):
+        fov = normal[normal.obs['fov'] == i]
+        print(f"Saving {tissue} fov {i} to {i+1}...")
+        print(fov.shape)
+        del fov.raw
+        #Save this sub-dataset
+        fov.write(f'data/ns_fov_{tissue}_{i}_to_{i+1}.h5ad')
+
+    for dataset in [f for f in os.listdir("data/") if f.startswith("ns_fov_") and 'Normal' in f]:
+        data = sc.read("data/"+dataset)
+        tissue = str(data.obs['Run_Tissue_name'].unique()[0])
+        i = np.min(data.obs['fov'])
+        if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
+            print("Constructing graph...")
+            dataset = construct_graph(dataset, args=args)
+
+        print("Converting graph to PyG format...")
+        if args.weight:
+            G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
+        else:
+            G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
+
+        G = nx.convert_node_labels_to_integers(G)
+
+        pyg_graph = pyg.utils.from_networkx(G)
+        pyg_graph.expr = pyg_graph.expr.float()
+        pyg_graph.weight = pyg_graph.weight.float()
+        input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
+        model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
+
+        print("Model:")
+        print(model)
+        #Send model to GPU
+        model = model.to(device)
+        model.float()
+        pyg.transforms.ToDevice(device)
+
+        #Set number of nodes to sample per epoch
+        if args.cells == -1:
+            k = G.number_of_nodes()
+        else:
+            k = args.cells
+
+        #Split dataset
+        val_i = random.sample(G.nodes(), k=1000)
+        train_i = [node for node in G.nodes() if node not in val_i]
+
+        print(f"Training using fov {i} to {i+1}")
+        optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
+        (loss_over_cells, train_loss_over_epochs,
+         val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+                                                       train_i, val_i, k=k, args=args, discriminator=discriminator)
+
+    latent_spaces_normal = {}
+    #First get latent space for all normal tissue fovs:
+    for dataset in [f for f in os.listdir("data/") if f.startswith("ns_fov_") and 'Normal' in f]:
+        i = np.min(dataset.obs['fov'])
+        dataset = construct_graph(dataset, args=args)
+        G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
+        G = nx.convert_node_labels_to_integers(G)
+        pyG_graph = pyg.utils.from_networkx(G)
+        pyG_graph.to(device)
+
+        latent_spaces_normal[i] = get_latent_space_vectors(model, pyG_graph, dataset, device, args)
+
+
+    #Now that we trained on the normal data, score all cancer fov's
+    fovs = np.unique(cancer.obs['fov'])
+    tissue = str(cancer.obs['Run_Tissue_name'].unique()[0])
+    for i in range(0,len(fovs)):
+        fov = cancer[cancer.obs['fov'] == i]
+        print(f"Saving {tissue} fov {i} to {i+1}...")
+        print(fov.shape)
+        del fov.raw
+        #Save this sub-dataset
+        fov.write(f'data/ns_fov_{tissue}_{i}_to_{i+1}.h5ad')
+
+    latent_spaces_cancer = {}
+    for dataset in [f for f in os.listdir("data/") if f.startswith("ns_fov_") and 'Cancer' in f]:
+        i = np.min(dataset.obs['fov'])
+        dataset = construct_graph(dataset, args=args)
+        G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
+        G = nx.convert_node_labels_to_integers(G)
+        pyG_graph = pyg.utils.from_networkx(G)
+        pyG_graph.to(device)
+
+        latent_spaces_cancer[i] = get_latent_space_vectors(model, pyG_graph, dataset, device, args)
+    print(latent_spaces_normal)
+    print(latent_spaces_cancer)
 
 
 
