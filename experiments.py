@@ -81,7 +81,7 @@ experiments = [1,2,3,4,5]
 
 
 for name in ['seqfish', 'slideseqv2']:
-    print(name)
+    args.dataset = name
     dataset, organism, name, celltype_key = read_dataset(name, args)
     if 1 in experiments:
         #Experiment 1: Run per cell type
