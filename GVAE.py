@@ -1418,6 +1418,22 @@ def test(model, test_i, pyg_graph, args, discriminator=None):
 
 
 
+gpu_uuid = "GPU-d058c48b-633a-0acc-0bc0-a2a5f0457492"
+
+# Set the environment variable to the UUID of the GPU
+os.environ["CUDA_VISIBLE_DEVICES"] = gpu_uuid
+
+# Check if CUDA is available
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+print(f"Found device: {device}")
+#Set training mode to true
+TRAINING = True
+#Empty cuda memory
+torch.cuda.empty_cache()
+
+torch.backends.cuda.max_split_size_mb = 1024
+
 if __name__ == '__main__':
 
     # Set the UUID of the GPU you want to use
