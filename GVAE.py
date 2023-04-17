@@ -672,6 +672,9 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     tsne_z =tsne.fit_transform(z[:number_of_cells,:])
     plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1], hue=list(anndata[:number_of_cells,:].obs[celltype_key]))
     plot.legend(fontsize=3)
+    plt.xlabel("t-SNE dim 1")
+    plt.ylabel("t-SNE dim 2")
+    plt.title(f"t-SNE representation of the latent space of {name}")
     fig = plot.get_figure()
     fig.savefig(f'tsne_latentspace_{name}.png', dpi=200)
     plt.close()
@@ -681,14 +684,19 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     umap_z = mapper.fit_transform(z[:number_of_cells,:])
     plot = sns.scatterplot(x=umap_z[:,0], y=umap_z[:,1], hue=list(anndata[:number_of_cells,:].obs[celltype_key]))
     plot.legend(fontsize=3)
+    plt.xlabel("UMAP dim 1")
+    plt.ylabel("UMAP dim 2")
+    plt.title(f"UMAP representation of the latent space of {name}")
     fig = plot.get_figure()
     fig.savefig(f'umap_latentspace_{name}.png', dpi=200)
 
     pca = PCA(n_components=2)
-    pca.fit(data)
-    transformed_data = pca.transform(z[:number_of_cells,:])
+    transformed_data = pca.fit_transform(z[:number_of_cells,:])
     plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata[:number_of_cells,:].obs[celltype_key]))
     plot.legend(fontsize=3)
+    plt.xlabel("PC1")
+    plt.ylabel("PC2")
+    plt.title(f"PCA representation of the latent space of {name}")
     fig = plot.get_figure()
     fig.savefig(f'pca_latentspace_{name}.png', dpi=200)
 
@@ -700,6 +708,9 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         tsne_z =tsne.fit_transform(z[idx_to_plot,:])
         plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1])
         plot.legend(fontsize=3)
+        plt.xlabel("t-SNE dim 1")
+        plt.ylabel("t-SNE dim 2")
+        plt.title(f"t-SNE representation of the latent space of {celltype}")
         fig = plot.get_figure()
         fig.savefig(f'tsne_latentspace_{name}_{celltype}.png', dpi=200)
         plt.close()
@@ -709,14 +720,19 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         umap_z = mapper.fit_transform(z[idx_to_plot,:])
         plot = sns.scatterplot(x=umap_z[:,0], y=umap_z[:,1])
         plot.legend(fontsize=3)
+        plt.xlabel('UMAP dim 1')
+        plt.ylabel('UMAP dim 2')
+        plt.title(f"UMAP representation of the latent space of {celltype}")
         fig = plot.get_figure()
         fig.savefig(f'umap_latentspace_{name}_{celltype}.png', dpi=200)
 
         pca = PCA(n_components=2)
-        pca.fit(data)
-        transformed_data = pca.transform(z[idx_to_plot,:])
+        transformed_data = pca.fit_transform(z[idx_to_plot,:])
         plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1])
         plot.legend(fontsize=3)
+        plt.xlabel("PC1")
+        plt.ylabel("PC2")
+        plt.title(f"PCA decomposition of the latent space of {celltype}")
         fig = plot.get_figure()
         fig.savefig(f'pca_latentspace_{name}_{celltype}.png', dpi=200)
 
@@ -1401,17 +1417,20 @@ def test(model, test_i, pyg_graph, args, discriminator=None):
     return test_dict
 
 
-# Set the UUID of the GPU you want to use
-gpu_uuid = "GPU-5b3b48fd-407b-f51c-705c-e77fa81fe6f0"
-
-# Set the environment variable to the UUID of the GPU
-os.environ["CUDA_VISIBLE_DEVICES"] = gpu_uuid
-
-# Check if CUDA is available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 print(f"Found device: {device}")
 if __name__ == '__main__':
+
+    # Set the UUID of the GPU you want to use
+    gpu_uuid = "GPU-5b3b48fd-407b-f51c-705c-e77fa81fe6f0"
+
+    # Set the environment variable to the UUID of the GPU
+    os.environ["CUDA_VISIBLE_DEVICES"] = gpu_uuid
+
+    # Check if CUDA is available
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Found device: {device}")
+
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument('-v', "--variational", action='store_true', help="Whether to use a variational AE model", default=False)
     arg_parser.add_argument('-a', "--adversarial", action="store_true", help="Whether to use a adversarial AE model", default=False)
