@@ -141,7 +141,7 @@ for name in ['seqfish', 'slideseqv2']:
 
         #Plot the latent test set
         plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                    device, name=f'set_{name}_exp1, number_of_cells=1000, celltype_key=celltype_key, args=args)
+                    device, name=f'set_{name}_exp1', number_of_cells=1000, celltype_key=celltype_key, args=args)
 
     if 2 in experiments:
         core_models = ['adversarial', 'variational', 'normal']
