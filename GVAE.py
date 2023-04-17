@@ -670,7 +670,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 
     #Filter z for any nonfinite values
     print(z.shape)
-    z = z[np.isfinite(z)]
+    z = np.where(np.isfinite(z), z, 0)
     print(z.shape)
     tsne = manifold.TSNE(n_components=2)
     tsne_z = tsne.fit_transform(z[:number_of_cells,:])
