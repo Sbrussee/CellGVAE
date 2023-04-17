@@ -669,9 +669,8 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         z = z.to('cpu').detach().numpy()
 
     #Filter z for any nonfinite values
-    print(z.shape)
-    z = np.where(np.isfinite(z), z, 0)
-    print(z.shape)
+    z = np.where(np.isfinite(z), z, 1e-10)
+
     tsne = manifold.TSNE(n_components=2)
     tsne_z = tsne.fit_transform(z[:number_of_cells,:])
     plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1], hue=list(anndata[:number_of_cells,:].obs[celltype_key]))
@@ -893,7 +892,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
         pickle.dump(error_per_cell_type, f)
 
 @torch.no_grad()
-def get_latent_space_vectors(model, pyg_graph, anndata, cell_types, device, args):
+def get_latent_space_vectors(model, pyg_graph, anndata, device, args):
     TRAINING = False
     if args.variational:
         if args.type == 'GCN' or args.type == 'GAT':
