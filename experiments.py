@@ -81,6 +81,7 @@ experiments = [1,2,3,4,5]
 
 
 for name in ['seqfish', 'slideseqv2']:
+    print(name)
     dataset, organism, name, celltype_key = read_dataset(name, args)
     if 1 in experiments:
         #Experiment 1: Run per cell type
@@ -379,8 +380,6 @@ for name in ['seqfish', 'slideseqv2']:
             print("Applying model on entire dataset...")
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_{name}_{type}_{prediction_mode}', celltype_key, args=args)
-
-
 
 
 
