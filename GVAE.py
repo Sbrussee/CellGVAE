@@ -706,7 +706,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 
     #Plot per cell type:
     for celltype in cell_types:
-        idx_to_plot = anndata[anndata.obs[celltype_key] == celltype].obs.index.to_list()
+        idx_to_plot = anndata[anndata.obs[celltype_key] == celltype].obs.index
 
         tsne = manifold.TSNE(n_components=2)
         tsne_z =tsne.fit_transform(z[idx_to_plot,:])
