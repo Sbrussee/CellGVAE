@@ -706,7 +706,8 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 
     #Plot per cell type:
     for celltype in cell_types:
-        idx_to_plot = anndata[anndata.obs[celltype_key] == celltype].obs.index
+        idx_to_plot = np.array(anndata[anndata.obs[celltype_key] == celltype].obs.index)
+        print(idx_to_plot)
 
         tsne = manifold.TSNE(n_components=2)
         tsne_z =tsne.fit_transform(z[idx_to_plot,:])
@@ -891,6 +892,29 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
     with open(f"error_per_celltype_{name}.pkl", 'wb') as f:
         pickle.dump(error_per_cell_type, f)
 
+@torch.no_grad()
+def get_latent_space_vectors(model, pyg_graph, anndata, cell_types, device, args):
+    TRAINING = False
+    if args.variational:
+        if args.type == 'GCN' or args.type == 'GAT':
+            z, kl = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device),
+                              pyg_graph.weight.to(device))
+        elif args.type == 'SAGE':
+            z, kl = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device))
+        else:
+            z, kl = model.encoder(pyg_graph.expr.to(device))
+        z = z.to('cpu').detach().numpy()
+
+    else:
+        if args.type == 'GCN'or args.type == 'GAT':
+            z = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device),
+                                      pyg_graph.weight.to(device))
+        elif args.type == 'SAGE':
+            z = model.encoder(pyg_graph.expr.to(device), pyg_graph.edge_index.to(device))
+        else:
+            z = model.encoder(pyg_graph.expr.to(device))
+        z = z.to('cpu').detach().numpy()
+    return z
 
 @torch.no_grad()
 def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
