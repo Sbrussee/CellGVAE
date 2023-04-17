@@ -1418,7 +1418,6 @@ def test(model, test_i, pyg_graph, args, discriminator=None):
 
 
 
-print(f"Found device: {device}")
 if __name__ == '__main__':
 
     # Set the UUID of the GPU you want to use
