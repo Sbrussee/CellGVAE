@@ -18,7 +18,8 @@ from torch_geometric.nn.sequential import Sequential
 from scipy.sparse.csgraph import laplacian
 import scipy.sparse as sp
 from sklearn.metrics import r2_score
-import sklearn.manifold as manifold
+import sklearn.manifold as manifold,
+from sklearn.decomposition import PCA
 import umap.umap_ as umap
 
 import sys
@@ -666,6 +667,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         else:
             z = model.encoder(pyg_graph.expr.to(device))
         z = z.to('cpu').detach().numpy()
+
     tsne = manifold.TSNE(n_components=2)
     tsne_z =tsne.fit_transform(z[:number_of_cells,:])
     plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1], hue=list(anndata[:number_of_cells,:].obs[celltype_key]))
@@ -681,6 +683,42 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     plot.legend(fontsize=3)
     fig = plot.get_figure()
     fig.savefig(f'umap_latentspace_{name}.png', dpi=200)
+
+    pca = PCA(n_components=2)
+    pca.fit(data)
+    transformed_data = pca.transform(z[:number_of_cells,:])
+    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata[:number_of_cells,:].obs[celltype_key]))
+    plot.legend(fontsize=3)
+    fig = plot.get_figure()
+    fig.savefig(f'pca_latentspace_{name}.png', dpi=200)
+
+    #Plot per cell type:
+    for celltype in cell_types:
+        idx_to_plot = anndata[anndata.obs[celltype_key] == celltype].obs.index.to_list()
+
+        tsne = manifold.TSNE(n_components=2)
+        tsne_z =tsne.fit_transform(z[idx_to_plot,:])
+        plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1])
+        plot.legend(fontsize=3)
+        fig = plot.get_figure()
+        fig.savefig(f'tsne_latentspace_{name}_{celltype}.png', dpi=200)
+        plt.close()
+
+
+        mapper = umap.UMAP()
+        umap_z = mapper.fit_transform(z[idx_to_plot,:])
+        plot = sns.scatterplot(x=umap_z[:,0], y=umap_z[:,1])
+        plot.legend(fontsize=3)
+        fig = plot.get_figure()
+        fig.savefig(f'umap_latentspace_{name}_{celltype}.png', dpi=200)
+
+        pca = PCA(n_components=2)
+        pca.fit(data)
+        transformed_data = pca.transform(z[idx_to_plot,:])
+        plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1])
+        plot.legend(fontsize=3)
+        fig = plot.get_figure()
+        fig.savefig(f'pca_latentspace_{name}_{celltype}.png', dpi=200)
 
 def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     if args.adversarial:
