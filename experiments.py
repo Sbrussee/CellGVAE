@@ -10,7 +10,7 @@ import itertools
 random.seed(42)
 
 
-gpu = "GPU-d058c48b-633a-0acc-0bc0-a2a5f0457492"
+gpu_uuid = "GPU-d058c48b-633a-0acc-0bc0-a2a5f0457492"
 
 # Set the environment variable to the UUID of the GPU
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_uuid
