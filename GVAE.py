@@ -668,6 +668,8 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             z = model.encoder(pyg_graph.expr.to(device))
         z = z.to('cpu').detach().numpy()
 
+    #Filter z for any nonfinite values
+    z = z[np.isfinite(z)]
     tsne = manifold.TSNE(n_components=2)
     tsne_z =tsne.fit_transform(z[:number_of_cells,:])
     plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1], hue=list(anndata[:number_of_cells,:].obs[celltype_key]))
