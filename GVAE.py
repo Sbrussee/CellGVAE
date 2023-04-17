@@ -671,6 +671,10 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     #Filter z for any nonfinite values
     z = np.where(np.isfinite(z), z, 1e-10)
 
+    if np.any(np.isnan(z)) or np.any(np.isinf(z)):
+        print("There are nonfinite values in the array.")
+    else:
+        print("There are no nonfinite values in the array.")
     tsne = manifold.TSNE(n_components=2)
     tsne_z = tsne.fit_transform(z[:number_of_cells,:])
     plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1], hue=list(anndata[:number_of_cells,:].obs[celltype_key]))
