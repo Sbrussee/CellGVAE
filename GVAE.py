@@ -18,7 +18,7 @@ from torch_geometric.nn.sequential import Sequential
 from scipy.sparse.csgraph import laplacian
 import scipy.sparse as sp
 from sklearn.metrics import r2_score
-import sklearn.manifold as manifold,
+import sklearn.manifold as manifold
 from sklearn.decomposition import PCA
 import umap.umap_ as umap
 
