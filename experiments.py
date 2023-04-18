@@ -145,6 +145,7 @@ for name in ['seqfish', 'slideseqv2']:
                     device, name=f'set_{name}_exp1', number_of_cells=1000, celltype_key=celltype_key, args=args)
 
     if 2 in experiments:
+        r2_per_comb = {}
         core_models = ['adversarial', 'variational', 'normal']
         for comb in itertools.combinations(core_models, 2):
             if 'adversarial' in comb:
@@ -199,6 +200,8 @@ for name in ['seqfish', 'slideseqv2']:
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
             test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
 
+            r2_per_comb["_".join(comb)] = test_dict['r2']
+
             if args.variational:
                 var = 'variational'
             else:
@@ -216,7 +219,7 @@ for name in ['seqfish', 'slideseqv2']:
 
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                        device, name=f'set_{name}_{type}_{var}_{adv}', number_of_cells=1000, celltype_key=celltype_key, args=args)
+                        device, name=f'exp2_{name}_{type}_{var}_{adv}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{type}_{var}_{adv}', celltype_key, args=args)
