@@ -645,7 +645,7 @@ class GAE(nn.Module):
 
 
 @torch.no_grad()
-def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_cells, celltype_key, args):
+def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_cells, celltype_key, args, plot_celltypes=False):
     TRAINING = False
     plt.figure()
     if args.variational:
@@ -675,6 +675,8 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         print("There are nonfinite values in the array.")
     else:
         print("There are no nonfinite values in the array.")
+
+    print('TSNE...')
     tsne = manifold.TSNE(n_components=2)
     tsne_z = tsne.fit_transform(z[:number_of_cells,:])
     plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1], hue=list(anndata[:number_of_cells,:].obs[celltype_key]))
@@ -686,7 +688,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     fig.savefig(f'tsne_latentspace_{name}.png', dpi=200)
     plt.close()
 
-
+    print('UMAP..')
     mapper = umap.UMAP()
     umap_z = mapper.fit_transform(z[:number_of_cells,:])
     plot = sns.scatterplot(x=umap_z[:,0], y=umap_z[:,1], hue=list(anndata[:number_of_cells,:].obs[celltype_key]))
@@ -698,6 +700,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     fig.savefig(f'umap_latentspace_{name}.png', dpi=200)
     plt.close()
 
+    print('PCA...')
     pca = PCA(n_components=2, svd_solver='full')
     transformed_data = pca.fit_transform(z[:number_of_cells,:])
     plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata[:number_of_cells,:].obs[celltype_key]))
@@ -709,44 +712,45 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     fig.savefig(f'pca_latentspace_{name}.png', dpi=200)
     plt.close()
 
-    #Plot per cell type:
-    for celltype in cell_types:
-        obs_names = anndata[anndata.obs[celltype_key] == celltype].obs_names
-        idx_to_plot = anndata.obs.index.get_indexer(obs_names)
-        print(idx_to_plot)
+    if plot_celltypes:
+        #Plot per cell types
+        for celltype in cell_types:
+            obs_names = anndata[anndata.obs[celltype_key] == celltype].obs_names
+            idx_to_plot = anndata.obs.index.get_indexer(obs_names)
+            print(idx_to_plot)
 
 
-        celltype = celltype.replace('/', '_')
-        tsne = manifold.TSNE(n_components=2)
-        tsne_z =tsne.fit_transform(z[idx_to_plot,:])
-        plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1])
-        plt.xlabel("t-SNE dim 1")
-        plt.ylabel("t-SNE dim 2")
-        plt.title(f"t-SNE representation of the latent space of {celltype}")
-        fig = plot.get_figure()
-        fig.savefig(f'tsne_latentspace_{name}_{celltype}.png', dpi=200)
-        plt.close()
+            celltype = celltype.replace('/', '_')
+            tsne = manifold.TSNE(n_components=2)
+            tsne_z =tsne.fit_transform(z[idx_to_plot,:])
+            plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1])
+            plt.xlabel("t-SNE dim 1")
+            plt.ylabel("t-SNE dim 2")
+            plt.title(f"t-SNE representation of the latent space of {celltype}")
+            fig = plot.get_figure()
+            fig.savefig(f'tsne_latentspace_{name}_{celltype}.png', dpi=200)
+            plt.close()
 
 
-        mapper = umap.UMAP()
-        umap_z = mapper.fit_transform(z[idx_to_plot,:])
-        plot = sns.scatterplot(x=umap_z[:,0], y=umap_z[:,1])
-        plt.xlabel('UMAP dim 1')
-        plt.ylabel('UMAP dim 2')
-        plt.title(f"UMAP representation of the latent space of {celltype}")
-        fig = plot.get_figure()
-        fig.savefig(f'umap_latentspace_{name}_{celltype}.png', dpi=200)
-        plt.close()
+            mapper = umap.UMAP()
+            umap_z = mapper.fit_transform(z[idx_to_plot,:])
+            plot = sns.scatterplot(x=umap_z[:,0], y=umap_z[:,1])
+            plt.xlabel('UMAP dim 1')
+            plt.ylabel('UMAP dim 2')
+            plt.title(f"UMAP representation of the latent space of {celltype}")
+            fig = plot.get_figure()
+            fig.savefig(f'umap_latentspace_{name}_{celltype}.png', dpi=200)
+            plt.close()
 
-        pca = PCA(n_components=2, svd_solver='full')
-        transformed_data = pca.fit_transform(z[idx_to_plot,:])
-        plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1])
-        plt.xlabel("PC1")
-        plt.ylabel("PC2")
-        plt.title(f"PCA decomposition of the latent space of {celltype}")
-        fig = plot.get_figure()
-        fig.savefig(f'pca_latentspace_{name}_{celltype}.png', dpi=200)
-        plt.close()
+            pca = PCA(n_components=2, svd_solver='full')
+            transformed_data = pca.fit_transform(z[idx_to_plot,:])
+            plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1])
+            plt.xlabel("PC1")
+            plt.ylabel("PC2")
+            plt.title(f"PCA decomposition of the latent space of {celltype}")
+            fig = plot.get_figure()
+            fig.savefig(f'pca_latentspace_{name}_{celltype}.png', dpi=200)
+            plt.close()
 
 def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     if args.adversarial:
