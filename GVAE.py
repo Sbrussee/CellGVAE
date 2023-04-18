@@ -677,7 +677,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         print("There are no nonfinite values in the array.")
 
     print('TSNE...')
-    tsne = manifold.TSNE(n_components=2)
+    tsne = manifold.TSNE(n_components=2, init='random')
     tsne_z = tsne.fit_transform(z[:number_of_cells,:])
     plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1], hue=list(anndata[:number_of_cells,:].obs[celltype_key]))
     plot.legend(fontsize=3)
@@ -721,7 +721,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 
 
             celltype = celltype.replace('/', '_')
-            tsne = manifold.TSNE(n_components=2)
+            tsne = manifold.TSNE(n_components=2, init='random')
             tsne_z =tsne.fit_transform(z[idx_to_plot,:])
             plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1])
             plt.xlabel("t-SNE dim 1")
