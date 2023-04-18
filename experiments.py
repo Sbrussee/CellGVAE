@@ -57,7 +57,7 @@ args.remove_subtype_edges = False
 args.prediction_mode = 'Full'
 args.neighbors = 6
 args.latent = 4
-args.theshold = -1
+args.threshold = -1
 
 print(args)
 
