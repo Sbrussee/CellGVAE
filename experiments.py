@@ -44,6 +44,7 @@ arg_parser.add_argument('-ng', '--neighbors', type=int, help='Number of neighbor
 arg_parser.add_argument('-ls', '--latent', type=int, help='Size of the latent space to use', default=4)
 arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layers', default='64,32')
 arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
+arg_parser.add_argument('-ex', '--experiments', type=list, help='Which experiments to run', default=[1,2,3,4,5,6])
 args = arg_parser.parse_args()
 
 args.epochs = 200
