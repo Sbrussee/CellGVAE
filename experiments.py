@@ -59,6 +59,8 @@ args.neighbors = 6
 args.latent = 4
 args.theshold = -1
 
+print(args)
+
 def apply_pca(data):
     pca = PCA(n_components=2)
     pca.fit(data)
