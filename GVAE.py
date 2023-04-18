@@ -709,13 +709,13 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 
     #Plot per cell type:
     for celltype in cell_types:
-        idx_to_plot = anndata[anndata.obs[celltype_key] == celltype].obs.index.get_indexer(anndata.obs_names)
+        idx_to_plot = [x for x in anndata[anndata.obs[celltype_key] == celltype].obs.index.get_indexer(anndata.obs_names) if x not -1]
         print(idx_to_plot)
 
+        celltype = celltype.replace('/', '_')
         tsne = manifold.TSNE(n_components=2)
         tsne_z =tsne.fit_transform(z[idx_to_plot,:])
         plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1])
-        plot.legend(fontsize=3)
         plt.xlabel("t-SNE dim 1")
         plt.ylabel("t-SNE dim 2")
         plt.title(f"t-SNE representation of the latent space of {celltype}")
@@ -727,7 +727,6 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         mapper = umap.UMAP()
         umap_z = mapper.fit_transform(z[idx_to_plot,:])
         plot = sns.scatterplot(x=umap_z[:,0], y=umap_z[:,1])
-        plot.legend(fontsize=3)
         plt.xlabel('UMAP dim 1')
         plt.ylabel('UMAP dim 2')
         plt.title(f"UMAP representation of the latent space of {celltype}")
@@ -737,7 +736,6 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         pca = PCA(n_components=2)
         transformed_data = pca.fit_transform(z[idx_to_plot,:])
         plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1])
-        plot.legend(fontsize=3)
         plt.xlabel("PC1")
         plt.ylabel("PC2")
         plt.title(f"PCA decomposition of the latent space of {celltype}")
