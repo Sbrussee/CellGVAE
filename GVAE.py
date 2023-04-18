@@ -804,7 +804,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
     pyG_graph.weight.float()
     pyG_graph.to(device)
 
-    true_expr = dataset.X.
+    true_expr = dataset.X
     pred_expr = np.zeros(shape=(dataset.X.shape[0], dataset.X.shape[1]))
     print(true_expr.shape, pred_expr.shape)
 
