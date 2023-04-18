@@ -51,7 +51,7 @@ args.cells = 100
 args.graph_summary = False
 args.weight = True
 args.normalization = 'Normal'
-args.remove_same_type_edges = True
+args.remove_same_type_edges = False
 args.remove_subtype_edges = False
 args.prediction_mode = 'Full'
 args.neighbors = 6
@@ -135,8 +135,8 @@ for name in ['seqfish', 'slideseqv2']:
 
         #Plot results
         print("Plotting training plots...")
-        plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_{name}_{type}_{subtype}.png')
-        plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_{name}_{type}_{subtype}.png')
+        plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp1_{name}_{type}_{subtype}.png')
+        plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp1_{name}_{type}_{subtype}.png')
 
 
         #Plot the latent test set
@@ -210,15 +210,15 @@ for name in ['seqfish', 'slideseqv2']:
 
             #Plot results
             print("Plotting training plots...")
-            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_{name}_{type}_{var}_{adv}.png')
-            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_{name}_{type}_{var}_{adv}.png')
+            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp2_{name}_{type}_{var}_{adv}.png')
+            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp2_{name}_{type}_{var}_{adv}.png')
 
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
                         device, name=f'set_{name}_{type}_{var}_{adv}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'GVAE_{name}_{type}_{var}_{adv}', celltype_key, args=args)
+            apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{type}_{var}_{adv}', celltype_key, args=args)
 
     if 3 in experiments:
         args.variational = False
@@ -290,17 +290,18 @@ for name in ['seqfish', 'slideseqv2']:
 
             #Plot results
             print("Plotting training plots...")
-            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_{name}_{type}_{var}_{adv}.png')
-            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_{name}_{type}_{var}_{adv}.png')
+            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp3{name}_{type}_{var}_{adv}.png')
+            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp3{name}_{type}_{var}_{adv}.png')
 
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
                         device, name=f'set_{name}_{type}_{var}_{adv}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'GVAE_{name}_{type}_{var}_{adv}', celltype_key, args=args)
+            apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{type}_{var}_{adv}', celltype_key, args=args)
 
     if 4 in experiments:
+        r2_per_prediction_mode = {}
         args.variational = False
         args.adversarial = False
         for prediction_mode in ['full', 'spatial', 'expression', 'spatial+expression']:
@@ -359,6 +360,8 @@ for name in ['seqfish', 'slideseqv2']:
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
             test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
 
+            r2_per_prediction_mode[prediction_mode] = test_dict['r2']
+
             if args.variational:
                 var = 'variational'
             else:
@@ -381,110 +384,220 @@ for name in ['seqfish', 'slideseqv2']:
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_{name}_{type}_{prediction_mode}', celltype_key, args=args)
 
+        with open('r2_prediction_mode.pkl', 'wb') as file:
+            pickle.dump(r2_per_prediction_mode, file)
 
-if 5 in experiments:
-    organism = 'human'
-    full = sc.read("/srv/scratch/chananchidas/LiverData/LiverData_RawNorm.h5ad")
-    #Subset nanostring data in 4 parts
-    size_obs = full.X.shape[0]
-    print(f'full size {size_obs}')
-    #Split by tissue type
-    normal, cancer = (full[full.obs['Run_Tissue_name'] == 'NormalLiver'],
-                       full[full.obs['Run_Tissue_name'] == 'CancerousLiver'])
-    print(normal, cancer)
-    #Delete the full dataset from memory
-    del full
-    fovs = np.unique(normal.obs['fov'])
-    tissue = str(normal.obs['Run_Tissue_name'].unique()[0])
-    for i in range(0,len(fovs)):
-        fov = normal[normal.obs['fov'] == i]
-        print(f"Saving {tissue} fov {i} to {i+1}...")
-        print(fov.shape)
-        del fov.raw
-        #Save this sub-dataset
-        fov.write(f'data/ns_fov_{tissue}_{i}_to_{i+1}.h5ad')
+    if 5 in experiments:
+        r2_neighbors = {}
+        for neighbors in [2,4,6,8,10]:
+            args.threshold = -1
+            args.neighbors = neighbors
+            #Train the model on all data
+            if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
+                print("Constructing graph...")
+                dataset = construct_graph(dataset, args=args)
 
-    for dataset in [f for f in os.listdir("data/") if f.startswith("ns_fov_") and 'Normal' in f]:
-        data = sc.read("data/"+dataset)
-        tissue = str(data.obs['Run_Tissue_name'].unique()[0])
-        i = np.min(data.obs['fov'])
-        if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
-            print("Constructing graph...")
+            print("Converting graph to PyG format...")
+            if args.weight:
+                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
+            else:
+                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
+
+            G = nx.convert_node_labels_to_integers(G)
+
+            pyg_graph = pyg.utils.from_networkx(G)
+            pyg_graph.expr = pyg_graph.expr.float()
+            pyg_graph.weight = pyg_graph.weight.float()
+            input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
+            model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
+
+            print("Model:")
+            print(model)
+            #Send model to GPU
+            model = model.to(device)
+            model.float()
+            pyg.transforms.ToDevice(device)
+
+            #Set number of nodes to sample per epoch
+            if args.cells == -1:
+                k = G.number_of_nodes()
+            else:
+                k = args.cells
+
+            #Split dataset
+            val_i = random.sample(G.nodes(), k=1000)
+            test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
+            train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
+
+            optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
+            (loss_over_cells, train_loss_over_epochs,
+             val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+                                                           train_i, val_i, k=k, args=args, discriminator=discriminator)
+            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
+
+            r2_neighbors[neighbors] = test_dict['r2']
+
+        r2_thresholds = {}
+        for threshold in [5, 10, 25, 50]:
+            args.threshold = threshold
+            args.neighbors = -1
+            args.threshold = -1
+            args.neighbors = neighbors
+            #Train the model on all data
+            if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
+                print("Constructing graph...")
+                dataset = construct_graph(dataset, args=args)
+
+            print("Converting graph to PyG format...")
+            if args.weight:
+                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
+            else:
+                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
+
+            G = nx.convert_node_labels_to_integers(G)
+
+            pyg_graph = pyg.utils.from_networkx(G)
+            pyg_graph.expr = pyg_graph.expr.float()
+            pyg_graph.weight = pyg_graph.weight.float()
+            input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
+            model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
+
+            print("Model:")
+            print(model)
+            #Send model to GPU
+            model = model.to(device)
+            model.float()
+            pyg.transforms.ToDevice(device)
+
+            #Set number of nodes to sample per epoch
+            if args.cells == -1:
+                k = G.number_of_nodes()
+            else:
+                k = args.cells
+
+            #Split dataset
+            val_i = random.sample(G.nodes(), k=1000)
+            test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
+            train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
+
+            optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
+            (loss_over_cells, train_loss_over_epochs,
+             val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+                                                           train_i, val_i, k=k, args=args, discriminator=discriminator)
+            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
+
+            r2_thresholds[threshold] = test_dict['r2']
+
+        with open("r2_neighbors.pkl", 'wb') as file:
+            pickle.dump(r2_neighbors, file)
+
+
+        with open("r2_thresholds.pkl", 'wb') as file:
+            pickle.dump(r2_thresholds, file)
+
+    if 6 in experiments:
+        organism = 'human'
+        full = sc.read("/srv/scratch/chananchidas/LiverData/LiverData_RawNorm.h5ad")
+        #Subset nanostring data in 4 parts
+        size_obs = full.X.shape[0]
+        print(f'full size {size_obs}')
+        #Split by tissue type
+        normal, cancer = (full[full.obs['Run_Tissue_name'] == 'NormalLiver'],
+                           full[full.obs['Run_Tissue_name'] == 'CancerousLiver'])
+        print(normal, cancer)
+        #Delete the full dataset from memory
+        del full
+        fovs = np.unique(normal.obs['fov'])
+        tissue = str(normal.obs['Run_Tissue_name'].unique()[0])
+        for i in range(0,len(fovs)):
+            fov = normal[normal.obs['fov'] == i]
+            print(f"Saving {tissue} fov {i} to {i+1}...")
+            print(fov.shape)
+            del fov.raw
+            #Save this sub-dataset
+            fov.write(f'data/ns_fov_{tissue}_{i}_to_{i+1}.h5ad')
+
+        for dataset in [f for f in os.listdir("data/") if f.startswith("ns_fov_") and 'Normal' in f]:
+            data = sc.read("data/"+dataset)
+            tissue = str(data.obs['Run_Tissue_name'].unique()[0])
+            i = np.min(data.obs['fov'])
+            if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
+                print("Constructing graph...")
+                dataset = construct_graph(dataset, args=args)
+
+            print("Converting graph to PyG format...")
+            if args.weight:
+                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
+            else:
+                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
+
+            G = nx.convert_node_labels_to_integers(G)
+
+            pyg_graph = pyg.utils.from_networkx(G)
+            pyg_graph.expr = pyg_graph.expr.float()
+            pyg_graph.weight = pyg_graph.weight.float()
+            input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
+            model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
+
+            print("Model:")
+            print(model)
+            #Send model to GPU
+            model = model.to(device)
+            model.float()
+            pyg.transforms.ToDevice(device)
+
+            #Set number of nodes to sample per epoch
+            if args.cells == -1:
+                k = G.number_of_nodes()
+            else:
+                k = args.cells
+
+            #Split dataset
+            val_i = random.sample(G.nodes(), k=1000)
+            train_i = [node for node in G.nodes() if node not in val_i]
+
+            print(f"Training using fov {i} to {i+1}")
+            optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
+            (loss_over_cells, train_loss_over_epochs,
+             val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+                                                           train_i, val_i, k=k, args=args, discriminator=discriminator)
+
+        latent_spaces_normal = {}
+        #First get latent space for all normal tissue fovs:
+        for dataset in [f for f in os.listdir("data/") if f.startswith("ns_fov_") and 'Normal' in f]:
+            i = np.min(dataset.obs['fov'])
             dataset = construct_graph(dataset, args=args)
+            G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
+            G = nx.convert_node_labels_to_integers(G)
+            pyG_graph = pyg.utils.from_networkx(G)
+            pyG_graph.to(device)
 
-        print("Converting graph to PyG format...")
-        if args.weight:
-            G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
-        else:
-            G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
-
-        G = nx.convert_node_labels_to_integers(G)
-
-        pyg_graph = pyg.utils.from_networkx(G)
-        pyg_graph.expr = pyg_graph.expr.float()
-        pyg_graph.weight = pyg_graph.weight.float()
-        input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
-        model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
-
-        print("Model:")
-        print(model)
-        #Send model to GPU
-        model = model.to(device)
-        model.float()
-        pyg.transforms.ToDevice(device)
-
-        #Set number of nodes to sample per epoch
-        if args.cells == -1:
-            k = G.number_of_nodes()
-        else:
-            k = args.cells
-
-        #Split dataset
-        val_i = random.sample(G.nodes(), k=1000)
-        train_i = [node for node in G.nodes() if node not in val_i]
-
-        print(f"Training using fov {i} to {i+1}")
-        optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
-        (loss_over_cells, train_loss_over_epochs,
-         val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
-                                                       train_i, val_i, k=k, args=args, discriminator=discriminator)
-
-    latent_spaces_normal = {}
-    #First get latent space for all normal tissue fovs:
-    for dataset in [f for f in os.listdir("data/") if f.startswith("ns_fov_") and 'Normal' in f]:
-        i = np.min(dataset.obs['fov'])
-        dataset = construct_graph(dataset, args=args)
-        G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
-        G = nx.convert_node_labels_to_integers(G)
-        pyG_graph = pyg.utils.from_networkx(G)
-        pyG_graph.to(device)
-
-        latent_spaces_normal[i] = get_latent_space_vectors(model, pyG_graph, dataset, device, args)
+            latent_spaces_normal[i] = get_latent_space_vectors(model, pyG_graph, dataset, device, args)
 
 
-    #Now that we trained on the normal data, score all cancer fov's
-    fovs = np.unique(cancer.obs['fov'])
-    tissue = str(cancer.obs['Run_Tissue_name'].unique()[0])
-    for i in range(0,len(fovs)):
-        fov = cancer[cancer.obs['fov'] == i]
-        print(f"Saving {tissue} fov {i} to {i+1}...")
-        print(fov.shape)
-        del fov.raw
-        #Save this sub-dataset
-        fov.write(f'data/ns_fov_{tissue}_{i}_to_{i+1}.h5ad')
+        #Now that we trained on the normal data, score all cancer fov's
+        fovs = np.unique(cancer.obs['fov'])
+        tissue = str(cancer.obs['Run_Tissue_name'].unique()[0])
+        for i in range(0,len(fovs)):
+            fov = cancer[cancer.obs['fov'] == i]
+            print(f"Saving {tissue} fov {i} to {i+1}...")
+            print(fov.shape)
+            del fov.raw
+            #Save this sub-dataset
+            fov.write(f'data/ns_fov_{tissue}_{i}_to_{i+1}.h5ad')
 
-    latent_spaces_cancer = {}
-    for dataset in [f for f in os.listdir("data/") if f.startswith("ns_fov_") and 'Cancer' in f]:
-        i = np.min(dataset.obs['fov'])
-        dataset = construct_graph(dataset, args=args)
-        G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
-        G = nx.convert_node_labels_to_integers(G)
-        pyG_graph = pyg.utils.from_networkx(G)
-        pyG_graph.to(device)
+        latent_spaces_cancer = {}
+        for dataset in [f for f in os.listdir("data/") if f.startswith("ns_fov_") and 'Cancer' in f]:
+            i = np.min(dataset.obs['fov'])
+            dataset = construct_graph(dataset, args=args)
+            G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
+            G = nx.convert_node_labels_to_integers(G)
+            pyG_graph = pyg.utils.from_networkx(G)
+            pyG_graph.to(device)
 
-        latent_spaces_cancer[i] = get_latent_space_vectors(model, pyG_graph, dataset, device, args)
-    print(latent_spaces_normal)
-    print(latent_spaces_cancer)
+            latent_spaces_cancer[i] = get_latent_space_vectors(model, pyG_graph, dataset, device, args)
+        print(latent_spaces_normal)
+        print(latent_spaces_cancer)
 
 
 
@@ -497,9 +610,10 @@ if 5 in experiments:
 #Experiment 2: Adversarial vs Variational vs Non Variational
 #Experiment 3: GCN vs SAGE vs GAT
 #Experiment 4: Linear vs. Spatial vs. no celltype vs. Full + (PCA, TSNE)
+#Experiment 5: Show how the neighbors/threshold influences performance
 
 
-#Experiment 5: Train on normal tissue, then calculate divergence from latent space distribution in cancer tissue. This will give a similarity score for each FOVs.
+#Experiment 6: Train on normal tissue, then calculate divergence from latent space distribution in cancer tissue. This will give a similarity score for each FOVs.
 #Feed each normal fov to the model
 #calculate mean latent space point per cell type in fov
 #calculate mean latent space point per fov
@@ -510,8 +624,6 @@ if 5 in experiments:
 
 #Now feed the malignant slices, again, calculate mean per cell type and per fov
 #Score each fov on distance to fov clusters and global distribution overall.
-
-
 
 #Extra 1: Difference between preprocessing steps in graph statistics
 #Extra 2: Performance differences while changing graph construction parameters
