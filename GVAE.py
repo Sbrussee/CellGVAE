@@ -696,6 +696,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     plt.title(f"UMAP representation of the latent space of {name}")
     fig = plot.get_figure()
     fig.savefig(f'umap_latentspace_{name}.png', dpi=200)
+    plt.close()
 
     pca = PCA(n_components=2)
     transformed_data = pca.fit_transform(z[:number_of_cells,:])
@@ -706,6 +707,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     plt.title(f"PCA representation of the latent space of {name}")
     fig = plot.get_figure()
     fig.savefig(f'pca_latentspace_{name}.png', dpi=200)
+    plt.close()
 
     #Plot per cell type:
     for celltype in cell_types:
@@ -734,6 +736,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         plt.title(f"UMAP representation of the latent space of {celltype}")
         fig = plot.get_figure()
         fig.savefig(f'umap_latentspace_{name}_{celltype}.png', dpi=200)
+        plt.close()
 
         pca = PCA(n_components=2)
         transformed_data = pca.fit_transform(z[idx_to_plot,:])
@@ -743,6 +746,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         plt.title(f"PCA decomposition of the latent space of {celltype}")
         fig = plot.get_figure()
         fig.savefig(f'pca_latentspace_{name}_{celltype}.png', dpi=200)
+        plt.close()
 
 def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     if args.adversarial:
