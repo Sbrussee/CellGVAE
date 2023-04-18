@@ -799,7 +799,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
     dataset = construct_graph(dataset, args=args)
     G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
     G = nx.convert_node_labels_to_integers(G)
-    pyG_graph = pyg.utils.from_networkx(G).float()
+    pyG_graph = pyg.utils.from_networkx(G)
     pyG_graph.expr.float()
     pyG_graph.weight.float()
     pyG_graph.to(device)
