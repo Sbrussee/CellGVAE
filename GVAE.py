@@ -698,7 +698,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     fig.savefig(f'umap_latentspace_{name}.png', dpi=200)
     plt.close()
 
-    pca = PCA(n_components=2)
+    pca = PCA(n_components=2, svd_solver='full')
     transformed_data = pca.fit_transform(z[:number_of_cells,:])
     plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata[:number_of_cells,:].obs[celltype_key]))
     plot.legend(fontsize=3)
@@ -738,7 +738,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         fig.savefig(f'umap_latentspace_{name}_{celltype}.png', dpi=200)
         plt.close()
 
-        pca = PCA(n_components=2)
+        pca = PCA(n_components=2, svd_solver='full')
         transformed_data = pca.fit_transform(z[idx_to_plot,:])
         plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1])
         plt.xlabel("PC1")
