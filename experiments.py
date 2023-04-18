@@ -225,8 +225,11 @@ for name in ['seqfish', 'slideseqv2']:
             print("Applying model on entire dataset...")
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{type}_{var}_{adv}', celltype_key, args=args)
+        with open("exp2.pkl", 'wb') as file:
+            pickle.dump(r2_per_comb, file)
 
     if 3 in experiments:
+        r2_per_type = {}
         args.variational = False
         args.adversarial = False
         for type in ['GCN', 'GAT', 'SAGE_max', 'SAGE_avg']:
@@ -284,6 +287,7 @@ for name in ['seqfish', 'slideseqv2']:
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
             test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
 
+            r2_per_type[type] = test_dict['r2']
             if args.variational:
                 var = 'variational'
             else:
@@ -305,6 +309,8 @@ for name in ['seqfish', 'slideseqv2']:
             print("Applying model on entire dataset...")
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{type}_{var}_{adv}', celltype_key, args=args)
+        with open("exp3.pkl", 'wb') as file:
+            pickle.dump(r2_per_type, file)
 
     if 4 in experiments:
         r2_per_prediction_mode = {}
@@ -602,6 +608,7 @@ for name in ['seqfish', 'slideseqv2']:
             pyG_graph.to(device)
 
             latent_spaces_cancer[i] = get_latent_space_vectors(model, pyG_graph, dataset, device, args)
+
         print(latent_spaces_normal)
         print(latent_spaces_cancer)
 
