@@ -1469,7 +1469,7 @@ def test(model, test_i, pyg_graph, args, discriminator=None):
 
 def train_regression_model(G, pyg_graph, train_i, args):
     # Get shape of expression matrix
-    n, q = pyg_graph[np.array(train_i), :].expr.shape
+    n, q = pyg_graph.expr[np.array(train_i), :].shape
     # Get number of neighbors per cell
     k = args.neighbors
     # Construct the input and output matrices
@@ -1503,7 +1503,7 @@ def train_regression_model(G, pyg_graph, train_i, args):
 
 def evaluate_regression_model(G, pyg_graph, val_i, model, args):
     # Get shape of expression matrix
-    n, q = pyg_graph[np.array(val_i), :].expr.shape
+    n, q = pyg_graph.expr[np.array(val_i), :].shape
     # Get number of neighbors per cell
     k = args.neighbors
     # Construct the input and output matrices
