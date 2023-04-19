@@ -157,7 +157,7 @@ if __name__ == "__main__":
     print(study.best_params)
     print(study.best_value)
     print(study.best_trial)
-    with open("study.pkl", 'rb') as f:
+    with open("study.pkl", 'wb') as f:
         pickle.dump(study, f)
     fig = plot_param_importances(study)
     fig.savefig("param_imp.png", dpi=300)
