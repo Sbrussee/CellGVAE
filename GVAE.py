@@ -1085,6 +1085,9 @@ def variance_decomposition(expr, celltype_key):
     For intercell variance we need to calculate the mean expression overall
     for gene j over all cel types.
     """
+    if not isinstance(expr, np.ndarray):
+        expr = expr.toarray() 
+
     # Add small constant value to dataset.X to avoid zero values
     expr += 0.00001
 
