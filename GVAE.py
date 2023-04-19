@@ -1466,60 +1466,76 @@ def test(model, test_i, pyg_graph, args, discriminator=None):
     test_dict['loss'], test_dict['r2'] = total_test_loss/1000, total_r2_test/1000
     return test_dict
 
-def regression_model(G, pyg_graph, train_i, val_i, args):
-    #Get shape of expression matrix
+def train_regression_model(G, pyg_graph, train_i, args):
+    # Get shape of expression matrix
     n, q = pyg_graph.expr.shape
-    #get number of neighbors per cell
+    # Get number of neighbors per cell
     k = args.neighbors
-    #Construct the input and output matrices
-    X_train = np.zeros((n, q))
-    Y = np.zeros((n,k*q))
+    # Construct the input and output matrices
+    X_train = []
+    Y_train = []
 
     for node in [node for node in G.nodes() if node in train_i]:
-        # get indices of neighbors of node i
+        # Get indices of neighbors of node i
         neighbors = list(G.neighbors(node))
 
-        # randomly select k neighbors (if there are fewer than k neighbors, use all of them)
+        # Randomly select k neighbors (if there are fewer than k neighbors, use all of them)
         if len(neighbors) > k:
             neighbors = np.random.choice(neighbors, k, replace=False)
         k_neighbors = len(neighbors)
 
-        # flatten and concatenate node attribute vectors of neighbors
-        x_train_i = np.concatenate([pyg_graph.expr[n] for n in neighbors]).reshape(1, -1)
-        x_train_i = x_train_i.reshape(k_neighbors, q)
+        # Flatten and concatenate node attribute vectors of neighbors
+        x_train_i = np.concatenate([pyg_graph.expr[n] for n in neighbors])
 
-        # set input and output matrices for node i
-        X_train[node, :k_neighbors*q] = x_train_i
-        Y[node] = pyg_graph.expr[node]
+        # Set input and output matrices for node i
+        X_train.append(x_train_i)
+        Y_train.append(pyg_graph.expr[node])
+
+    X_train = np.vstack(X_train)
+    Y_train = np.vstack(Y_train)
 
     model = LinearRegression()
+    model.fit(X_train, Y_train)
 
-    model.fit(X_train, Y)
+    return model
 
-    X_val = np.zeros((n, q))
+
+def evaluate_regression_model(G, pyg_graph, val_i, model, args):
+    # Get shape of expression matrix
+    n, q = pyg_graph.expr.shape
+    # Get number of neighbors per cell
+    k = args.neighbors
+    # Construct the input and output matrices
+    X_val = []
+    Y_val = []
 
     for node in [node for node in G.nodes() if node in val_i]:
-        # get indices of neighbors of node i
+        # Get indices of neighbors of node i
         neighbors = list(G.neighbors(node))
 
-        # randomly select k neighbors (if there are fewer than k neighbors, use all of them)
+        # Randomly select k neighbors (if there are fewer than k neighbors, use all of them)
         if len(neighbors) > k:
             neighbors = np.random.choice(neighbors, k, replace=False)
         k_neighbors = len(neighbors)
 
-        # flatten and concatenate node attribute vectors of neighbors
-        x_val_i = np.concatenate([pyg_graph.expr[n] for n in neighbors]).reshape(1, -1)
-        x_val_i = x_val_i.reshape(k_neighbors, q)
+        # Flatten and concatenate node attribute vectors of neighbors
+        x_val_i = np.concatenate([pyg_graph.expr[n] for n in neighbors])
 
-        # set input and output matrices for node i
-        X_val[i, :k_neighbors*q] = x_val_i
-        Y[i] = pyg_graph.expr[i]
+        # Set input and output matrices for node i
+        X_val.append(x_val_i)
+        Y_val.append(pyg_graph.expr[node])
 
-    X_pred = model.predict(X_val)
-    score = model.score(X_val, Y)
-    print(f"Regression R2 score:{score}")
+    X_val = np.vstack(X_val)
+    Y_val = np.vstack(Y_val)
 
-    return model, score
+    score = model.score(X_val, Y_val)
+    print(f"Regression R2 score: {score}")
+
+    return score
+
+
+
+
 
 
 gpu_uuid = "GPU-d058c48b-633a-0acc-0bc0-a2a5f0457492"
@@ -1618,7 +1634,8 @@ if __name__ == '__main__':
     train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
 
     if args.type == 'Linear':
-        model, score = regression_model(G, pyg_graph, train_i, val_i, args)
+        model = train_regression_model(G, pyg_graph, train_i, args)
+        score = evaluate_regression_model(G, pyg_graph, val_i, model, args)
 
     optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
     (loss_over_cells, train_loss_over_epochs,
