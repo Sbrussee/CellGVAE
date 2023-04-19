@@ -813,7 +813,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     pyG_graph.expr = pyG_graph.expr.float()
     pyG_graph.weight = pyG_graph.weight.float()
 
-    true_expr = dataset.X.toarray()
+    true_expr = pyg_graph.expr
     pred_expr = np.zeros(shape=(dataset.X.shape[0], dataset.X.shape[1]))
     print(true_expr.shape, pred_expr.shape)
 
@@ -839,8 +839,10 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
 
     pyG_graph.cpu()
 
-    ligand_receptor_analysis(dataset, pred_expr, name)
-
+    try:
+        ligand_receptor_analysis(dataset, pred_expr, name)
+    except:
+        print('failed LR analysis')
     dataset.obs['total_counts'] = np.sum(dataset.X, axis=1)
     print(dataset.obs['total_counts'])
     print(dataset.obs['total_counts'].shape)
