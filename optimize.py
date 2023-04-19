@@ -51,7 +51,7 @@ dataset, organism, name, celltype_key = read_dataset(args.dataset, args)
 #dataset = dataset[idx, :]
 
 # Set the UUID of the GPU you want to use
-gpu_uuid = "GPU-5b3b48fd-407b-f51c-705c-e77fa81fe6f0"
+gpu_uuid = "GPU-4e52ca30-750e-86ac-4ac2-289dcbf80ea7"
 
 # Set the environment variable to the UUID of the GPU
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_uuid
