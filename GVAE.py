@@ -1469,8 +1469,10 @@ def test(model, test_i, pyg_graph, args, discriminator=None):
     return test_dict
 
 def train_regression_model(G, pyg_graph, train_i, args):
+    pca = PCA(n_components=4)
+    pca_expr = pca.fit_transform(pyg_graph.expr)
     # Get shape of expression matrix
-    n, q = pyg_graph.expr.shape
+    n, q = pca_expr.shape
     # Get number of neighbors per cell
     k = args.neighbors
     # Construct the input and output matrices
@@ -1487,7 +1489,7 @@ def train_regression_model(G, pyg_graph, train_i, args):
         k_neighbors = len(neighbors)
 
         # Flatten and concatenate node attribute vectors of neighbors
-        x_train_i = np.concatenate([pyg_graph.expr[n] for n in neighbors])
+        x_train_i = np.concatenate([pca_expr[n] for n in neighbors])
 
         if k_neighbors < k:
             for x in range(k-k_neighbors):
@@ -1503,14 +1505,14 @@ def train_regression_model(G, pyg_graph, train_i, args):
     model = LinearRegression()
     model.fit(X_train, Y_train)
 
-    print(model)
-
     return model
 
 
 def evaluate_regression_model(G, pyg_graph, val_i, model, args):
+    pca = PCA(n_components=4)
+    pca_expr = pca.fit_transform(pyg_graph.expr)
     # Get shape of expression matrix
-    n, q = pyg_graph.expr.shape
+    n, q = pca_expr
     # Get number of neighbors per cell
     k = args.neighbors
     # Construct the input and output matrices
@@ -1527,7 +1529,7 @@ def evaluate_regression_model(G, pyg_graph, val_i, model, args):
         k_neighbors = len(neighbors)
 
         # Flatten and concatenate node attribute vectors of neighbors
-        x_val_i = np.concatenate([pyg_graph.expr[n] for n in neighbors])
+        x_val_i = np.concatenate([pca_expr[n] for n in neighbors])
 
         if k_neighbors < k:
             for x in range(k-k_neighbors):
