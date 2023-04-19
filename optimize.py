@@ -127,7 +127,7 @@ def objective(trial):
     print(model)
     #Send model to GPU
     model = model.to(device)
-    model.float()
+    model = model.float()
 
     #Set number of nodes to sample per epoch
     if args.cells == -1:
