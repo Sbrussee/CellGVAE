@@ -1086,7 +1086,7 @@ def variance_decomposition(expr, celltype_key):
     for gene j over all cel types.
     """
     if not isinstance(expr, np.ndarray):
-        expr = expr.toarray() 
+        expr = expr.toarray()
 
     # Add small constant value to dataset.X to avoid zero values
     expr += 0.00001
