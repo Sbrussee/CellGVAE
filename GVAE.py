@@ -1476,7 +1476,7 @@ def train_regression_model(G, pyg_graph, train_i, args):
     X_train = []
     Y_train = []
 
-    for node in [node for node in G.nodes() if node in train_i]:
+    for node in range(len([node for node in G.nodes() if node in train_i])):
         # Get indices of neighbors of node i
         neighbors = list(G.neighbors(node))
 
@@ -1512,7 +1512,7 @@ def evaluate_regression_model(G, pyg_graph, val_i, model, args):
     X_val = []
     Y_val = []
 
-    for node in [node for node in G.nodes() if node in val_i]:
+    for node in range(len([node for node in G.nodes() if node in val_i])):
         # Get indices of neighbors of node i
         neighbors = list(G.neighbors(node))
 
