@@ -1492,7 +1492,7 @@ def train_regression_model(G, pyg_graph, train_i, args):
 
         if k_neighbors < k:
             for x in range(k-k_neighbors):
-                x_train_i = np.concatenate((x_train_i, np.zeros((1,q))))
+                x_train_i = np.concatenate((x_train_i, np.zeros((q))))
 
         # Set input and output matrices for node i
         X_train.append(x_train_i)
@@ -1532,7 +1532,7 @@ def evaluate_regression_model(G, pyg_graph, val_i, model, args):
 
         if k_neighbors < k:
             for x in range(k-k_neighbors):
-                x_val_i = np.concatenate((x_val_i, np.zeros((1,q))))
+                x_val_i = np.concatenate((x_val_i, np.zeros((q))))
         # Set input and output matrices for node i
         X_val.append(x_val_i)
         Y_val.append(pyg_graph.expr[node])
