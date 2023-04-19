@@ -949,7 +949,7 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     model.eval()
     val_data.expr = val_data.expr.float()
     val_data.weight = val_data.weight.float()
-    val_data.edege_index = val_data.edge_index.float()
+    val_data.edge_index = val_data.edge_index.float()
     model = model.float()
     model.encoder = model.encoder.float()
     if args.adversarial:
@@ -1462,7 +1462,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
     return loss_over_cells, train_loss_over_epochs, val_loss_over_epochs, r2_over_epochs
 
 @torch.no_grad()
-def test(model, test_i, pyg_graph, args, discriminator=None):
+def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
     print("Testing the model...")
     test_dict = {}
     total_test_loss = 0
@@ -1473,6 +1473,7 @@ def test(model, test_i, pyg_graph, args, discriminator=None):
             test_batch.expr.fill_(0.0)
             assert test_batch.expr.sum() == 0
         test_batch.expr[cell, :].fill_(0.0)
+        test_batch = test_batch.to(device)
         assert test_batch.expr[cell, :].sum() == 0
         test_loss, x_hat = validate(model, test_batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args, discriminator=discriminator)
         total_r2_test += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
@@ -1699,7 +1700,7 @@ if __name__ == '__main__':
     (loss_over_cells, train_loss_over_epochs,
      val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
                                                    train_i, val_i, k=k, args=args, discriminator=discriminator)
-    test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
+    test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
     if args.variational:
         subtype = 'variational'

@@ -127,7 +127,7 @@ for name in ['seqfish', 'slideseqv2']:
         (loss_over_cells, train_loss_over_epochs,
          val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
                                                        train_i, val_i, k=k, args=args, discriminator=discriminator)
-        test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
+        test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
         if args.variational:
             subtype = 'variational'
@@ -144,6 +144,8 @@ for name in ['seqfish', 'slideseqv2']:
         plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
                     device, name=f'set_{name}_exp1', number_of_cells=1000, celltype_key=celltype_key, args=args,
                     plot_celltypes=True)
+
+        model.cpu()
 
     if '2' in experiments:
         r2_per_comb = {}
@@ -199,7 +201,7 @@ for name in ['seqfish', 'slideseqv2']:
             (loss_over_cells, train_loss_over_epochs,
              val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
-            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
+            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
             r2_per_comb["_".join(comb)] = test_dict['r2']
 
@@ -228,8 +230,12 @@ for name in ['seqfish', 'slideseqv2']:
             else:
                 apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{type}_{var}_{adv}', celltype_key, args=args)
 
+            model.cpu()
+
         with open("exp2.pkl", 'wb') as file:
             pickle.dump(r2_per_comb, file)
+
+
 
     if '3' in experiments:
         r2_per_type = {}
@@ -288,7 +294,7 @@ for name in ['seqfish', 'slideseqv2']:
             (loss_over_cells, train_loss_over_epochs,
              val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
-            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
+            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
             r2_per_type[type] = test_dict['r2']
             if args.variational:
@@ -312,6 +318,8 @@ for name in ['seqfish', 'slideseqv2']:
             print("Applying model on entire dataset...")
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{type}_{var}_{adv}', celltype_key, args=args)
+
+            model.cpu()
         with open("exp3.pkl", 'wb') as file:
             pickle.dump(r2_per_type, file)
 
@@ -373,7 +381,7 @@ for name in ['seqfish', 'slideseqv2']:
             (loss_over_cells, train_loss_over_epochs,
              val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
-            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
+            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
             r2_per_prediction_mode[prediction_mode] = test_dict['r2']
 
@@ -399,6 +407,7 @@ for name in ['seqfish', 'slideseqv2']:
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_{name}_{type}_{prediction_mode}', celltype_key, args=args)
 
+            model.cpu()
         with open('r2_prediction_mode.pkl', 'wb') as file:
             pickle.dump(r2_per_prediction_mode, file)
 
@@ -448,9 +457,10 @@ for name in ['seqfish', 'slideseqv2']:
             (loss_over_cells, train_loss_over_epochs,
              val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
-            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
+            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
             r2_neighbors[neighbors] = test_dict['r2']
+            model.cpu()
 
         r2_thresholds = {}
         for threshold in [5, 10, 25, 50]:
@@ -499,9 +509,11 @@ for name in ['seqfish', 'slideseqv2']:
             (loss_over_cells, train_loss_over_epochs,
              val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
-            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
+            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
             r2_thresholds[threshold] = test_dict['r2']
+
+            model.cpu()
 
         with open("r2_neighbors.pkl", 'wb') as file:
             pickle.dump(r2_neighbors, file)

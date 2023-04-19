@@ -141,7 +141,7 @@ def objective(trial):
      val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
                                                     train_i, val_i, k=k, args=args, discriminator=discriminator)
 
-    test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator)
+    test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
 
     #Send model back to the cpu
