@@ -32,7 +32,7 @@ arg_parser.add_argument('-a', "--adversarial", action="store_true", help="Whethe
 arg_parser.add_argument('-d', "--dataset", help="Which dataset to use", required=False)
 arg_parser.add_argument('-e', "--epochs", type=int, help="How many training epochs to use", default=1)
 arg_parser.add_argument('-c', "--cells", type=int, default=-1,  help="How many cells to sample per epoch.")
-arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE', 'Linear'], help="Model type to use (GCN, GAT, SAGE, Linear)", default='GCN')
+arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE'], help="Model type to use (GCN, GAT, SAGE)", default='GCN')
 arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial', 'expression'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression information only")
 arg_parser.add_argument('-w', '--weight', action='store_true', help="Whether to use distance-weighted edges")
 arg_parser.add_argument('-n', '--normalization', choices=["Laplacian", "Normal", "None"], default="None", help="Adjanceny matrix normalization strategy (Laplacian, Normal, None)")
@@ -54,7 +54,7 @@ args.weight = True
 args.normalization = 'Normal'
 args.remove_same_type_edges = False
 args.remove_subtype_edges = False
-args.prediction_mode = 'Full'
+args.prediction_mode = 'full'
 args.neighbors = 6
 args.latent = 4
 args.threshold = -1

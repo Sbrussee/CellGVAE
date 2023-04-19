@@ -831,6 +831,8 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
     r2 = r2_score(true_expr, pred_expr)
     print(f"R2 score: {r2}")
 
+    ligand_receptor_analysis(dataset, pred_expr, name)
+
     dataset.obs['total_counts'] = np.sum(dataset.X, axis=1)
     print(dataset.obs['total_counts'])
     print(dataset.obs['total_counts'].shape)
@@ -850,6 +852,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
                   save=f"total_error_spatial_{name}", color=['total_error'], size=1, show=False)
     sc.pl.spatial(dataset, layer='error', spot_size=0.1, title='Spatial distribution of relative prediction error',
                   save=f"relative_error_spatial_{name}", color=['relative_error'], size=1, show=False)
+
 
     i = 0
     for gene in dataset.var_names:
@@ -1475,6 +1478,40 @@ def test(model, test_i, pyg_graph, args, discriminator=None):
     test_dict['loss'], test_dict['r2'] = total_test_loss/1000, total_r2_test/1000
     return test_dict
 
+def ligand_receptor_analysis(adata, pred_expr, name):
+    #First calculate for original dataset
+    sq.gr.ligrec(
+        adata,
+        n_perms=100,
+        cluster_key="celltype_mapped_refined",
+    )
+    sq.pl.ligrec(
+        adata,
+        cluster_key="celltype_mapped_refined",
+        means_range=(0.3, np.inf),
+        alpha=1e-4,
+        swap_axes=False,
+        save=name+"ligrec_original.png"
+    )
+
+    #Then calculate using predicted expression
+    adata.X = pred_expr
+    sq.gr.ligrec(
+        adata,
+        n_perms=100,
+        cluster_key="celltype_mapped_refined",
+    )
+    sq.pl.ligrec(
+        adata,
+        cluster_key="celltype_mapped_refined",
+        means_range=(0.3, np.inf),
+        alpha=1e-4,
+        swap_axes=False,
+        save=name+"ligrec_pred.png"
+    )
+
+
+"""
 def train_regression_model(G, pyg_graph, train_i, args):
     pca = PCA(n_components=4)
     pca_expr = pca.fit_transform(pyg_graph.expr)
@@ -1552,8 +1589,7 @@ def evaluate_regression_model(G, pyg_graph, val_i, model, args):
     print(f"Regression R2 score: {score}")
 
     return score
-
-
+"""
 
 
 
@@ -1592,7 +1628,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('-d', "--dataset", help="Which dataset to use", required=True)
     arg_parser.add_argument('-e', "--epochs", type=int, help="How many training epochs to use", default=1)
     arg_parser.add_argument('-c', "--cells", type=int, default=-1,  help="How many cells to sample per epoch.")
-    arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE', 'Linear'], help="Model type to use (GCN, GAT, SAGE, Linear)", default='GCN')
+    arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE'], help="Model type to use (GCN, GAT, SAGE)", default='GCN')
     arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial', 'expression'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression+spatial information only")
     arg_parser.add_argument('-w', '--weight', action='store_true', help="Whether to use distance-weighted edges")
     arg_parser.add_argument('-n', '--normalization', choices=["Laplacian", "Normal", "None"], default="None", help="Adjanceny matrix normalization strategy (Laplacian, Normal, None)")
@@ -1634,16 +1670,15 @@ if __name__ == '__main__':
     pyg_graph.weight = pyg_graph.weight.float()
 
 
-    if args.type != 'Linear':
-        input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
-        model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
+    input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
+    model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
 
-        print("Model:")
-        print(model)
-        #Send model to GPU
-        model = model.to(device)
-        model.float()
-        pyg.transforms.ToDevice(device)
+    print("Model:")
+    print(model)
+    #Send model to GPU
+    model = model.to(device)
+    model.float()
+    pyg.transforms.ToDevice(device)
 
     #Set number of nodes to sample per epoch
     if args.cells == -1:
@@ -1655,10 +1690,6 @@ if __name__ == '__main__':
     val_i = random.sample(G.nodes(), k=1000)
     test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
     train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
-
-    if args.type == 'Linear':
-        model = train_regression_model(G, pyg_graph, train_i, args)
-        score = evaluate_regression_model(G, pyg_graph, val_i, model, args)
 
     optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
     (loss_over_cells, train_loss_over_epochs,
