@@ -59,7 +59,7 @@ args.neighbors = 6
 args.latent = 4
 args.threshold = -1
 
-print(args)
+experiments = args.experiments
 
 def apply_pca(data):
     pca = PCA(n_components=2)
