@@ -1512,7 +1512,7 @@ def evaluate_regression_model(G, pyg_graph, val_i, model, args):
     pca = PCA(n_components=4)
     pca_expr = pca.fit_transform(pyg_graph.expr)
     # Get shape of expression matrix
-    n, q = pca_expr
+    n, q = pca_expr.shape
     # Get number of neighbors per cell
     k = args.neighbors
     # Construct the input and output matrices
