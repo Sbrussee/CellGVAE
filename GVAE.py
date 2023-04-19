@@ -1591,15 +1591,16 @@ if __name__ == '__main__':
     pyg_graph.weight = pyg_graph.weight.float()
 
 
-    input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
-    model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
+    if args.type != 'Linear':
+        input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
+        model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
 
-    print("Model:")
-    print(model)
-    #Send model to GPU
-    model = model.to(device)
-    model.float()
-    pyg.transforms.ToDevice(device)
+        print("Model:")
+        print(model)
+        #Send model to GPU
+        model = model.to(device)
+        model.float()
+        pyg.transforms.ToDevice(device)
 
     #Set number of nodes to sample per epoch
     if args.cells == -1:
