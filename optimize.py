@@ -115,7 +115,8 @@ def objective(trial):
     args.variational = variational
     args.adversarial = adversarial
     args.type = model_type
-    args.aggregation_method = aggregation_method
+    if model_type == 'SAGE':
+        args.aggregation_method = aggregation_method
     args.hidden = hidden
 
     print("Constructing model...")
