@@ -16,8 +16,8 @@ arg_parser.add_argument('-a', "--adversarial", action="store_true", help="Whethe
 arg_parser.add_argument('-d', "--dataset", help="Which dataset to use", required=False)
 arg_parser.add_argument('-e', "--epochs", type=int, help="How many training epochs to use", default=1)
 arg_parser.add_argument('-c', "--cells", type=int, default=-1,  help="How many cells to sample per epoch.")
-arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE', 'Linear'], help="Model type to use (GCN, GAT, SAGE, Linear)", default='GCN')
-arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression information only")
+arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE'], help="Model type to use (GCN, GAT, SAGE)", default='GCN')
+arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial', 'expression'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression information only")
 arg_parser.add_argument('-w', '--weight', action='store_true', help="Whether to use distance-weighted edges")
 arg_parser.add_argument('-n', '--normalization', choices=["Laplacian", "Normal", "None"], default="None", help="Adjanceny matrix normalization strategy (Laplacian, Normal, None)")
 arg_parser.add_argument('-rm', '--remove_same_type_edges', action='store_true', help="Whether to remove edges between same cell types")
@@ -35,9 +35,9 @@ args.cells = 50
 args.graph_summary = False
 args.weight = True
 args.normalization = 'Normal'
-args.remove_same_type_edges = True
+args.remove_same_type_edges = False
 args.remove_subtype_edges = False
-args.prediction_mode = 'Full'
+args.prediction_mode = 'full'
 args.latent = 4
 args.threshold = -1
 args.neighbors = 6
@@ -99,12 +99,11 @@ def objective(trial):
     # define hyperparameters to optimize
     variational = trial.suggest_categorical('variational', [True, False])
     adversarial = trial.suggest_categorical('adversarial', [True, False])
-    model_type = trial.suggest_categorical('model_type', ['GCN', 'GAT', 'SAGE', 'Linear'])
+    model_type = trial.suggest_categorical('model_type', ['GCN', 'GAT', 'SAGE'])
     #weight = trial.suggest_categorical('weight', [True, False])
     #normalization = trial.suggest_categorical('normalization', ["Laplacian", "Normal", "None"])
     #remove_same_type_edges = trial.suggest_categorical('remove_same_type_edges', [True, False])
     #remove_subtype_edges = trial.suggest_categorical('remove_subtype_edges', [True, False])
-    #prediction_mode = trial.suggest_categorical('prediction_mode', ['full', 'spatial', 'expression'])
     aggregation_method = trial.suggest_categorical('aggregation_method', ['max', 'mean'])
     #threshold = trial.suggest_int('threshold', 5, 100)
     #neighbors = trial.suggest_int('neighbors', 2, 10)
