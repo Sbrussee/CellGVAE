@@ -820,16 +820,20 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     _, _, _, _ = variance_decomposition(pred_expr, celltype_key)
 
     total_loss = 0
+    batch = pyG_graph.clone()
+    batch.expr = batch.expr.float()
+    batch.to(device)
+
     for cell in tqdm(G.nodes()):
-        batch = pyG_graph.clone()
+        orig_expr = batch.expr[cell, :]
         batch.expr[cell, :].fill_(0.0)
         assert batch.expr[cell, :].sum() == 0
-        batch.expr = batch.expr.float()
-        batch.to(device)
         loss, x_hat = validate(model, batch, pyG_graph.expr[cell].float().to(device), cell, pyG_graph.weight.float().to(device), args=args, discriminator=discriminator)
         pred_expr[cell, :] = x_hat.cpu().detach().numpy()
         total_loss += loss
-        batch.cpu()
+        batch.expr[cell, :] = orig_expr
+        
+    batch.cpu()
     r2 = r2_score(true_expr, pred_expr)
     print(f"R2 score: {r2}")
 
