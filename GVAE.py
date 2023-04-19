@@ -1486,6 +1486,9 @@ def train_regression_model(G, pyg_graph, train_i, args):
         if len(neighbors) > k:
             neighbors = np.random.choice(neighbors, k, replace=False)
         k_neighbors = len(neighbors)
+        if k_neighbors < k:
+            for x in range(k-k_neighbors):
+                np.concatenate(x_val_i, np.zeros((1,q)))
 
         # Flatten and concatenate node attribute vectors of neighbors
         x_train_i = np.concatenate([pyg_graph.expr[n] for n in neighbors])
@@ -1525,7 +1528,9 @@ def evaluate_regression_model(G, pyg_graph, val_i, model, args):
 
         # Flatten and concatenate node attribute vectors of neighbors
         x_val_i = np.concatenate([pyg_graph.expr[n] for n in neighbors])
-
+        if k_neighbors < k:
+            for x in range(k-k_neighbors):
+                np.concatenate(x_val_i, np.zeros((1,q)))
         # Set input and output matrices for node i
         X_val.append(x_val_i)
         Y_val.append(pyg_graph.expr[node])
