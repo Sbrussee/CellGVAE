@@ -1498,6 +1498,8 @@ def train_regression_model(G, pyg_graph, train_i, args):
     model = LinearRegression()
     model.fit(X_train, Y_train)
 
+    print(model)
+
     return model
 
 
