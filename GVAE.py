@@ -949,9 +949,7 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     model.eval()
     val_data.expr = val_data.expr.float()
     val_data.weight = val_data.weight.float()
-    val_data.edge_index = val_data.edge_index.float()
     model = model.float()
-    model.encoder = model.encoder.float()
     if args.adversarial:
         if args.variational:
             if args.type == 'GCN' or args.type == 'GAT':
