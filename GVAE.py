@@ -21,6 +21,8 @@ from sklearn.metrics import r2_score
 from sklearn.linear_model import LinearRegression
 import sklearn.manifold as manifold
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import OneHotEncoder
+
 import umap.umap_ as umap
 
 
@@ -940,6 +942,11 @@ def get_latent_space_vectors(model, pyg_graph, anndata, device, args):
 @torch.no_grad()
 def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     model.eval()
+    val_data.expr.float()
+    val_data.weight.float()
+    val_data.edge_index.float()
+    model.float()
+    model.encoder.float()
     if args.adversarial:
         if args.variational:
             if args.type == 'GCN' or args.type == 'GAT':
@@ -1620,6 +1627,9 @@ if __name__ == '__main__':
     G = nx.convert_node_labels_to_integers(G)
 
     pyg_graph = pyg.utils.from_networkx(G)
+    if args.prediction_mode == 'full':
+        encoder = OneHotEncoder(categories=set(nx.get_node_attributes(G, 'cell_type').values()))
+        pyg_graph.expr = torch.cat(pyg_graph.expr.float(), encoder.fit_transform(pyg_graph.cell_type).toarray())
     pyg_graph.expr = pyg_graph.expr.float()
     pyg_graph.weight = pyg_graph.weight.float()
 
