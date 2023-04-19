@@ -18,9 +18,12 @@ from torch_geometric.nn.sequential import Sequential
 from scipy.sparse.csgraph import laplacian
 import scipy.sparse as sp
 from sklearn.metrics import r2_score
+from sklearn.linear_model import LinearRegression
 import sklearn.manifold as manifold
 from sklearn.decomposition import PCA
 import umap.umap_ as umap
+
+
 
 import sys
 import os
@@ -1457,6 +1460,59 @@ def test(model, test_i, pyg_graph, args, discriminator=None):
     test_dict['loss'], test_dict['r2'] = total_test_loss/1000, total_r2_test/1000
     return test_dict
 
+def regression_model(G, pyg_graph, train_i, val_i, args):
+
+    #Get shape of expression matrix
+    n, q = pyg_graph.expr.shape
+    #get number of neighbors per cell
+    k = args.neighbors
+    #Construct the input and output matrices
+    X_train = np.zeros((n, q))
+    Y = np.zeros((n,k*q))
+
+    for node in [node for node in G.nodes() if node in train_i]:
+        # get indices of neighbors of node i
+        neighbors = list(G.neighbors(node))
+
+        # randomly select k neighbors (if there are fewer than k neighbors, use all of them)
+        if len(neighbors) > k:
+            neighbors = np.random.choice(neighbors, k, replace=False)
+        k_neighbors = len(neighbors)
+
+        # flatten and concatenate node attribute vectors of neighbors
+        x_train_i = np.concatenate([pyg_graph.expr[n] for n in neighbors]).reshape(1, -1)
+
+        # set input and output matrices for node i
+        X_train[node, :k_neighbors*q] = x_train_i
+        Y[node] = pyg_graph.expr[node]
+
+    model = LinearRegression()
+
+    model.fit(X_train, Y)
+
+    X_val = np.zeros((n, q))
+
+    for node in [node for node in G.nodes() if node in val_i]:
+        # get indices of neighbors of node i
+        neighbors = list(G.neighbors(node))
+
+        # randomly select k neighbors (if there are fewer than k neighbors, use all of them)
+        if len(neighbors) > k:
+            neighbors = np.random.choice(neighbors, k, replace=False)
+        k_neighbors = len(neighbors)
+
+        # flatten and concatenate node attribute vectors of neighbors
+        x_val_i = np.concatenate([pyg_graph.expr[n] for n in neighbors]).reshape(1, -1)
+
+        # set input and output matrices for node i
+        X_val[i, :k_neighbors*q] = x_val_i
+        Y[i] = pyg_graph.expr[i]
+
+    X_pred = model.predict(X_val)
+    score = model.score(X_val, Y)
+    print(f"Regression R2 score:{score}")
+
+    return model, score
 
 
 gpu_uuid = "GPU-d058c48b-633a-0acc-0bc0-a2a5f0457492"
@@ -1533,6 +1589,8 @@ if __name__ == '__main__':
     pyg_graph = pyg.utils.from_networkx(G)
     pyg_graph.expr = pyg_graph.expr.float()
     pyg_graph.weight = pyg_graph.weight.float()
+
+
     input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
     model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
 
@@ -1553,6 +1611,9 @@ if __name__ == '__main__':
     val_i = random.sample(G.nodes(), k=1000)
     test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
     train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
+
+    if args.type == 'Linear':
+        model, score = regression_model(G, pyg_graph, train_i, val_i, args)
 
     optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
     (loss_over_cells, train_loss_over_epochs,
