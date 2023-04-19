@@ -809,6 +809,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
 
     model = model.cpu().float()
     model.to(device)
+    model.float()
 
     true_expr = dataset.X
     pred_expr = np.zeros(shape=(dataset.X.shape[0], dataset.X.shape[1]))
@@ -1331,9 +1332,9 @@ def retrieve_model(input_size, hidden_layers, latent_size, args):
         else:
             model = ARGA(encoder.float(), discriminator.float(), decoder.float())
     if args.adversarial:
-        return model, discriminator.float()
+        return model.float(), discriminator.float()
     else:
-        return model, None
+        return model.float(), None
 
 def get_optimizer_list(model, args, discriminator=None):
     opt_list = []
