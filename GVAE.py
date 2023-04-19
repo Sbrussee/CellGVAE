@@ -815,7 +815,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
         batch = pyG_graph.clone()
         batch.expr[cell, :].fill_(0.0)
         assert batch.expr[cell, :].sum() == 0
-        loss, x_hat = validate(model.float(), batch.float(), pyG_graph.expr[cell].float(), cell, pyG_graph.weight.float(), args=args)
+        loss, x_hat = validate(model.float(), batch, pyG_graph.expr[cell].float(), cell, pyG_graph.weight.float(), args=args)
         pred_expr[cell, :] = x_hat.cpu().detach().numpy()
         total_loss += loss
     r2 = r2_score(true_expr, pred_expr)
