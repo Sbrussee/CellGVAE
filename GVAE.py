@@ -803,13 +803,14 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
     G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
     G = nx.convert_node_labels_to_integers(G)
     pyG_graph = pyg.utils.from_networkx(G)
+    pyG_graph.float()
     pyG_graph.expr.float()
     pyG_graph.weight.float()
     pyG_graph.to(device)
 
     model = model.cpu().float()
     model.to(device)
-    model.float()
+    model = model.float()
 
     true_expr = dataset.X
     pred_expr = np.zeros(shape=(dataset.X.shape[0], dataset.X.shape[1]))
@@ -822,6 +823,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
         batch = pyG_graph.clone()
         batch.expr[cell, :].fill_(0.0)
         assert batch.expr[cell, :].sum() == 0
+        batch.expr.float()
         loss, x_hat = validate(model, batch, pyG_graph.expr[cell].float(), cell, pyG_graph.weight.float(), args=args)
         pred_expr[cell, :] = x_hat.cpu().detach().numpy()
         total_loss += loss
