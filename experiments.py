@@ -84,7 +84,7 @@ def apply_tsne(data, perplexity=30, learning_rate=200, n_iter=1000):
 for name in ['seqfish', 'slideseqv2']:
     args.dataset = name
     dataset, organism, name, celltype_key = read_dataset(name, args)
-    if 1 in experiments:
+    if '1' in experiments:
         #Experiment 1: Run per cell type
         #Train the model on all data
         if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
@@ -145,7 +145,7 @@ for name in ['seqfish', 'slideseqv2']:
                     device, name=f'set_{name}_exp1', number_of_cells=1000, celltype_key=celltype_key, args=args,
                     plot_celltypes=True)
 
-    if 2 in experiments:
+    if '2' in experiments:
         r2_per_comb = {}
         core_models = ['adversarial', 'variational', 'normal']
         for comb in itertools.combinations(core_models, 2):
@@ -227,7 +227,7 @@ for name in ['seqfish', 'slideseqv2']:
         with open("exp2.pkl", 'wb') as file:
             pickle.dump(r2_per_comb, file)
 
-    if 3 in experiments:
+    if '3' in experiments:
         r2_per_type = {}
         args.variational = False
         args.adversarial = False
@@ -311,7 +311,7 @@ for name in ['seqfish', 'slideseqv2']:
         with open("exp3.pkl", 'wb') as file:
             pickle.dump(r2_per_type, file)
 
-    if 4 in experiments:
+    if '4' in experiments:
         r2_per_prediction_mode = {}
         args.variational = False
         args.adversarial = False
@@ -398,7 +398,7 @@ for name in ['seqfish', 'slideseqv2']:
         with open('r2_prediction_mode.pkl', 'wb') as file:
             pickle.dump(r2_per_prediction_mode, file)
 
-    if 5 in experiments:
+    if '5' in experiments:
         r2_neighbors = {}
         for neighbors in [2,4,6,8,10]:
             args.threshold = -1
@@ -506,7 +506,7 @@ for name in ['seqfish', 'slideseqv2']:
         with open("r2_thresholds.pkl", 'wb') as file:
             pickle.dump(r2_thresholds, file)
 
-    if 6 in experiments:
+    if '6' in experiments:
         organism = 'human'
         full = sc.read("/srv/scratch/chananchidas/LiverData/LiverData_RawNorm.h5ad")
         #Subset nanostring data in 4 parts
