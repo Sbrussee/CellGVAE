@@ -1569,9 +1569,6 @@ if __name__ == '__main__':
     #Empty cuda memory
     torch.cuda.empty_cache()
 
-    if not isinstance(dataset.X, np.ndarray):
-        dataset.X = dataset.X.toarray()
-
     _, _, _, _ = variance_decomposition(dataset.X, celltype_key)
 
     if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
