@@ -1464,7 +1464,6 @@ def test(model, test_i, pyg_graph, args, discriminator=None):
     return test_dict
 
 def regression_model(G, pyg_graph, train_i, val_i, args):
-
     #Get shape of expression matrix
     n, q = pyg_graph.expr.shape
     #get number of neighbors per cell
@@ -1484,6 +1483,7 @@ def regression_model(G, pyg_graph, train_i, val_i, args):
 
         # flatten and concatenate node attribute vectors of neighbors
         x_train_i = np.concatenate([pyg_graph.expr[n] for n in neighbors]).reshape(1, -1)
+        x_train_i = x_train_i.reshape((k_neighbors*q,))
 
         # set input and output matrices for node i
         X_train[node, :k_neighbors*q] = x_train_i
@@ -1506,6 +1506,7 @@ def regression_model(G, pyg_graph, train_i, val_i, args):
 
         # flatten and concatenate node attribute vectors of neighbors
         x_val_i = np.concatenate([pyg_graph.expr[n] for n in neighbors]).reshape(1, -1)
+        x_val_i = x_val_i.reshape((k_neighbors*q,))
 
         # set input and output matrices for node i
         X_val[i, :k_neighbors*q] = x_val_i
