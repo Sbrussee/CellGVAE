@@ -805,8 +805,8 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
     G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
     G = nx.convert_node_labels_to_integers(G)
     pyG_graph = pyg.utils.from_networkx(G)
-    pyG_graph.expr.float()
-    pyG_graph.weight.float()
+    pyG_graph.expr = pyG_graph.expr.float()
+    pyG_graph.weight = pyG_graph.weight.float()
     pyG_graph.to(device)
 
     model = model.cpu().float()
@@ -824,7 +824,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
         batch = pyG_graph.clone()
         batch.expr[cell, :].fill_(0.0)
         assert batch.expr[cell, :].sum() == 0
-        batch.expr.float()
+        batch.expr = batch.expr.float()
         loss, x_hat = validate(model, batch, pyG_graph.expr[cell].float(), cell, pyG_graph.weight.float(), args=args)
         pred_expr[cell, :] = x_hat.cpu().detach().numpy()
         total_loss += loss
@@ -945,11 +945,11 @@ def get_latent_space_vectors(model, pyg_graph, anndata, device, args):
 @torch.no_grad()
 def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     model.eval()
-    val_data.expr.float()
-    val_data.weight.float()
-    val_data.edge_index.float()
-    model.float()
-    model.encoder.float()
+    val_data.expr = val_data.expr.float()
+    val_data.weight = val_data.weight.float()
+    val_data.edege_index = val_data.edge_index.float()
+    model = model.float()
+    model.encoder = model.encoder.float()
     if args.adversarial:
         if args.variational:
             if args.type == 'GCN' or args.type == 'GAT':
