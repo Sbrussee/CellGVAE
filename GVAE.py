@@ -794,13 +794,15 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     if args.adversarial:
         loss += model.reg_loss(z[cell_id])
 
+    pyg_graph.expr.cpu()
+
     if not args.adversarial:
         return loss
     else:
         return loss, discriminator_loss
 
 @torch.no_grad()
-def apply_on_dataset(model, dataset, name, celltype_key, args):
+def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=None):
     dataset = construct_graph(dataset, args=args)
     G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
     G = nx.convert_node_labels_to_integers(G)
@@ -808,10 +810,6 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
     pyG_graph.expr = pyG_graph.expr.float()
     pyG_graph.weight = pyG_graph.weight.float()
     pyG_graph.to(device)
-
-    model = model.cpu().float()
-    model.to(device)
-    model = model.float()
 
     true_expr = dataset.X
     pred_expr = np.zeros(shape=(dataset.X.shape[0], dataset.X.shape[1]))
@@ -828,8 +826,11 @@ def apply_on_dataset(model, dataset, name, celltype_key, args):
         loss, x_hat = validate(model, batch, pyG_graph.expr[cell].float(), cell, pyG_graph.weight.float(), args=args)
         pred_expr[cell, :] = x_hat.cpu().detach().numpy()
         total_loss += loss
+        batch.cpu()
     r2 = r2_score(true_expr, pred_expr)
     print(f"R2 score: {r2}")
+
+    pyG_graph.cpu()
 
     ligand_receptor_analysis(dataset, pred_expr, name)
 

@@ -223,7 +223,11 @@ for name in ['seqfish', 'slideseqv2']:
                         device, name=f'exp2_{name}_{type}_{var}_{adv}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{type}_{var}_{adv}', celltype_key, args=args)
+            if args.adversarial:
+                apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{type}_{var}_{adv}', celltype_key, args=args, discriminator=discriminator)
+            else:
+                apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{type}_{var}_{adv}', celltype_key, args=args)
+
         with open("exp2.pkl", 'wb') as file:
             pickle.dump(r2_per_comb, file)
 
