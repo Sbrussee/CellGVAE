@@ -652,6 +652,7 @@ class GAE(nn.Module):
 @torch.no_grad()
 def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_cells, celltype_key, args, plot_celltypes=False):
     TRAINING = False
+    pyg_graph = pyg_graph.to(device)
     plt.figure()
     if args.variational:
         if args.type == 'GCN' or args.type == 'GAT':
@@ -673,6 +674,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             z = model.encoder(pyg_graph.expr)
         z = z.to('cpu').detach().numpy()
 
+    pyg_graph = pyg_graph.cpu()
     #Filter z for any nonfinite values
     z = np.where(np.isfinite(z), z, 1e-10)
 
