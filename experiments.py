@@ -95,7 +95,7 @@ for name in ['seqfish', 'slideseqv2']:
         #Train the model on all data
         if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
             print("Constructing graph...")
-            dataset = construct_graph(dataset, args=args, celltype_key=celltype_key)
+            dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
 
         print("Converting graph to PyG format...")
         if args.weight:
@@ -169,7 +169,7 @@ for name in ['seqfish', 'slideseqv2']:
             #Train the model on all data
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
-                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key)
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
 
             print("Converting graph to PyG format...")
             if args.weight:
@@ -262,7 +262,7 @@ for name in ['seqfish', 'slideseqv2']:
             #Train the model on all data
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
-                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key)
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
 
             print("Converting graph to PyG format...")
             if args.weight:
@@ -349,7 +349,7 @@ for name in ['seqfish', 'slideseqv2']:
             #Train the model on all data
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
-                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key)
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
 
             print("Converting graph to PyG format...")
             if args.weight:
@@ -425,7 +425,7 @@ for name in ['seqfish', 'slideseqv2']:
             #Train the model on all data
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
-                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key)
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
                 spatial_analysis(dataset, celltype_key, name+"_exp5_"+str(neighbors)+"nbs")
             print("Converting graph to PyG format...")
             if args.weight:
@@ -477,7 +477,7 @@ for name in ['seqfish', 'slideseqv2']:
             #Train the model on all data
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
-                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key)
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
                 spatial_analysis(dataset, celltype_key, name+"_exp5_"+str(threshold)+"threshold")
 
             print("Converting graph to PyG format...")
@@ -545,7 +545,7 @@ for name in ['seqfish', 'slideseqv2']:
 
         if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
             print("Constructing graph...")
-            dataset = construct_graph(exp6_dataset, args=args, celltype_key=celltype_key)
+            dataset = construct_graph(exp6_dataset, args=args, celltype_key=celltype_key, name=name)
 
         print("Converting graph to PyG format...")
         if args.weight:
@@ -643,7 +643,7 @@ for name in ['seqfish', 'slideseqv2']:
             i = np.min(data.obs['fov'])
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
-                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key)
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
 
             print("Converting graph to PyG format...")
             if args.weight:
@@ -686,7 +686,7 @@ for name in ['seqfish', 'slideseqv2']:
         #First get latent space for all normal tissue fovs:
         for dataset in [f for f in os.listdir("data/") if f.startswith("ns_fov_") and 'Normal' in f]:
             i = np.min(dataset.obs['fov'])
-            dataset = construct_graph(dataset, args=args, celltype_key=celltype_key)
+            dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
             G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
             G = nx.convert_node_labels_to_integers(G)
             pyG_graph = pyg.utils.from_networkx(G)
@@ -709,7 +709,7 @@ for name in ['seqfish', 'slideseqv2']:
         latent_spaces_cancer = {}
         for dataset in [f for f in os.listdir("data/") if f.startswith("ns_fov_") and 'Cancer' in f]:
             i = np.min(dataset.obs['fov'])
-            dataset = construct_graph(dataset, args=args, celltype_key=celltype_key)
+            dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
             G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
             G = nx.convert_node_labels_to_integers(G)
             pyG_graph = pyg.utils.from_networkx(G)

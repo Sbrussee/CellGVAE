@@ -828,7 +828,7 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
 
 @torch.no_grad()
 def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=None):
-    dataset = construct_graph(dataset, args=args, celltype_key=celltype_key)
+    dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
     G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
     G = nx.convert_node_labels_to_integers(G)
     pyG_graph = pyg.utils.from_networkx(G)
@@ -1202,7 +1202,7 @@ def plot_val_curve(train_loss, val_loss, name):
     plt.savefig(name, dpi=300)
     plt.close()
 
-def construct_graph(dataset, args, celltype_key):
+def construct_graph(dataset, args, celltype_key, name=""):
     if args.threshold != -1:
         threshold = args.threshold
         if args.neighbors != -1:
@@ -1730,7 +1730,7 @@ if __name__ == '__main__':
 
     if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
         print("Constructing graph...")
-        dataset = construct_graph(dataset, args=args, celtype_key=celltype_key)
+        dataset = construct_graph(dataset, args=args, celtype_key=celltype_key, name=name)
 
     print("Converting graph to PyG format...")
     if args.weight:
