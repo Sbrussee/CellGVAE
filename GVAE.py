@@ -684,22 +684,6 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     else:
         print("There are no nonfinite values in the array.")
 
-    for cell_type in cell_types:
-        points = z[].to_numpy()
-        ripley_l = RipleyL(pointpattern=points, max_radius=max_radius)
-        ripley_l.fit()
-        ripley_values[cell_type] = ripley_l.Larray
-
-    # Plot results
-    import matplotlib.pyplot as plt
-
-    fig, ax = plt.subplots()
-    for cell_type, values in ripley_values.items():
-        ax.plot(ripley_l.radii, values, label=cell_type)
-
-    ax.legend()
-    ax.set_xlabel('Distance')
-    ax.set_ylabel('Ripley\'s L-function')
     print('TSNE...')
     tsne = manifold.TSNE(n_components=2, init='random')
     tsne_z = tsne.fit_transform(z[:number_of_cells,:])
