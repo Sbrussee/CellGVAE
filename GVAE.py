@@ -22,6 +22,7 @@ from sklearn.linear_model import LinearRegression
 import sklearn.manifold as manifold
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import OneHotEncoder
+from spatialstats import RipleyL
 
 import umap.umap_ as umap
 
@@ -683,6 +684,22 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     else:
         print("There are no nonfinite values in the array.")
 
+    for cell_type in cell_types:
+        points = z[].to_numpy()
+        ripley_l = RipleyL(pointpattern=points, max_radius=max_radius)
+        ripley_l.fit()
+        ripley_values[cell_type] = ripley_l.Larray
+
+    # Plot results
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots()
+    for cell_type, values in ripley_values.items():
+        ax.plot(ripley_l.radii, values, label=cell_type)
+
+    ax.legend()
+    ax.set_xlabel('Distance')
+    ax.set_ylabel('Ripley\'s L-function')
     print('TSNE...')
     tsne = manifold.TSNE(n_components=2, init='random')
     tsne_z = tsne.fit_transform(z[:number_of_cells,:])
@@ -719,6 +736,11 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     fig.savefig(f'pca_latentspace_{name}.png', dpi=200)
     plt.close()
 
+    print("Ripley...")
+    #Calculate Ripley's L-function for each cell type
+    max_radius = 50.0
+    ripley_values = {}
+
     if plot_celltypes:
         #Plot per cell types
         for celltype in cell_types:
@@ -726,6 +748,10 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             idx_to_plot = anndata.obs.index.get_indexer(obs_names)
             print(idx_to_plot)
 
+            points = z[idx_to_plot,:]
+            ripley_l = RipleyL(pointpattern=points, max_radius=max_radius)
+            ripley_l.fit()
+            ripley_values[celltype] = ripley_l.Larray
 
             celltype = celltype.replace('/', '_')
             tsne = manifold.TSNE(n_components=2, init='random')
@@ -759,6 +785,15 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             fig.savefig(f'pca_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
 
+        fig, ax = plt.subplots()
+        for cell_type, values in ripley_values.items():
+            ax.plot(ripley_l.radii, values, label=cellt_ype)
+
+        ax.legend()
+        ax.set_xlabel('Distance')
+        ax.set_ylabel('Ripley\'s L-function')
+        plt.savefig(f"{name}_RipleyL.png", dip=200)
+        plt.close90
 def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     if args.adversarial:
         if args.variational:
