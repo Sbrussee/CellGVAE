@@ -1218,8 +1218,8 @@ def construct_graph(dataset, args, celltype_key):
         else:
             sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
                                     radius=20, n_neighs=6)
-    sq.gr.interaction_matrix(adata, cluster_key=celltype_key)
-    sq.pl.interaction_matrix(adata, cluster_key=celltype_key, save=name+"int_matrix.png")
+    sq.gr.interaction_matrix(dataset, cluster_key=celltype_key)
+    sq.pl.interaction_matrix(dataset, cluster_key=celltype_key, save=name+"int_matrix.png")
     return dataset
 
 def plot_degree(degree_dist, type='degree', graph_name=''):
