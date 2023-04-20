@@ -806,7 +806,7 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
 
 @torch.no_grad()
 def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=None):
-    dataset = construct_graph(dataset, args=args)
+    dataset = construct_graph(dataset, args=args, celltype_key=celltype_key)
     G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
     G = nx.convert_node_labels_to_integers(G)
     pyG_graph = pyg.utils.from_networkx(G)
@@ -1180,7 +1180,7 @@ def plot_val_curve(train_loss, val_loss, name):
     plt.savefig(name, dpi=300)
     plt.close()
 
-def construct_graph(dataset, args):
+def construct_graph(dataset, args, celltype_key):
     if args.threshold != -1:
         threshold = args.threshold
         if args.neighbors != -1:
@@ -1196,6 +1196,8 @@ def construct_graph(dataset, args):
         else:
             sq.gr.spatial_neighbors(dataset, coord_type='generic', spatial_key='spatial',
                                     radius=20, n_neighs=6)
+    sq.gr.interaction_matrix(adata, cluster_key=celltype_key)
+    sq.pl.interaction_matrix(adata, cluster_key=celltype_key, save=name+"int_matrix.png")
     return dataset
 
 def plot_degree(degree_dist, type='degree', graph_name=''):
@@ -1530,7 +1532,7 @@ def ligand_receptor_analysis(adata, pred_expr, name):
         save=name+"ligrec_pred.png"
     )
 
-def spatial_analysis(adata, cluster_key, celltype_key):
+def spatial_analysis(adata, cluster_key, celltype_key, name):
     sq.gr.nhood_enrichment(adata, cluster_key=cluster_key)
     sq.pl.nhood_enrichment(adata, cluster_key=cluster_key, method="ward", save=name+"ngb_enrichment.png")
 
@@ -1543,6 +1545,10 @@ def spatial_analysis(adata, cluster_key, celltype_key):
             figsize=(10, 5),
             save=name+celltype+".png"
         )
+
+    mode = "L"
+    sq.gr.ripley(adata, cluster_key=cluster_key, mode=mode, max_dist=500)
+    sq.pl.ripley(adata, cluster_key=cluster_key, mode=mode, save=name+"_ripley.png")
 
 
 def only_retain_lr_genes(anndata):
@@ -1702,7 +1708,7 @@ if __name__ == '__main__':
 
     if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
         print("Constructing graph...")
-        dataset = construct_graph(dataset, args=args)
+        dataset = construct_graph(dataset, args=args, celtype_key=celltype_key)
 
     print("Converting graph to PyG format...")
     if args.weight:
