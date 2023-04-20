@@ -1029,7 +1029,7 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None
     if not isinstance(expr_mat, np.ndarray):
         # Convert the matrix to a numpy array
         expr_mat = expr_mat.toarray()
-        
+
     nx.set_node_attributes(G, {i: {"expr" : x, 'cell_type' : y} for i, x in enumerate(np.float32(expr_mat)) for i, y in enumerate(cell_types)})
 
     #Remove edges between same-type nodes
@@ -1302,6 +1302,7 @@ def read_dataset(name, args):
         print(dataset)
         organism='mouse'
         name='mouse_slideseq'
+        cellty_key = 'cluster'
 
 
     elif args.dataset == 'nanostring':
@@ -1528,6 +1529,20 @@ def ligand_receptor_analysis(adata, pred_expr, name):
         swap_axes=False,
         save=name+"ligrec_pred.png"
     )
+
+def spatial_analysis(adata, cluster_key, celltype_key):
+    sq.gr.nhood_enrichment(adata, cluster_key=cluster_key)
+    sq.pl.nhood_enrichment(adata, cluster_key=cluster_key, method="ward", save=name+"ngb_enrichment.png")
+
+    for celltype in np.unique(adata.obs[celltype_key])
+        sq.gr.co_occurrence(adata, cluster_key=cluster_key)
+        sq.pl.co_occurrence(
+            adata,
+            cluster_key=cluster_key,
+            clusters=celltype,
+            figsize=(10, 5),
+            save=name+celltype+".png"
+        )
 
 
 def only_retain_lr_genes(anndata):

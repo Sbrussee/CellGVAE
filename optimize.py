@@ -91,6 +91,11 @@ G = nx.convert_node_labels_to_integers(G)
 
 print("Converting graph to PyTorch Geometric dataset...")
 pyg_graph = pyg.utils.from_networkx(G)
+
+if args.prediction_mode == 'full':
+    encoder = OneHotEncoder(categories=set(nx.get_node_attributes(G, 'cell_type').values()))
+    pyg_graph.expr = torch.cat(pyg_graph.expr.float(), encoder.fit_transform(pyg_graph.cell_type).toarray())
+
 pyg_graph.expr = pyg_graph.expr.float()
 pyg_graph.weight = pyg_graph.weight.float()
 
@@ -147,7 +152,6 @@ def objective(trial):
                                                     train_i, val_i, k=k, args=args, discriminator=discriminator)
 
     test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
-
 
     #Send model back to the cpu
     model.cpu()
