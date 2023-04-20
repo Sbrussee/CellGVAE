@@ -342,7 +342,7 @@ for name in ['seqfish', 'slideseqv2']:
                 args.type = 'GCN'
             elif prediction_mode == 'expression':
                 args.prediction_mode = 'expression'
-                args.type = 'linear'
+                args.type = 'Linear'
             elif prediction_mode == 'spatial+expression':
                 args.prediction_mode = 'spatial'
                 args.type = 'GCN'
