@@ -23,8 +23,7 @@ import sklearn.manifold as manifold
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import OneHotEncoder
 
-from pysal.explore import PointPattern
-from pysal.explore.pointpattern import RipleyK
+from pointpats import ripley
 
 import umap.umap_ as umap
 
@@ -725,7 +724,8 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     print("Ripley...")
     #Calculate Ripley's L-function for each cell type
     max_radius = 50.0
-    ripley_values = {}
+    ripley_support = {}
+    ripley_statistic = {}
 
     if plot_celltypes:
         #Plot per cell types
@@ -735,9 +735,9 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             print(idx_to_plot)
 
             points = z[idx_to_plot,:]
-            point_pattern = PointPattern(points)
-            ripley_l = RipleyK(point_pattern, function='L', end=max_radius)
-            ripley_values[cell_type] = ripley_l.L
+            ripley_l = ripley.l_test(points, keep_simulations=False)
+            ripley_support[cell_type] = ripley_l.support
+            ripley_statistic[cell_type] = ripley_l.statistic
 
             celltype = celltype.replace('/', '_')
             tsne = manifold.TSNE(n_components=2, init='random')
@@ -772,15 +772,15 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             plt.close()
 
         fig, ax = plt.subplots()
-        for cell_type, values in ripley_values.items():
-            ax.plot(ripley_l.d, values, label=cellt_ype)
+        for sup, stat in zip(ripley_support.values(), ripley_statistic.values()):
+            ax.plot(sup, stat, label=cell_type)
 
         ax.legend()
         ax.set_xlabel('Distance')
         ax.set_ylabel('Ripley\'s L-function')
         plt.savefig(f"{name}_RipleyL.png", dip=200)
         plt.close()
-        
+
 def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     if args.adversarial:
         if args.variational:
