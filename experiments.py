@@ -33,7 +33,7 @@ arg_parser.add_argument('-d', "--dataset", help="Which dataset to use", required
 arg_parser.add_argument('-e', "--epochs", type=int, help="How many training epochs to use", default=1)
 arg_parser.add_argument('-c', "--cells", type=int, default=-1,  help="How many cells to sample per epoch.")
 arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE'], help="Model type to use (GCN, GAT, SAGE)", default='GCN')
-arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial', 'expression'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression information only")
+arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial', 'expression'], default='expression', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression +spatial information only")
 arg_parser.add_argument('-w', '--weight', action='store_true', help="Whether to use distance-weighted edges")
 arg_parser.add_argument('-n', '--normalization', choices=["Laplacian", "Normal", "None"], default="None", help="Adjanceny matrix normalization strategy (Laplacian, Normal, None)")
 arg_parser.add_argument('-rm', '--remove_same_type_edges', action='store_true', help="Whether to remove edges between same cell types")
@@ -45,6 +45,7 @@ arg_parser.add_argument('-ls', '--latent', type=int, help='Size of the latent sp
 arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layers', default='64,32')
 arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
 arg_parser.add_argument('-ex', '--experiments', type=list, help='Which experiments to run', default=[1,2,3,4,5,6])
+arg_parser.add_argument('-f', '--filter', action='store_true', help='Whether to filter out non-LR genes', default=False)
 args = arg_parser.parse_args()
 
 args.epochs = 200
@@ -54,7 +55,7 @@ args.weight = True
 args.normalization = 'Normal'
 args.remove_same_type_edges = False
 args.remove_subtype_edges = False
-args.prediction_mode = 'full'
+args.prediction_mode = 'expression'
 args.neighbors = 6
 args.latent = 4
 args.threshold = -1
@@ -84,6 +85,10 @@ def apply_tsne(data, perplexity=30, learning_rate=200, n_iter=1000):
 for name in ['seqfish', 'slideseqv2']:
     args.dataset = name
     dataset, organism, name, celltype_key = read_dataset(name, args)
+
+    if args.filter:
+        dataset = only_retain_lr_genes(dataset)
+
     if '1' in experiments:
         #Experiment 1: Run per cell type
         #Train the model on all data

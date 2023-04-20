@@ -17,7 +17,7 @@ arg_parser.add_argument('-d', "--dataset", help="Which dataset to use", required
 arg_parser.add_argument('-e', "--epochs", type=int, help="How many training epochs to use", default=1)
 arg_parser.add_argument('-c', "--cells", type=int, default=-1,  help="How many cells to sample per epoch.")
 arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE'], help="Model type to use (GCN, GAT, SAGE)", default='GCN')
-arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial', 'expression'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression information only")
+arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial', 'expression'], default='expression', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression information only")
 arg_parser.add_argument('-w', '--weight', action='store_true', help="Whether to use distance-weighted edges")
 arg_parser.add_argument('-n', '--normalization', choices=["Laplacian", "Normal", "None"], default="None", help="Adjanceny matrix normalization strategy (Laplacian, Normal, None)")
 arg_parser.add_argument('-rm', '--remove_same_type_edges', action='store_true', help="Whether to remove edges between same cell types")
@@ -28,6 +28,7 @@ arg_parser.add_argument('-ng', '--neighbors', type=int, help='Number of neighbor
 arg_parser.add_argument('-ls', '--latent', type=int, help='Size of the latent space to use', default=4)
 arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layers', default='64,32')
 arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
+arg_parser.add_argument('-f', '--filter', action='store_true', help='Whether to filter out non-LR genes', default=False)
 args = arg_parser.parse_args()
 
 args.epochs = 400
@@ -37,7 +38,7 @@ args.weight = True
 args.normalization = 'Normal'
 args.remove_same_type_edges = False
 args.remove_subtype_edges = False
-args.prediction_mode = 'full'
+args.prediction_mode = 'expression'
 args.latent = 4
 args.threshold = -1
 args.neighbors = 6
@@ -45,6 +46,10 @@ args.dataset = 'seqfish'
 
 print(f"Parameters {args}")
 dataset, organism, name, celltype_key = read_dataset(args.dataset, args)
+
+
+if args.filter:
+    dataset = only_retain_lr_genes(dataset)
 
 #Subsample to k=10000
 #idx = random.sample(range(dataset.shape[0]), k=10000)

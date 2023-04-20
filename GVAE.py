@@ -833,8 +833,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
         total_loss += loss
         batch.expr[cell, :] = orig_expr
         true_expr[cell,:] = orig_expr.cpu().numpy()
-        print(r2_score(true_expr[cell, :], pred_expr[cell, :]))
-
+        print(abs(x_hat-true_expr[cell, :]))
 
     batch.cpu()
     print(true_expr, pred_expr)
@@ -1527,6 +1526,18 @@ def ligand_receptor_analysis(adata, pred_expr, name):
     )
 
 
+def only_retain_lr_genes(anndata):
+    # Load in the mouse_lr_pair.txt file as a pandas DataFrame
+    lr_pairs = pd.read_csv('data/mouse_lr_pair.txt', sep='\t')
+
+    # Extract the gene names from the 'ligand' and 'receptor' columns
+    gene_names = [x for x in set(lr_pairs['ligand_gene_symbol']).union(set(lr_pairs['receptor_gene_symbol'])) if x in anndata.var_names]
+
+    # Filter the Anndata dataset to only retain genes present in mouse_lr_pair.txt
+    anndata_filtered = anndata[:, list(gene_names)]
+
+    return anndata_filtered
+
 """
 def train_regression_model(G, pyg_graph, train_i, args):
     pca = PCA(n_components=4)
@@ -1645,7 +1656,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('-e', "--epochs", type=int, help="How many training epochs to use", default=1)
     arg_parser.add_argument('-c', "--cells", type=int, default=-1,  help="How many cells to sample per epoch.")
     arg_parser.add_argument('-t', '--type', type=str, choices=['GCN', 'GAT', 'SAGE'], help="Model type to use (GCN, GAT, SAGE)", default='GCN')
-    arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial', 'expression'], default='full', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression+spatial information only")
+    arg_parser.add_argument('-pm', "--prediction_mode", type=str, choices=['full', 'spatial', 'expression'], default='expression', help="Prediction mode to use, full uses all information, spatial uses spatial information only, expression uses expression+spatial information only")
     arg_parser.add_argument('-w', '--weight', action='store_true', help="Whether to use distance-weighted edges")
     arg_parser.add_argument('-n', '--normalization', choices=["Laplacian", "Normal", "None"], default="None", help="Adjanceny matrix normalization strategy (Laplacian, Normal, None)")
     arg_parser.add_argument('-rm', '--remove_same_type_edges', action='store_true', help="Whether to remove edges between same cell types")
@@ -1656,9 +1667,13 @@ if __name__ == '__main__':
     arg_parser.add_argument('-ls', '--latent', type=int, help='Size of the latent space to use', default=4)
     arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layers', default='64,32')
     arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
+    arg_parser.add_argument('-f', '--filter', action='store_true', help='Whether to filter out non-LR genes', default=False)
     args = arg_parser.parse_args()
 
     dataset, organism, name, celltype_key = read_dataset(args.dataset, args=args)
+
+    if args.filter:
+        dataset = only_retain_lr_genes(dataset)
 
     device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
     #Empty cuda memory
