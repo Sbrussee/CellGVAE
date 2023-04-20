@@ -835,7 +835,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     pyG_graph.expr = pyG_graph.expr.float()
     pyG_graph.weight = pyG_graph.weight.float()
 
-    true_expr = np.zeros(shape=(dataset.X.shape[0], dataset.X.shape[1]))
+    true_expr = dataset.X
     pred_expr = np.zeros(shape=(dataset.X.shape[0], dataset.X.shape[1]))
     print(true_expr.shape, pred_expr.shape)
 
@@ -854,7 +854,6 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
         pred_expr[cell, :] = x_hat.cpu().detach().numpy()
         total_loss += loss
         batch.expr[cell, :] = orig_expr
-        true_expr[cell,:] = orig_expr.cpu().numpy()
         print(abs(x_hat-true_expr[cell, :]))
 
     batch.cpu()
