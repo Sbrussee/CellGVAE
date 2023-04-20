@@ -1555,7 +1555,7 @@ def spatial_analysis(adata, celltype_key, name):
     sq.gr.nhood_enrichment(adata, cluster_key=celltype_key)
     sq.pl.nhood_enrichment(adata, cluster_key=celltype_key, method="ward", save=name+"ngb_enrichment.png")
 
-    for celltype in np.unique(adata.obs[celltype_key])
+    for celltype in np.unique(adata.obs[celltype_key]):
         sq.gr.co_occurrence(adata, cluster_key=celltype_key)
         sq.pl.co_occurrence(
             adata,
