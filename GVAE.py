@@ -1026,7 +1026,11 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None
         G = nx.from_scipy_sparse_array(adj_mat)
 
     print("Setting node attributes")
-    nx.set_node_attributes(G, {i: {"expr" : x, 'cell_type' : y} for i, x in enumerate(np.float32(expr_mat.toarray())) for i, y in enumerate(cell_types)})
+    if not isinstance(expr_mat, np.ndarray):
+        # Convert the matrix to a numpy array
+        expr_mat = expr_mat.toarray()
+        
+    nx.set_node_attributes(G, {i: {"expr" : x, 'cell_type' : y} for i, x in enumerate(np.float32(expr_mat)) for i, y in enumerate(cell_types)})
 
     #Remove edges between same-type nodes
     if args.remove_same_type_edges:
