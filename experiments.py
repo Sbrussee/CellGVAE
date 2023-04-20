@@ -249,13 +249,13 @@ for name in ['seqfish', 'slideseqv2']:
         r2_per_type = {}
         args.variational = False
         args.adversarial = False
-        for type in ['GCN', 'GAT', 'SAGE_max', 'SAGE_avg']:
+        for type in ['GCN', 'GAT', 'SAGE_max', 'SAGE_mean']:
             if type == 'SAGE_max':
                 args.type = 'SAGE'
                 args.aggregation_method = 'max'
-            elif type == 'SAGE_avg':
+            elif type == 'SAGE_mean':
                 args.type = 'SAGE'
-                args.aggregation_method = 'avg'
+                args.aggregation_method = 'mean'
             elif type == 'GAT':
                 args.type = 'GAT'
             elif type == 'GCN':
