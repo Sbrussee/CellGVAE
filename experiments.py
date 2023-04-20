@@ -87,7 +87,7 @@ for name in ['seqfish', 'slideseqv2']:
     args.dataset = name
     dataset, organism, name, celltype_key = read_dataset(name, args)
 
-    spatial_analysis(dataset, cluster_key=celltype_key, celltype_key, name)
+    spatial_analysis(dataset, cluster_key=celltype_key, name=name)
 
     if args.filter:
         dataset = only_retain_lr_genes(dataset)

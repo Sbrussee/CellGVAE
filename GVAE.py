@@ -1567,23 +1567,23 @@ def ligand_receptor_analysis(adata, pred_expr, name):
         save=name+"ligrec_pred.png"
     )
 
-def spatial_analysis(adata, cluster_key, celltype_key, name):
-    sq.gr.nhood_enrichment(adata, cluster_key=cluster_key)
-    sq.pl.nhood_enrichment(adata, cluster_key=cluster_key, method="ward", save=name+"ngb_enrichment.png")
+def spatial_analysis(adata, celltype_key, name):
+    sq.gr.nhood_enrichment(adata, cluster_key=celltype_key)
+    sq.pl.nhood_enrichment(adata, cluster_key=celltype_key, method="ward", save=name+"ngb_enrichment.png")
 
     for celltype in np.unique(adata.obs[celltype_key])
-        sq.gr.co_occurrence(adata, cluster_key=cluster_key)
+        sq.gr.co_occurrence(adata, cluster_key=celltype_key)
         sq.pl.co_occurrence(
             adata,
-            cluster_key=cluster_key,
+            cluster_key=celltype_key,
             clusters=celltype,
             figsize=(10, 5),
             save=name+celltype+".png"
         )
 
     mode = "L"
-    sq.gr.ripley(adata, cluster_key=cluster_key, mode=mode, max_dist=500)
-    sq.pl.ripley(adata, cluster_key=cluster_key, mode=mode, save=name+"_ripley.png")
+    sq.gr.ripley(adata, cluster_key=celltype_key, mode=mode, max_dist=500)
+    sq.pl.ripley(adata, cluster_key=celltype_key, mode=mode, save=name+"_ripley.png")
 
 
 def only_retain_lr_genes(anndata):
