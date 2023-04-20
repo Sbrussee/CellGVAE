@@ -1,4 +1,4 @@
-import numpy as np
+shimport numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import networkx as nx
@@ -832,9 +832,12 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
         pred_expr[cell, :] = x_hat.cpu().detach().numpy()
         total_loss += loss
         batch.expr[cell, :] = orig_expr
-        true_expr[cell,:] = orig_expr
+        true_expr[cell,:] = orig_expr.cpu().numpy()
+        print(r2_score(true_expr[cell, :], pred_expr[cell, :]))
+
 
     batch.cpu()
+    print(true_expr, pred_expr)
     r2 = r2_score(true_expr, pred_expr)
     print(f"R2 score: {r2}")
 
