@@ -22,7 +22,9 @@ from sklearn.linear_model import LinearRegression
 import sklearn.manifold as manifold
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import OneHotEncoder
-from spatialstats import RipleyL
+
+from pysal.explore import PointPattern
+from pysal.explore.pointpattern import RipleyK
 
 import umap.umap_ as umap
 
@@ -733,9 +735,9 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             print(idx_to_plot)
 
             points = z[idx_to_plot,:]
-            ripley_l = RipleyL(pointpattern=points, max_radius=max_radius)
-            ripley_l.fit()
-            ripley_values[celltype] = ripley_l.Larray
+            point_pattern = PointPattern(points)
+            ripley_l = RipleyK(point_pattern, function='L', end=max_radius)
+            ripley_values[cell_type] = ripley_l.L
 
             celltype = celltype.replace('/', '_')
             tsne = manifold.TSNE(n_components=2, init='random')
@@ -771,13 +773,14 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 
         fig, ax = plt.subplots()
         for cell_type, values in ripley_values.items():
-            ax.plot(ripley_l.radii, values, label=cellt_ype)
+            ax.plot(ripley_l.d, values, label=cellt_ype)
 
         ax.legend()
         ax.set_xlabel('Distance')
         ax.set_ylabel('Ripley\'s L-function')
         plt.savefig(f"{name}_RipleyL.png", dip=200)
-        plt.close90
+        plt.close()
+        
 def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     if args.adversarial:
         if args.variational:
