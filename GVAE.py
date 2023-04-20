@@ -23,7 +23,8 @@ import sklearn.manifold as manifold
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import OneHotEncoder
 
-from pointpats import ripley
+import libpysal as ps
+from pointpats import ripley, PointPattern
 
 import umap.umap_ as umap
 
@@ -1554,6 +1555,8 @@ def ligand_receptor_analysis(adata, pred_expr, name):
     )
 
 def spatial_analysis(adata, celltype_key, name):
+    sq.pl.spatial_scatter(adata, color=celltype_key, size=20, shape=None, save=name+"spatial_scatter.png")
+
     sq.gr.nhood_enrichment(adata, cluster_key=celltype_key)
     sq.pl.nhood_enrichment(adata, cluster_key=celltype_key, method="ward", save=name+"ngb_enrichment.png")
 
