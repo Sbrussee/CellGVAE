@@ -247,7 +247,7 @@ for name in ['seqfish', 'slideseq']:
     if '3' in experiments:
         r2_per_type = {}
         args.variational = True
-        args.adversarial = False
+        args.adversarial = True
         for type in ['GCN', 'GAT', 'SAGE_max', 'SAGE_mean']:
             if type == 'SAGE_max':
                 args.type = 'SAGE'
@@ -332,8 +332,8 @@ for name in ['seqfish', 'slideseq']:
 
     if '4' in experiments:
         r2_per_prediction_mode = {}
-        args.variational = False
-        args.adversarial = False
+        args.variational = True
+        args.adversarial = True
         for prediction_mode in ['full', 'spatial', 'expression', 'spatial+expression']:
             if prediction_mode == 'full':
                 args.prediction_mode = 'full'
