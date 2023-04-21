@@ -825,8 +825,12 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     total_loss = 0
     batch = pyG_graph.clone()
     batch.expr = batch.expr.float()
+    if args.prediction_mode == 'spatial':
+        batch.expr.fill_(0.0)
+        assert batch.expr.sum() == 0
     batch.to(device)
 
+    total_r2_dataset = 0
     for cell in tqdm(G.nodes()):
         orig_expr = batch.expr[cell, :]
         batch.expr[cell, :].fill_(0.0)
@@ -834,38 +838,38 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
         loss, x_hat = validate(model, batch, pyG_graph.expr[cell].float().to(device), cell, pyG_graph.weight.float().to(device), args=args, discriminator=discriminator)
         pred_expr[cell, :] = x_hat.cpu().detach().numpy()
         total_loss += loss
+        total_r2_dataset += r2_score(pyg_graph.expr[cell], x_hat.cpu().detach())
         batch.expr[cell, :] = orig_expr
 
     batch.cpu()
-    print(true_expr, pred_expr)
-    r2 = r2_score(true_expr, pred_expr)
-    print(f"R2 score: {r2}")
-
+    print(f"R2 score: {total_r2_dataset/G.number_of_nodes()}")
     pyG_graph.cpu()
+    print(true_expr.shape, pred_expr.shape)
 
-    try:
-        ligand_receptor_analysis(dataset, pred_expr, name)
-    except:
-        print('failed LR analysis')
+    ligand_receptor_analysis(dataset, pred_expr, name)
     dataset.obs['total_counts'] = np.sum(dataset.X, axis=1)
     print(dataset.obs['total_counts'])
     print(dataset.obs['total_counts'].shape)
     sc.pl.spatial(dataset, use_raw=False, spot_size=0.1, color=['total_counts'],
                   title="Spatial distribution of true expression",
                   save=f"true_expr_spatial_{name}_all_genes", size=1, show=False)
+    plt.close()
     dataset.X = pred_expr
     dataset.obs['total_pred'] = np.sum(dataset.X, axis=1)
     sc.pl.spatial(dataset, use_raw=False, spot_size=0.1, color=['total_pred'],
                   title='Spatial distribution of predicted expression',
                   save=f"predicted_expr_spatial_{name}_all_genes", size=1, show=False)
+    plt.close()
 
     dataset.layers['error'] = np.absolute(true_expr - pred_expr)
     dataset.obs['total_error'] = np.sum(dataset.layers['error'], axis=1)
     dataset.obs['relative_error'] = dataset.obs['total_error'] / dataset.obs['total_counts']
     sc.pl.spatial(dataset, layer='error', spot_size=0.1, title='Spatial distribution of total prediction error',
                   save=f"total_error_spatial_{name}", color=['total_error'], size=1, show=False)
+    plt.close()
     sc.pl.spatial(dataset, layer='error', spot_size=0.1, title='Spatial distribution of relative prediction error',
                   save=f"relative_error_spatial_{name}", color=['relative_error'], size=1, show=False)
+    plt.close()
 
 
     i = 0
@@ -873,13 +877,11 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
         sc.pl.spatial(dataset, use_raw=False, color=[gene], spot_size=0.1,
                       title=f'Spatial distribution of predicted expression of {gene}',
                       save=f"predicted_expr_spatial_{name}_{gene}", size=1, show=False)
+        plt.close()
         sc.pl.spatial(dataset, layer='error', color=[gene], spot_size=0.1,
                       title=f'Spatial distribution of prediction error of {gene}',
                       save=f"error_spatial_{name}_{gene}", size=1, show=False)
-        i += 1
-        if i == 1:
-            break
-
+        plt.close()
     print(dataset.var_names)
     #Calculate total error for each gene
     total_error_per_gene = np.sum(dataset.layers['error'], axis=0)
@@ -1535,10 +1537,10 @@ def ligand_receptor_analysis(adata, pred_expr, name):
 
 def spatial_analysis(adata, celltype_key, name):
     sq.pl.spatial_scatter(adata, color=celltype_key, size=20, shape=None, save=name+"spatial_scatter.png")
-
+    plt.close()
     sq.gr.nhood_enrichment(adata, cluster_key=celltype_key)
     sq.pl.nhood_enrichment(adata, cluster_key=celltype_key, method="ward", save=name+"ngb_enrichment.png")
-
+    plt.close()
     for celltype in np.unique(adata.obs[celltype_key]):
         sq.gr.co_occurrence(adata, cluster_key=celltype_key)
         sq.pl.co_occurrence(
@@ -1548,11 +1550,12 @@ def spatial_analysis(adata, celltype_key, name):
             figsize=(10, 5),
             save=name+celltype+".png"
         )
+        plt.close()
 
     mode = "L"
     sq.gr.ripley(adata, cluster_key=celltype_key, mode=mode, max_dist=500)
     sq.pl.ripley(adata, cluster_key=celltype_key, mode=mode, save=name+"_ripley.png")
-
+    plt.close()
 
 def only_retain_lr_genes(anndata):
     # Load in the mouse_lr_pair.txt file as a pandas DataFrame

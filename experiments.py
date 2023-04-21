@@ -60,7 +60,8 @@ args.prediction_mode = 'expression'
 args.neighbors = 6
 args.latent = 4
 args.threshold = -1
-
+args.variational = True
+args.adversarial = True
 experiments = args.experiments
 
 def apply_pca(data):
@@ -95,13 +96,13 @@ for name in ['seqfish', 'slideseq']:
         #Train the model on all data
         if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
             print("Constructing graph...")
-            dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
+            dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp1")
 
         print("Converting graph to PyG format...")
         if args.weight:
-            G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
+            G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp1', args=args)
         else:
-            G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
+            G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp1", args=args)
 
         G = nx.convert_node_labels_to_integers(G)
 
@@ -142,13 +143,13 @@ for name in ['seqfish', 'slideseq']:
 
         #Plot results
         print("Plotting training plots...")
-        plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp1_{name}_{type}_{subtype}.png')
-        plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp1_{name}_{type}_{subtype}.png')
+        plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp1_{name}_{args.type}_{subtype}.png')
+        plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp1_{name}_{args.type}_{subtype}.png')
 
 
         #Plot the latent test set
         plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                    device, name=f'set_{name}_exp1', number_of_cells=1000, celltype_key=celltype_key, args=args,
+                    device, name=f'{name}_exp1', number_of_cells=1000, celltype_key=celltype_key, args=args,
                     plot_celltypes=True)
 
         model.cpu()
@@ -169,13 +170,13 @@ for name in ['seqfish', 'slideseq']:
             #Train the model on all data
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
-                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp2")
 
             print("Converting graph to PyG format...")
             if args.weight:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
+                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp2', args=args)
             else:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
+                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp2", args=args)
 
             G = nx.convert_node_labels_to_integers(G)
 
@@ -223,8 +224,8 @@ for name in ['seqfish', 'slideseq']:
 
             #Plot results
             print("Plotting training plots...")
-            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp2_{name}_{type}_{var}_{adv}.png')
-            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp2_{name}_{type}_{var}_{adv}.png')
+            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp2_{name}_{args.type}_{var}_{adv}.png')
+            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp2_{name}_{args.type}_{var}_{adv}.png')
 
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
@@ -232,9 +233,9 @@ for name in ['seqfish', 'slideseq']:
             print("Applying model on entire dataset...")
             #Apply on dataset
             if args.adversarial:
-                apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{type}_{var}_{adv}', celltype_key, args=args, discriminator=discriminator)
+                apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{args.type}_{var}_{adv}', celltype_key, args=args, discriminator=discriminator)
             else:
-                apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{type}_{var}_{adv}', celltype_key, args=args)
+                apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{args.type}_{var}_{adv}', celltype_key, args=args)
 
             model.cpu()
 
@@ -245,7 +246,7 @@ for name in ['seqfish', 'slideseq']:
 
     if '3' in experiments:
         r2_per_type = {}
-        args.variational = False
+        args.variational = True
         args.adversarial = False
         for type in ['GCN', 'GAT', 'SAGE_max', 'SAGE_mean']:
             if type == 'SAGE_max':
@@ -262,13 +263,13 @@ for name in ['seqfish', 'slideseq']:
             #Train the model on all data
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
-                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp3")
 
             print("Converting graph to PyG format...")
             if args.weight:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
+                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp3', args=args)
             else:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
+                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp3", args=args)
 
             G = nx.convert_node_labels_to_integers(G)
 
@@ -315,15 +316,15 @@ for name in ['seqfish', 'slideseq']:
 
             #Plot results
             print("Plotting training plots...")
-            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp3{name}_{type}_{var}_{adv}.png')
+            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp3{name}_{args.type}_{var}_{adv}.png')
             plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp3{name}_{type}_{var}_{adv}.png')
 
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                        device, name=f'set_{name}_{type}_{var}_{adv}', number_of_cells=1000, celltype_key=celltype_key, args=args)
+                        device, name=f'set_{name}_{args.type}_{var}_{adv}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{type}_{var}_{adv}', celltype_key, args=args)
+            apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{args.type}_{var}_{adv}', celltype_key, args=args)
 
             model.cpu()
         with open("exp3.pkl", 'wb') as file:
@@ -349,13 +350,13 @@ for name in ['seqfish', 'slideseq']:
             #Train the model on all data
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
-                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp4")
 
             print("Converting graph to PyG format...")
             if args.weight:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
+                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp4', args=args)
             else:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
+                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp4", args=args)
 
             G = nx.convert_node_labels_to_integers(G)
 
@@ -403,15 +404,15 @@ for name in ['seqfish', 'slideseq']:
 
             #Plot results
             print("Plotting training plots...")
-            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp4_{name}_{type}_{prediction_mode}.png')
-            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp4_{name}_{type}_{prediction_mode}.png')
+            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp4_{name}_{args.type}_{prediction_mode}.png')
+            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp4_{name}_{args.type}_{prediction_mode}.png')
 
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                        device, name=f'set_{name}_{type}_{prediction_mode}', number_of_cells=1000, celltype_key=celltype_key, args=args)
+                        device, name=f'exp4_{name}_{args.type}_{prediction_mode}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'GVAE_exp4_{name}_{type}_{prediction_mode}', celltype_key, args=args)
+            apply_on_dataset(model, dataset, f'GVAE_exp4_{name}_{args.type}_{prediction_mode}', celltype_key, args=args)
 
             model.cpu()
         with open('r2_prediction_mode.pkl', 'wb') as file:
@@ -425,13 +426,13 @@ for name in ['seqfish', 'slideseq']:
             #Train the model on all data
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
-                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp5nbs")
                 spatial_analysis(dataset, celltype_key, name+"_exp5_"+str(neighbors)+"nbs")
             print("Converting graph to PyG format...")
             if args.weight:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
+                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp5nbs', args=args)
             else:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
+                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp5nbs", args=args)
 
             G = nx.convert_node_labels_to_integers(G)
 
@@ -477,14 +478,14 @@ for name in ['seqfish', 'slideseq']:
             #Train the model on all data
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
-                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp5threshold")
                 spatial_analysis(dataset, celltype_key, name+"_exp5_"+str(threshold)+"threshold")
 
             print("Converting graph to PyG format...")
             if args.weight:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
+                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp5threshold', args=args)
             else:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
+                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp5threshold", args=args)
 
             G = nx.convert_node_labels_to_integers(G)
 
@@ -534,10 +535,10 @@ for name in ['seqfish', 'slideseq']:
         for filter in [True, False]:
             if filter == True:
                 args.filter = True
-                name = "LR-filtered"
+                filter_name = "LR-filtered"
             else:
                 args.filter = False
-                name = 'Unfiltered'
+                filter_name = 'Unfiltered'
             if args.filter:
                 exp6_dataset = only_retain_lr_genes(dataset)
             else:
@@ -545,13 +546,13 @@ for name in ['seqfish', 'slideseq']:
 
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
-                dataset = construct_graph(exp6_dataset, args=args, celltype_key=celltype_key, name=name)
+                dataset = construct_graph(exp6_dataset, args=args, celltype_key=celltype_key, name=name+"_exp6_"+filtername)
 
             print("Converting graph to PyG format...")
             if args.weight:
-                G, isolates = convert_to_graph(exp6_dataset.obsp['spatial_distances'], exp6_dataset.X, exp6_dataset.obs[celltype_key], name+'_train', args=args)
+                G, isolates = convert_to_graph(exp6_dataset.obsp['spatial_distances'], exp6_dataset.X, exp6_dataset.obs[celltype_key], name+'_exp6_'+filtername, args=args)
             else:
-                G, isolates = convert_to_graph(exp6_dataset.obsp['spatial_connectivities'], exp6_dataset.X, exp6_dataset.obs[celltype_key], name+"_train", args=args)
+                G, isolates = convert_to_graph(exp6_dataset.obsp['spatial_connectivities'], exp6_dataset.X, exp6_dataset.obs[celltype_key], name+"_exp6_"+filtername, args=args)
 
             G = nx.convert_node_labels_to_integers(G)
 
@@ -585,7 +586,7 @@ for name in ['seqfish', 'slideseq']:
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
             test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
-            r2_filter[name] = test_dict['r2']
+            r2_filter[filtername] = test_dict['r2']
 
             if args.variational:
                 var = 'variational'
@@ -599,15 +600,15 @@ for name in ['seqfish', 'slideseq']:
 
             #Plot results
             print("Plotting training plots...")
-            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp6_{name}_{type}.png')
-            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp6_{name}_{type}.png')
+            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp6_{name+filtername}_{args.type}.png')
+            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp6_{name+filtername}_{args.type}.png')
 
             #Plot the latent test set
             plot_latent(model, pyg_graph, exp6_dataset, list(dataset.obs[celltype_key].unique()),
-                        device, name=f'exp6_{name}_{type}', number_of_cells=1000, celltype_key=celltype_key, args=args)
+                        device, name=f'exp6_{name+filtername}_{args.type}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             #Apply on dataset
-            apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name}_{type}', celltype_key, args=args)
+            apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filtername}_{args.type}', celltype_key, args=args)
 
             model.cpu()
 
