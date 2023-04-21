@@ -403,15 +403,15 @@ for name in ['seqfish', 'slideseq']:
 
             #Plot results
             print("Plotting training plots...")
-            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_{name}_{type}_{prediction_mode}.png')
-            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_{name}_{type}_{prediction_mode}.png')
+            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp4_{name}_{type}_{prediction_mode}.png')
+            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp4_{name}_{type}_{prediction_mode}.png')
 
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
                         device, name=f'set_{name}_{type}_{prediction_mode}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'GVAE_{name}_{type}_{prediction_mode}', celltype_key, args=args)
+            apply_on_dataset(model, dataset, f'GVAE_exp4_{name}_{type}_{prediction_mode}', celltype_key, args=args)
 
             model.cpu()
         with open('r2_prediction_mode.pkl', 'wb') as file:
@@ -538,78 +538,78 @@ for name in ['seqfish', 'slideseq']:
             else:
                 args.filter = False
                 name = 'Unfiltered'
-        if args.filter:
-            exp6_dataset = only_retain_lr_genes(dataset)
-        else:
-            exp6_dataset = dataset
+            if args.filter:
+                exp6_dataset = only_retain_lr_genes(dataset)
+            else:
+                exp6_dataset = dataset
 
-        if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
-            print("Constructing graph...")
-            dataset = construct_graph(exp6_dataset, args=args, celltype_key=celltype_key, name=name)
+            if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
+                print("Constructing graph...")
+                dataset = construct_graph(exp6_dataset, args=args, celltype_key=celltype_key, name=name)
 
-        print("Converting graph to PyG format...")
-        if args.weight:
-            G, isolates = convert_to_graph(exp6_dataset.obsp['spatial_distances'], exp6_dataset.X, exp6_dataset.obs[celltype_key], name+'_train', args=args)
-        else:
-            G, isolates = convert_to_graph(exp6_dataset.obsp['spatial_connectivities'], exp6_dataset.X, exp6_dataset.obs[celltype_key], name+"_train", args=args)
+            print("Converting graph to PyG format...")
+            if args.weight:
+                G, isolates = convert_to_graph(exp6_dataset.obsp['spatial_distances'], exp6_dataset.X, exp6_dataset.obs[celltype_key], name+'_train', args=args)
+            else:
+                G, isolates = convert_to_graph(exp6_dataset.obsp['spatial_connectivities'], exp6_dataset.X, exp6_dataset.obs[celltype_key], name+"_train", args=args)
 
-        G = nx.convert_node_labels_to_integers(G)
+            G = nx.convert_node_labels_to_integers(G)
 
-        pyg_graph = pyg.utils.from_networkx(G)
-        pyg_graph.expr = pyg_graph.expr.float()
-        pyg_graph.weight = pyg_graph.weight.float()
-        input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
-        model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
+            pyg_graph = pyg.utils.from_networkx(G)
+            pyg_graph.expr = pyg_graph.expr.float()
+            pyg_graph.weight = pyg_graph.weight.float()
+            input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
+            model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
 
-        print("Model:")
-        print(model)
-        #Send model to GPU
-        model = model.to(device)
-        model.float()
-        pyg.transforms.ToDevice(device)
+            print("Model:")
+            print(model)
+            #Send model to GPU
+            model = model.to(device)
+            model.float()
+            pyg.transforms.ToDevice(device)
 
-        #Set number of nodes to sample per epoch
-        if args.cells == -1:
-            k = G.number_of_nodes()
-        else:
-            k = args.cells
+            #Set number of nodes to sample per epoch
+            if args.cells == -1:
+                k = G.number_of_nodes()
+            else:
+                k = args.cells
 
-        #Split dataset
-        val_i = random.sample(G.nodes(), k=1000)
-        test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
-        train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
+            #Split dataset
+            val_i = random.sample(G.nodes(), k=1000)
+            test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
+            train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
 
-        optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
-        (loss_over_cells, train_loss_over_epochs,
-         val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
-                                                       train_i, val_i, k=k, args=args, discriminator=discriminator)
-        test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
+            optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
+            (loss_over_cells, train_loss_over_epochs,
+             val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+                                                           train_i, val_i, k=k, args=args, discriminator=discriminator)
+            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
-        r2_filter[name] = test_dict['r2']
+            r2_filter[name] = test_dict['r2']
 
-        if args.variational:
-            var = 'variational'
-        else:
-            var = 'non-variational'
+            if args.variational:
+                var = 'variational'
+            else:
+                var = 'non-variational'
 
-        if args.adversarial:
-            adv = 'adversarial'
-        else:
-            adv = 'non-adverserial'
+            if args.adversarial:
+                adv = 'adversarial'
+            else:
+                adv = 'non-adverserial'
 
-        #Plot results
-        print("Plotting training plots...")
-        plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp6_{name}_{type}.png')
-        plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp6_{name}_{type}.png')
+            #Plot results
+            print("Plotting training plots...")
+            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp6_{name}_{type}.png')
+            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp6_{name}_{type}.png')
 
-        #Plot the latent test set
-        plot_latent(model, pyg_graph, exp6_dataset, list(dataset.obs[celltype_key].unique()),
-                    device, name=f'exp6_{name}_{type}', number_of_cells=1000, celltype_key=celltype_key, args=args)
-        print("Applying model on entire dataset...")
-        #Apply on dataset
-        apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name}_{type}', celltype_key, args=args)
+            #Plot the latent test set
+            plot_latent(model, pyg_graph, exp6_dataset, list(dataset.obs[celltype_key].unique()),
+                        device, name=f'exp6_{name}_{type}', number_of_cells=1000, celltype_key=celltype_key, args=args)
+            print("Applying model on entire dataset...")
+            #Apply on dataset
+            apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name}_{type}', celltype_key, args=args)
 
-        model.cpu()
+            model.cpu()
 
     with open('r2_filter.pkl', 'wb') as file:
         pickle.dump(r2_filter, file)
