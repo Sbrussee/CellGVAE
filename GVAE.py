@@ -807,6 +807,7 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
 @torch.no_grad()
 def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=None):
     dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
+    dataset = spatial_analysis(dataset, celltype_key, name)
     G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
     G = nx.convert_node_labels_to_integers(G)
     pyG_graph = pyg.utils.from_networkx(G)
@@ -1558,6 +1559,7 @@ def spatial_analysis(adata, celltype_key, name):
     sq.gr.ripley(adata, cluster_key=celltype_key, mode=mode, max_dist=500)
     sq.pl.ripley(adata, cluster_key=celltype_key, mode=mode, save=name+"_ripley.png")
     plt.close()
+    return adata
 
 def only_retain_lr_genes(anndata):
     # Load in the mouse_lr_pair.txt file as a pandas DataFrame

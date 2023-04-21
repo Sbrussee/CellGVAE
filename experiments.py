@@ -427,7 +427,7 @@ for name in ['seqfish', 'slideseq']:
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
                 dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp5nbs")
-                spatial_analysis(dataset, celltype_key, name+"_exp5_"+str(neighbors)+"nbs")
+                dataset = spatial_analysis(dataset, celltype_key, name+"_exp5_"+str(neighbors)+"nbs")
             print("Converting graph to PyG format...")
             if args.weight:
                 G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp5nbs', args=args)
@@ -479,7 +479,7 @@ for name in ['seqfish', 'slideseq']:
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
                 dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp5threshold")
-                spatial_analysis(dataset, celltype_key, name+"_exp5_"+str(threshold)+"threshold")
+                dataset = spatial_analysis(dataset, celltype_key, name+"_exp5_"+str(threshold)+"threshold")
 
             print("Converting graph to PyG format...")
             if args.weight:
