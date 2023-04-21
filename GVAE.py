@@ -839,7 +839,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
         loss, x_hat = validate(model, batch, pyG_graph.expr[cell].float().to(device), cell, pyG_graph.weight.float().to(device), args=args, discriminator=discriminator)
         pred_expr[cell, :] = x_hat.cpu().detach().numpy()
         total_loss += loss
-        total_r2_dataset += r2_score(pyg_graph.expr[cell], x_hat.cpu().detach())
+        total_r2_dataset += r2_score(pyG_graph.expr[cell], x_hat.cpu().detach())
         batch.expr[cell, :] = orig_expr
 
     batch.cpu()
