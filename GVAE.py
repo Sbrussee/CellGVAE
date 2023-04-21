@@ -844,9 +844,11 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     batch.cpu()
     print(f"R2 score: {total_r2_dataset/G.number_of_nodes()}")
     pyG_graph.cpu()
+    print(dataset.X.shape)
     print(true_expr.shape, pred_expr.shape)
 
-    ligand_receptor_analysis(dataset, pred_expr, name)
+    ligand_receptor_analysis(dataset, pred_expr, name, celltype_key)
+
     dataset.obs['total_counts'] = np.sum(dataset.X, axis=1)
     print(dataset.obs['total_counts'])
     print(dataset.obs['total_counts'].shape)
@@ -1503,16 +1505,16 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
     test_dict['loss'], test_dict['r2'] = total_test_loss/1000, total_r2_test/1000
     return test_dict
 
-def ligand_receptor_analysis(adata, pred_expr, name):
+def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
     #First calculate for original dataset
     sq.gr.ligrec(
         adata,
         n_perms=100,
-        cluster_key="celltype_mapped_refined",
+        cluster_key=cluster_key,
     )
     sq.pl.ligrec(
         adata,
-        cluster_key="celltype_mapped_refined",
+        cluster_key=cluster_key,
         means_range=(0.3, np.inf),
         alpha=1e-4,
         swap_axes=False,
@@ -1524,11 +1526,11 @@ def ligand_receptor_analysis(adata, pred_expr, name):
     sq.gr.ligrec(
         adata,
         n_perms=100,
-        cluster_key="celltype_mapped_refined",
+        cluster_key=cluster_key,
     )
     sq.pl.ligrec(
         adata,
-        cluster_key="celltype_mapped_refined",
+        cluster_key=cluster_key,
         means_range=(0.3, np.inf),
         alpha=1e-4,
         swap_axes=False,
