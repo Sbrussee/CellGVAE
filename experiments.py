@@ -434,6 +434,7 @@ for name in ['seqfish', 'slideseq']:
             else:
                 G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp5nbs", args=args)
 
+            graph_summary(G, f'exp5_nb={neighbors}_'+name)
             G = nx.convert_node_labels_to_integers(G)
 
             pyg_graph = pyg.utils.from_networkx(G)
@@ -486,7 +487,7 @@ for name in ['seqfish', 'slideseq']:
                 G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp5threshold', args=args)
             else:
                 G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp5threshold", args=args)
-
+            graph_summary(G, f'exp5_th={threshold}_'+name)
             G = nx.convert_node_labels_to_integers(G)
 
             pyg_graph = pyg.utils.from_networkx(G)

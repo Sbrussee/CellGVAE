@@ -1068,6 +1068,14 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None
     if args.weight:
         G = normalize_weights(G, args)
 
+    #Plot the edge weight distribution
+    edge_dist = {}
+    for u,v,w in G.edges(data=True):
+        w = int(w['weight'])
+        if w not in edge_dist:
+            edge_dist[w] = 0
+        edge_dist[w] += 1
+    plot_edge_weights(edge_dist, "name)
 
     #Check graph
     print(G)
@@ -1204,19 +1212,20 @@ def construct_graph(dataset, args, celltype_key, name=""):
                                     radius=20, n_neighs=6)
     sq.gr.interaction_matrix(dataset, cluster_key=celltype_key)
     sq.pl.interaction_matrix(dataset, cluster_key=celltype_key, save=name+"int_matrix.png")
+    plt.close()
     return dataset
 
 def plot_degree(degree_dist, type='degree', graph_name=''):
     #Plot log-log scaled degree distribution
     plt.ylabel('Node frequency')
-    plt.hist(degree_dist, bins=np.arange(degree_dist[0].min(), degree_dist[0].max()+1))
+    sns.histplot(degree_dist)
     plt.title('Distribution of node {}'.format(type))
     plt.savefig('degree_dist_'+graph_name+'.png', dpi=300)
     plt.close()
 
 def plot_degree_connectivity(conn_dict, graph_name=''):
     plt.ylabel('Average connectivity')
-    plt.hist(conn_dict, bins=np.arange(np.array(list(conn_dict.keys())).min(), np.array(list(conn_dict.keys())).max()+1))
+    sns.histplot(conn_dict)
     plt.title('Average degree connectivity')
     plt.savefig('degree_con_'+graph_name+'.png', dpi=300)
     plt.close()
@@ -1243,15 +1252,6 @@ def graph_summary(G, name):
     #Get average clustering coefficient
     clust_cf = nx.average_clustering(G)
     summary_dict['clustcf'] = clust_cf
-    #Plot the edge weight distribution
-    edge_dist = {}
-    for u,v,w in G.edges(data=True):
-        w = int(w['weight'])
-        if w not in edge_dist:
-            edge_dist[w] = 0
-        edge_dist[w] += 1
-    summary_dict['edge_dist'] = edge_dist
-    plot_edge_weights(edge_dist, name)
     #Compute the average degree connectivity
     average_degree_connectivity = nx.average_degree_connectivity(G)
     summary_dict['average_degree_connectivity'] = average_degree_connectivity
