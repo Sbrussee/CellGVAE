@@ -854,9 +854,9 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
                   title="Spatial distribution of true expression",
                   save=f"true_expr_spatial_{name}_all_genes", size=1, show=False)
     plt.close()
-    dataset.X = pred_expr
-    dataset.obs['total_pred'] = np.sum(dataset.X, axis=1)
-    sc.pl.spatial(dataset, use_raw=False, spot_size=0.1, color=['total_pred'],
+    dataset.layers['pred'] = pred_expr
+    dataset.obs['total_pred'] = np.sum(dataset.layers['pred'], axis=1)
+    sc.pl.spatial(dataset, layer='pred', spot_size=0.1, color=['total_pred'],
                   title='Spatial distribution of predicted expression',
                   save=f"predicted_expr_spatial_{name}_all_genes", size=1, show=False)
     plt.close()
