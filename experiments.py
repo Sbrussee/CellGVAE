@@ -83,7 +83,7 @@ def apply_tsne(data, perplexity=30, learning_rate=200, n_iter=1000):
     plt.show()
 
 
-for name in ['seqfish', 'slideseqv2']:
+for name in ['seqfish', 'slideseq']:
     args.dataset = name
     dataset, organism, name, celltype_key = read_dataset(name, args)
 
