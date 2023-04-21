@@ -1075,7 +1075,7 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None
         if w not in edge_dist:
             edge_dist[w] = 0
         edge_dist[w] += 1
-    plot_edge_weights(edge_dist, "name)
+    plot_edge_weights(edge_dist, name)
 
     #Check graph
     print(G)
