@@ -1313,7 +1313,7 @@ def read_dataset(name, args):
         print(dataset)
         organism='mouse'
         name='mouse_slideseq'
-        cellty_key = 'cluster'
+        celltype_key = 'cluster'
 
 
     elif args.dataset == 'nanostring':
