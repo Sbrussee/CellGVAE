@@ -324,7 +324,7 @@ for name in ['seqfish', 'slideseq']:
                         device, name=f'set_{name}_{args.type}_{var}_{adv}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{args.type}_{var}_{adv}', celltype_key, args=args)
+            apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{args.type}_{var}_{adv}', celltype_key, args=args, discriminator=discriminator)
 
             model.cpu()
         with open("exp3.pkl", 'wb') as file:
@@ -412,7 +412,7 @@ for name in ['seqfish', 'slideseq']:
                         device, name=f'exp4_{name}_{args.type}_{prediction_mode}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'GVAE_exp4_{name}_{args.type}_{prediction_mode}', celltype_key, args=args)
+            apply_on_dataset(model, dataset, f'GVAE_exp4_{name}_{args.type}_{prediction_mode}', celltype_key, args=args, discriminator=discriminator)
 
             model.cpu()
         with open('r2_prediction_mode.pkl', 'wb') as file:
@@ -609,7 +609,7 @@ for name in ['seqfish', 'slideseq']:
                         device, name=f'exp6_{name+filtername}_{args.type}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             #Apply on dataset
-            apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filtername}_{args.type}', celltype_key, args=args)
+            apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filtername}_{args.type}', celltype_key, args=args, discriminator=discriminator)
 
             model.cpu()
 
