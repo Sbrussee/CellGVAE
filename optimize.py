@@ -172,6 +172,9 @@ if __name__ == "__main__":
     """
     with open("study.pkl", 'rb') as f:
         study = pickle.load(f)
+    print(study.best_params)
+    print(study.best_value)
+    print(study.best_trial)
     fig = plot_param_importances(study)
     plt.savefig("param_imp.png", dpi=300)
     plt.close()
