@@ -1726,6 +1726,10 @@ if __name__ == '__main__':
     arg_parser.add_argument('-ds', '--downsample', action='store_true', help='Whether to use PCA decompositions of input genes', default=False)
     args = arg_parser.parse_args()
 
+    if args.dataset == 'slidseq':
+        args.downsample = True
+    else:
+        args.downsample = False
     dataset, organism, name, celltype_key = read_dataset(args.dataset, args=args)
 
     if args.filter:
