@@ -42,7 +42,7 @@ args.prediction_mode = 'expression'
 args.latent = 4
 args.threshold = -1
 args.neighbors = 6
-args.dataset = 'seqfish'
+args.dataset = 'slideseq'
 
 print(f"Parameters {args}")
 dataset, organism, name, celltype_key = read_dataset(args.dataset, args)

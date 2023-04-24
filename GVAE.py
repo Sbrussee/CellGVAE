@@ -1576,6 +1576,24 @@ def only_retain_lr_genes(anndata):
 
     return anndata_filtered
 
+def plot_r2_scores(r2_dict, param_name, name):
+    x_axis, y_axis = list(r2_dict.keys()), list(r2_dict.values())
+        # Create a figure and axis
+    fig, ax = plt.subplots()
+
+    # Plot the data
+    ax.plot(x_axis, y_axis, marker='o')
+
+    # Set the x-label and y-label
+    ax.set_xlabel(f'{param_name}')
+    ax.set_ylabel('R^2 Score')
+
+    # Add a title to the plot
+    ax.set_title(f'R^2 scores for varying {param_name}')
+
+    plt.savefig(f"R2_{param_name}_{name}.png", dpi=300)
+    plt.close()
+    
 """
 def train_regression_model(G, pyg_graph, train_i, args):
     pca = PCA(n_components=4)
