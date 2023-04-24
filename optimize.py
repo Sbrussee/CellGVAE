@@ -159,19 +159,12 @@ def objective(trial):
     return np.max(list(r2_over_epochs.values()))
 
 if __name__ == "__main__":
-    """
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler(), pruner=optuna.pruners.HyperbandPruner())
     study.optimize(objective, n_trials=100)
     print(study)
-    print(study.best_params)
-    print(study.best_value)
-    print(study.best_trial)
     with open("study.pkl", 'wb') as f:
         pickle.dump(study, f)
-    """
-    with open("study.pkl", 'rb') as f:
-        study = pickle.load(f)
     print(study.best_params)
     print(study.best_value)
     print(study.best_trial)
@@ -181,5 +174,3 @@ if __name__ == "__main__":
     fig = plot_optimization_history(study)
     plt.savefig("opt_hist.png", dpi=300)
     plt.close()
-    fig = optuna.visualization.plot_slice(study, params=["hidden", "model_type"])
-    fig.write_image("opt_slice.png")
