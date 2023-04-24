@@ -1310,10 +1310,10 @@ def read_dataset(name, args):
 
     elif args.dataset == 'slideseq':
         dataset = sq.datasets.slideseqv2("data/slideseqv2")
-        print(dataset)
         organism='mouse'
         name='mouse_slideseq'
         celltype_key = 'cluster'
+        print(dataet.obsm['X_pca'])
 
 
     elif args.dataset == 'nanostring':
