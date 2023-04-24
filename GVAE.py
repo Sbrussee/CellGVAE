@@ -1313,7 +1313,8 @@ def read_dataset(name, args):
         organism='mouse'
         name='mouse_slideseq'
         celltype_key = 'cluster'
-        print(dataet.obsm['X_pca'])
+        print(dataset.obsm['X_pca'].shape)
+        print(dataset.obsm['X_pca'])
 
 
     elif args.dataset == 'nanostring':
