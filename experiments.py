@@ -106,12 +106,12 @@ for name in ['seqfish', 'slideseq']:
         print("Converting graph to PyG format...")
         if args.weight:
             if args.downsample:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.obsm.X_pca, dataset.obs[celltype_key], name+'_train', args=args)
+                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.obsm['X_pca'], dataset.obs[celltype_key], name+'_train', args=args)
             else:
                 G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
         else:
             if args.downsample:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.obsm.X_pca, dataset.obs[celltype_key], name+'_train', args=args)
+                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.obsm['X_pca'], dataset.obs[celltype_key], name+'_train', args=args)
             else:
                 G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
 
