@@ -179,5 +179,6 @@ if __name__ == "__main__":
     plt.savefig("opt_hist.png", dpi=300)
     plt.close()
     fig = plot_slice(study, params=["hidden", "model_type"])
+    fig.set_tight_layout(False)
     plt.savefig("opt_slice.png", dpi=300)
     plt.close()
