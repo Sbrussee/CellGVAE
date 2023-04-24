@@ -182,4 +182,4 @@ if __name__ == "__main__":
     plt.savefig("opt_hist.png", dpi=300)
     plt.close()
     fig = optuna.visualization.plot_slice(study, params=["hidden", "model_type"])
-    fig.save("opt_slice.png")
+    fig.write_image("opt_slice.png")
