@@ -1,5 +1,5 @@
 import optuna
-from optuna.visualization.matplotlib import plot_optimization_history, plot_param_importances
+from optuna.visualization.matplotlib import plot_optimization_history, plot_param_importances, plot_slice
 import logging
 import argparse
 import pickle
@@ -177,4 +177,7 @@ if __name__ == "__main__":
     plt.close()
     fig = plot_optimization_history(study)
     plt.savefig("opt_hist.png", dpi=300)
+    plt.close()
+    fig = plot_slice(study, params=["hidden", "model_type"])
+    plt.savefig("opt_slice.png", dpi=300)
     plt.close()
