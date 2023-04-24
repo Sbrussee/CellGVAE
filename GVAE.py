@@ -1309,7 +1309,7 @@ def read_dataset(name, args):
         celltype_key = 'celltype_mapped_refined'
 
     elif args.dataset == 'slideseq':
-        dataset = sq.datsets.slideseqv2("data/slideseqv2")
+        dataset = sq.datasets.slideseqv2("data/slideseqv2")
         print(dataset)
         organism='mouse'
         name='mouse_slideseq'
@@ -1593,7 +1593,7 @@ def plot_r2_scores(r2_dict, param_name, name):
 
     plt.savefig(f"R2_{param_name}_{name}.png", dpi=300)
     plt.close()
-    
+
 """
 def train_regression_model(G, pyg_graph, train_i, args):
     pca = PCA(n_components=4)
