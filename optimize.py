@@ -29,6 +29,7 @@ arg_parser.add_argument('-ls', '--latent', type=int, help='Size of the latent sp
 arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layers', default='64,32')
 arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
 arg_parser.add_argument('-f', '--filter', action='store_true', help='Whether to filter out non-LR genes', default=False)
+arg_parser.add_argument('-d', '--downsample', action='store_true', help='Whether to use PCA decompositions of input genes', default=False)
 args = arg_parser.parse_args()
 
 args.epochs = 400
@@ -43,6 +44,8 @@ args.latent = 4
 args.threshold = -1
 args.neighbors = 6
 args.dataset = 'slideseq'
+if atgs.dataset == 'slideseq':
+    args.downsample = True
 
 print(f"Parameters {args}")
 dataset, organism, name, celltype_key = read_dataset(args.dataset, args)
@@ -83,9 +86,15 @@ if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
 
 print("Converting graph to PyG format...")
 if args.weight:
-    G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
+    if args.downsample:
+        G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.obsm.X_pca, dataset.obs[celltype_key], name+'_train', args=args)
+    else:
+        G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
 else:
-    G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
+    if args.downsample:
+        G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.obsm.X_pca, dataset.obs[celltype_key], name+'_train', args=args)
+    else:
+        G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
 
 G = nx.convert_node_labels_to_integers(G)
 
