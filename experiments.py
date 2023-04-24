@@ -163,7 +163,7 @@ for name in ['seqfish', 'slideseq']:
                     device, name=f'{name}_exp1', number_of_cells=1000, celltype_key=celltype_key, args=args,
                     plot_celltypes=True)
 
-        model.cpu()
+        model = model.cpu()
 
     if '2' in experiments:
         r2_per_comb = {}
@@ -248,7 +248,7 @@ for name in ['seqfish', 'slideseq']:
             else:
                 apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{args.type}_{var}_{adv}', celltype_key, args=args)
 
-            model.cpu()
+            model = model.cpu()
 
         with open("exp2.pkl", 'wb') as file:
             pickle.dump(r2_per_comb, file)
@@ -337,7 +337,7 @@ for name in ['seqfish', 'slideseq']:
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{args.type}_{var}_{adv}', celltype_key, args=args, discriminator=discriminator)
 
-            model.cpu()
+            model = model.cpu()
         with open("exp3.pkl", 'wb') as file:
             pickle.dump(r2_per_type, file)
 
@@ -425,7 +425,7 @@ for name in ['seqfish', 'slideseq']:
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_exp4_{name}_{args.type}_{prediction_mode}', celltype_key, args=args, discriminator=discriminator)
 
-            model.cpu()
+            model = model.cpu()
         with open('r2_prediction_mode.pkl', 'wb') as file:
             pickle.dump(r2_per_prediction_mode, file)
 
@@ -479,7 +479,7 @@ for name in ['seqfish', 'slideseq']:
             test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
             r2_neighbors[neighbors] = test_dict['r2']
-            model.cpu()
+            model = model.cpu()
 
         r2_thresholds = {}
         for threshold in [5, 10, 25, 50]:
@@ -533,7 +533,7 @@ for name in ['seqfish', 'slideseq']:
 
             r2_thresholds[threshold] = test_dict['r2']
 
-            model.cpu()
+            model = model.cpu()
 
         with open("r2_neighbors.pkl", 'wb') as file:
             pickle.dump(r2_neighbors, file)
@@ -622,7 +622,7 @@ for name in ['seqfish', 'slideseq']:
             #Apply on dataset
             apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filtername}_{args.type}', celltype_key, args=args, discriminator=discriminator)
 
-            model.cpu()
+            model = model.cpu()
 
     with open('r2_filter.pkl', 'wb') as file:
         pickle.dump(r2_filter, file)
