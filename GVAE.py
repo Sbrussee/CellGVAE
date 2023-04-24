@@ -1240,7 +1240,7 @@ def plot_edge_weights(edge_dict, name):
     plt.savefig('dist_weight_'+name+".png", dpi=300)
     plt.close()
 
-def graph_summary(G, name):
+def graph_summary(G, name, args):
     summary_dict = {}
     summary_dict['name'] = name
     summary_dict['params'] = dict(vars(args))
