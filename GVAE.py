@@ -1449,6 +1449,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         if args.adversarial:
             discriminator_loss.backward(retain_graph=True)
             discriminator_optimizer.step()
+            del discriminator_loss
 
         loss_over_cells[cells_seen] = total_loss_over_cells.detach().cpu()/len(cells)
         total_val_loss = 0
@@ -1456,7 +1457,6 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         val_cells = random.sample(val_i, k=500)
         #Free up memory
         del batch
-        del discriminator_loss
         del loss
 
         with torch.no_grad():
