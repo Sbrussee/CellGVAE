@@ -829,14 +829,14 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     if args.prediction_mode == 'spatial':
         batch.expr.fill_(0.0)
         assert batch.expr.sum() == 0
-    batch.to(device)
+    batch = batch.to(device)
 
     total_r2_dataset = 0
     for cell in tqdm(G.nodes()):
         orig_expr = batch.expr[cell, :]
         batch.expr[cell, :].fill_(0.0)
         assert batch.expr[cell, :].sum() == 0
-        loss, x_hat = validate(model, batch, pyG_graph.expr[cell].float().to(device), cell, pyG_graph.weight.float().to(device), args=args, discriminator=discriminator)
+        loss, x_hat = validate(model, batch, pyG_graph.expr[cell].float(), cell, pyG_graph.weight.float(), args=args, discriminator=discriminator)
         pred_expr[cell, :] = x_hat.cpu().detach().numpy()
         total_loss += loss
         total_r2_dataset += r2_score(pyG_graph.expr[cell], x_hat.cpu().detach())
