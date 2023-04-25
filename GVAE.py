@@ -971,6 +971,7 @@ def get_latent_space_vectors(model, pyg_graph, anndata, device, args):
 @torch.no_grad()
 def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     model.eval()
+    val_data = val_data.to(device)
     val_data.expr = val_data.expr.float()
     val_data.weight = val_data.weight.float()
     model = model.float()
@@ -1014,6 +1015,7 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     if args.adversarial:
         loss += model.reg_loss(z[cell_id])
 
+    val_data = val_data.cpu()
     return float(loss), x_hat
 
 def normalize_weights(G, args):
