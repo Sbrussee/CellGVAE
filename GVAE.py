@@ -1502,6 +1502,7 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
     total_r2_test = 0
     for cell in tqdm(random.sample(test_i, k=1000)):
         test_batch = pyg_graph.clone()
+        pyg_graph = pyg_graph.to(device)
         if args.prediction_mode == 'spatial':
             test_batch.expr.fill_(0.0)
             assert test_batch.expr.sum() == 0
@@ -1512,6 +1513,7 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
         total_r2_test += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
         total_test_loss += test_loss
         test_batch = test_batch.cpu()
+        pyg_graph = pyg_graph.cpu()
         del test_batch
         del test_loss
 
