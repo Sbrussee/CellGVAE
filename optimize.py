@@ -128,7 +128,12 @@ def objective(trial):
     #threshold = trial.suggest_int('threshold', 5, 100)
     #neighbors = trial.suggest_int('neighbors', 2, 10)
     #latent = trial.suggest_int('latent', 2, 12)
-    hidden = trial.suggest_categorical('hidden', ['', '232', '264,232', '2128,264,232'])
+    num_of_layers = trial.suggest_int("num_of_hidden_layers", 1, 3)
+    layers = ''
+    for i in range(num_of_layers):
+        size = trial.suggest_int(10, 1000, log=True)
+        layers += str(size)+','
+    args.hidden = layers
 
     # update argparse arguments with optimized hyperparameters
     args.variational = variational
@@ -136,7 +141,6 @@ def objective(trial):
     args.type = model_type
     if model_type == 'SAGE':
         args.aggregation_method = aggregation_method
-    args.hidden = hidden
 
     print("Constructing model...")
     input_size, hidden_layers, latent_size, output_size = set_layer_sizes(pyg_graph, args=args, panel_size=dataset.n_vars)
