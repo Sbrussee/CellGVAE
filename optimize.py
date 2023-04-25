@@ -1,5 +1,5 @@
 import optuna
-from optuna.visualization.matplotlib import plot_optimization_history, plot_param_importances, plot_slice
+from optuna.visualization.matplotlib import plot_optimization_history, plot_param_importances
 import logging
 import argparse
 import pickle
@@ -154,7 +154,7 @@ def objective(trial):
     else:
         k = args.cells
 
-    optimizer_list = get_optimizer_list(model=model,args=args, discriminator=discriminator)
+    optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
     # train and evaluate model with updated hyperparameters
     (loss_over_cells, train_loss_over_epochs,
      val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,

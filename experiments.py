@@ -558,13 +558,13 @@ for name in ['seqfish', 'slideseq']:
 
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
-                dataset = construct_graph(exp6_dataset, args=args, celltype_key=celltype_key, name=name+"_exp6_"+filtername)
+                dataset = construct_graph(exp6_dataset, args=args, celltype_key=celltype_key, name=name+"_exp6_"+filter_name)
 
             print("Converting graph to PyG format...")
             if args.weight:
-                G, isolates = convert_to_graph(exp6_dataset.obsp['spatial_distances'], exp6_dataset.X, exp6_dataset.obs[celltype_key], name+'_exp6_'+filtername, args=args)
+                G, isolates = convert_to_graph(exp6_dataset.obsp['spatial_distances'], exp6_dataset.X, exp6_dataset.obs[celltype_key], name+'_exp6_'+filter_name, args=args)
             else:
-                G, isolates = convert_to_graph(exp6_dataset.obsp['spatial_connectivities'], exp6_dataset.X, exp6_dataset.obs[celltype_key], name+"_exp6_"+filtername, args=args)
+                G, isolates = convert_to_graph(exp6_dataset.obsp['spatial_connectivities'], exp6_dataset.X, exp6_dataset.obs[celltype_key], name+"_exp6_"+filter_name, args=args)
 
             G = nx.convert_node_labels_to_integers(G)
 
@@ -598,7 +598,7 @@ for name in ['seqfish', 'slideseq']:
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
             test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
-            r2_filter[filtername] = test_dict['r2']
+            r2_filter[filter_name] = test_dict['r2']
 
             if args.variational:
                 var = 'variational'
@@ -612,15 +612,15 @@ for name in ['seqfish', 'slideseq']:
 
             #Plot results
             print("Plotting training plots...")
-            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp6_{name+filtername}_{args.type}.png')
-            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp6_{name+filtername}_{args.type}.png')
+            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp6_{name+filter_name}_{args.type}.png')
+            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp6_{name+filter_name}_{args.type}.png')
 
             #Plot the latent test set
             plot_latent(model, pyg_graph, exp6_dataset, list(dataset.obs[celltype_key].unique()),
-                        device, name=f'exp6_{name+filtername}_{args.type}', number_of_cells=1000, celltype_key=celltype_key, args=args)
+                        device, name=f'exp6_{name+filter_name}_{args.type}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             #Apply on dataset
-            apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filtername}_{args.type}', celltype_key, args=args, discriminator=discriminator)
+            apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filter_name}_{args.type}', celltype_key, args=args, discriminator=discriminator)
 
             model = model.cpu()
 
@@ -695,6 +695,8 @@ for name in ['seqfish', 'slideseq']:
              val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
 
+
+
         latent_spaces_normal = {}
         #First get latent space for all normal tissue fovs:
         for dataset in [f for f in os.listdir("data/") if f.startswith("ns_fov_") and 'Normal' in f]:
@@ -706,6 +708,8 @@ for name in ['seqfish', 'slideseq']:
             pyG_graph = pyG_graph.to(device)
 
             latent_spaces_normal[i] = get_latent_space_vectors(model, pyG_graph, dataset, device, args)
+
+            pyG_graph = pyG_graph.cpu()
 
 
         #Now that we trained on the normal data, score all cancer fov's
@@ -729,6 +733,8 @@ for name in ['seqfish', 'slideseq']:
             pyG_graph = pyG_graph.to(device)
 
             latent_spaces_cancer[i] = get_latent_space_vectors(model, pyG_graph, dataset, device, args)
+
+            pyG_graph = pyG_graph.cpu()
 
         average_latent_space_normal = np.mean(latent_spaces_normal)
         average_latent_space_cancer = np.mean(latent_spaces_cancer)

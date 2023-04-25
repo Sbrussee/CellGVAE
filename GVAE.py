@@ -841,10 +841,14 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
         total_loss += loss
         total_r2_dataset += r2_score(pyG_graph.expr[cell], x_hat.cpu().detach())
         batch.expr[cell, :] = orig_expr
+        del loss
 
-    batch.cpu()
+    batch = batch.cpu()
+    del batch
+    del total_loss
+
     print(f"R2 score: {total_r2_dataset/G.number_of_nodes()}")
-    pyG_graph.cpu()
+    pyG_graph = pyG_graph.cpu()
     print(dataset.X.shape)
     print(true_expr.shape, pred_expr.shape)
 
@@ -1430,7 +1434,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
 
         total_loss_over_cells.backward()
-        #Clip gradients
+        #Clip gradientstrain
         torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
                                           error_if_nonfinite=False)
 
@@ -1450,36 +1454,38 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         total_val_loss = 0
         total_r2 = 0
         val_cells = random.sample(val_i, k=500)
-        model.eval()
-        val_batch = pyg_graph.clone()
-        val_batch = val_batch.to(device)
-        if args.prediction_mode == 'spatial':
-            val_batch.expr.fill_(0)
-            assert val_batch.expr.sum() < 0.1
-        else:
-            val_batch.expr.index_fill_(0, torch.tensor(val_cells).to(device), 0.0)
-            assert val_batch.expr[val_cells, :].sum() < 0.1
-        for cell in val_cells:
-            val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args, discriminator=discriminator)
-            total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
-            total_val_loss += val_loss
+        #Free up memory
+        del batch
+        del discriminator_loss
+        del loss
 
-        val_batch = val_batch.cpu()
-        train_loss_over_epochs[epoch] = total_loss_over_cells.detach().cpu()/len(cells)
-        val_loss_over_epochs[epoch] = total_val_loss/500
-        print(f"Epoch {epoch}, average training loss:{train_loss_over_epochs[epoch]}, average validation loss:{val_loss_over_epochs[epoch]}")
-        print(f"Validation R2: {total_r2/500}")
-        r2_over_epochs[epoch] = total_r2/500
-    #Free up GPU memory
-    batch.expr.cpu()
-    batch.weight.cpu()
-    batch.edge_index.cpu()
-    val_batch.expr.cpu()
-    val_batch.weight.cpu()
-    val_batch.edge_index.cpu()
-    pyg_graph.expr.cpu()
-    pyg_graph.weight.cpu()
-    pyg_graph.edge_index.cpu()
+        with torch.no_grad():
+            model.eval()
+            val_batch = pyg_graph.clone()
+            val_batch = val_batch.to(device)
+            if args.prediction_mode == 'spatial':
+                val_batch.expr.fill_(0)
+                assert val_batch.expr.sum() < 0.1
+            else:
+                val_batch.expr.index_fill_(0, torch.tensor(val_cells).to(device), 0.0)
+                assert val_batch.expr[val_cells, :].sum() < 0.1
+            for cell in val_cells:
+                val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args, discriminator=discriminator)
+                total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
+                total_val_loss += val_loss
+
+            val_batch = val_batch.cpu()
+            train_loss_over_epochs[epoch] = total_loss_over_cells.detach().cpu()/len(cells)
+            val_loss_over_epochs[epoch] = total_val_loss/500
+            print(f"Epoch {epoch}, average training loss:{train_loss_over_epochs[epoch]}, average validation loss:{val_loss_over_epochs[epoch]}")
+            print(f"Validation R2: {total_r2/500}")
+            r2_over_epochs[epoch] = total_r2/500
+
+            del val_batch
+            del val_loss
+            del x_hat
+            del total_val_loss
+
     #Save trained model
     torch.save(model, f"model_{args.type}.pt")
 
@@ -1502,10 +1508,17 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
         test_loss, x_hat = validate(model, test_batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args, discriminator=discriminator)
         total_r2_test += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
         total_test_loss += test_loss
+        test_batch = test_batch.cpu()
+        del test_batch
+        del test_loss
+
+
+
 
 
     print(f"Test loss: {total_test_loss/1000}, Test R2 {total_r2_test/1000}")
     test_dict['loss'], test_dict['r2'] = total_test_loss/1000, total_r2_test/1000
+    del total_test_loss
     return test_dict
 
 def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
