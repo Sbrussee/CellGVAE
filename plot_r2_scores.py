@@ -5,6 +5,6 @@ for exp in ['exp2', 'exp3', 'r2_neighbors', 'r2_prediction_mode', 'r2_thresholds
     try:
         with open(exp+".pkl", 'rb') as f:
             r2_dict = pickle.load(f)
-        plot_r2_scores(r2_dict, 'core_model', dataset_name+exp)
+        plot_r2_scores(r2_dict, f'{exp}', dataset_name+exp)
     except:
         print(f'{exp} not found...')
