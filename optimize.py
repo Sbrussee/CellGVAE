@@ -131,7 +131,7 @@ def objective(trial):
     num_of_layers = trial.suggest_int("num_of_hidden_layers", 1, 3)
     layers = ''
     for i in range(num_of_layers):
-        size = trial.suggest_int(10, 1000, log=True)
+        size = trial.suggest_int(name="size_"+str(i), low=10, high=1000, log=True)
         layers += str(size)+','
     args.hidden = layers
 
