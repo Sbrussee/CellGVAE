@@ -1463,6 +1463,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             model.eval()
             val_batch = pyg_graph.clone()
             val_batch = val_batch.to(device)
+            pyg_graph = pyg_graph.to(device)
             if args.prediction_mode == 'spatial':
                 val_batch.expr.fill_(0)
                 assert val_batch.expr.sum() < 0.1
@@ -1474,6 +1475,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
                 total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
                 total_val_loss += val_loss
 
+            pyg_graph = pyg_graph.cpu()
             val_batch = val_batch.cpu()
             train_loss_over_epochs[epoch] = total_loss_over_cells.detach().cpu()/len(cells)
             val_loss_over_epochs[epoch] = total_val_loss/500
