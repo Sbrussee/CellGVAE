@@ -1473,7 +1473,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
                 val_batch.expr.index_fill_(0, torch.tensor(val_cells).to(device), 0.0)
                 assert val_batch.expr[val_cells, :].sum() < 0.1
             for cell in val_cells:
-                val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args, discriminator=discriminator)
+                val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell].to(device), cell, pyg_graph.weight.to(device), args=args, discriminator=discriminator)
                 total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
                 total_val_loss += val_loss
 
