@@ -1486,6 +1486,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             del x_hat
             del total_val_loss
 
+    model = model.cpu()
     #Save trained model
     torch.save(model, f"model_{args.type}.pt")
 
