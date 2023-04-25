@@ -1334,7 +1334,7 @@ def read_dataset(name, args):
 
     return dataset, organism, name, celltype_key
 
-def set_layer_sizes(pyg_graph, args):
+def set_layer_sizes(pyg_graph, args, panel_size):
     if ',' in args.hidden:
         lengths = [int(x) for x in args.hidden.split(',')]
         input_size, hidden_layers, latent_size = pyg_graph.expr.shape[1], lengths, args.latent
@@ -1342,10 +1342,11 @@ def set_layer_sizes(pyg_graph, args):
         input_size, hidden_layers, latent_size = pyg_graph.expr.shape[1], [], args.latent
     else:
         input_size, hidden_layers, latent_size = pyg_graph.expr.shape[1], [int(args.hidden)], args.latent
-    return input_size, hidden_layers, latent_size
+    output_size = panel_size
+    return input_size, hidden_layers, latent_size, output_size
 
 
-def retrieve_model(input_size, hidden_layers, latent_size, args):
+def retrieve_model(input_size, hidden_layers, latent_size, output_size, args):
     #Build model architecture based on given arguments
     if not args.variational and args.type == 'GCN':
         encoder = GCNEncoder(input_size, hidden_layers, latent_size)
@@ -1368,7 +1369,7 @@ def retrieve_model(input_size, hidden_layers, latent_size, args):
         discriminator = Discriminator(input_size, hidden_layers, latent_size)
 
     #Build Decoder
-    decoder = Decoder(input_size, hidden_layers, latent_size)
+    decoder = Decoder(output_size, hidden_layers, latent_size)
     #Build model
     if not args.adversarial:
         model = GAE(encoder.float(), decoder.float(), args)
@@ -1530,7 +1531,7 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
 
 def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
     #First calculate for original dataset
-    sq.gr.ligrec(
+    res = sq.gr.ligrec(
         adata,
         n_perms=100,
         cluster_key=cluster_key,
@@ -1542,15 +1543,16 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         adata,
         cluster_key=cluster_key,
         means_range=(0.3, np.inf),
-        alpha=1e-4,
+        alpha=1e-8,
         swap_axes=False,
         save=name+"ligrec_original.png"
 
     )
+    res['means'].head()
 
     #Then calculate using predicted expression
     adata.X = pred_expr
-    sq.gr.ligrec(
+    res = sq.gr.ligrec(
         adata,
         n_perms=100,
         cluster_key=cluster_key,
@@ -1562,7 +1564,7 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         adata,
         cluster_key=cluster_key,
         means_range=(0.3, np.inf),
-        alpha=1e-4,
+        alpha=1e-8,
         swap_axes=False,
         save=name+"ligrec_pred.png"
     )
@@ -1795,8 +1797,8 @@ if __name__ == '__main__':
     pyg_graph.weight = pyg_graph.weight.float()
 
 
-    input_size, hidden_layers, latent_size = set_layer_sizes(pyg_graph, args=args)
-    model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, args=args)
+    input_size, hidden_layers, latent_size, output_size = set_layer_sizes(pyg_graph, args=args, dataset.n_vars)
+    model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, output_size, args=args)
 
     print("Model:")
     print(model)
