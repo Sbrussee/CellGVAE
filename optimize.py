@@ -128,7 +128,7 @@ def objective(trial):
     #threshold = trial.suggest_int('threshold', 5, 100)
     #neighbors = trial.suggest_int('neighbors', 2, 10)
     #latent = trial.suggest_int('latent', 2, 12)
-    hidden = trial.suggest_categorical('hidden', ['', '32', '64,32', '128,64,32'])
+    hidden = trial.suggest_categorical('hidden', ['', '232', '264,232', '2128,264,232'])
 
     # update argparse arguments with optimized hyperparameters
     args.variational = variational
