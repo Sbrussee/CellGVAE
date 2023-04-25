@@ -139,7 +139,7 @@ def objective(trial):
     args.hidden = hidden
 
     print("Constructing model...")
-    input_size, hidden_layers, latent_size, output_size = set_layer_sizes(pyg_graph, args=args, dataset.n_vars)
+    input_size, hidden_layers, latent_size, output_size = set_layer_sizes(pyg_graph, args=args, panel_size=dataset.n_vars)
     model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, output_size, args=args)
 
     print("Model:")
