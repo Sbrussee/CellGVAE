@@ -338,6 +338,7 @@ for name in ['seqfish', 'slideseq']:
             apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{args.type}_{var}_{adv}', celltype_key, args=args, discriminator=discriminator)
 
             model = model.cpu()
+
         with open("exp3.pkl", 'wb') as file:
             pickle.dump(r2_per_type, file)
 
@@ -623,6 +624,7 @@ for name in ['seqfish', 'slideseq']:
             apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filter_name}_{args.type}', celltype_key, args=args, discriminator=discriminator)
 
             model = model.cpu()
+            del model
 
     with open('r2_filter.pkl', 'wb') as file:
         pickle.dump(r2_filter, file)

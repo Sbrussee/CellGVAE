@@ -1532,6 +1532,9 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         adata,
         n_perms=100,
         cluster_key=cluster_key,
+        use_raw=False,
+        transmitter_params={"categories": "ligand"},
+        receiver_params={"categories": "receptor"},
     )
     sq.pl.ligrec(
         adata,
@@ -1540,6 +1543,7 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         alpha=1e-4,
         swap_axes=False,
         save=name+"ligrec_original.png"
+
     )
 
     #Then calculate using predicted expression
@@ -1548,6 +1552,9 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         adata,
         n_perms=100,
         cluster_key=cluster_key,
+        use_raw=False,
+        transmitter_params={"categories": "ligand"},
+        receiver_params={"categories": "receptor"},
     )
     sq.pl.ligrec(
         adata,
@@ -1559,10 +1566,11 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
     )
 
 def spatial_analysis(adata, celltype_key, name):
-    sq.pl.spatial_scatter(adata, color=celltype_key, size=20, shape=None, save=name+"spatial_scatter.png")
+    sc.pl.spatial(dataset, use_raw=False, spot_size=0.1, title=f'Spatial distribution of {name}',
+                  save=f"spatial_scatter{name}.png", color=celltype_key, size=1, show=False)
     plt.close()
     sq.gr.nhood_enrichment(adata, cluster_key=celltype_key)
-    sq.pl.nhood_enrichment(adata, cluster_key=celltype_key, method="ward", save=name+"ngb_enrichment.png")
+    sq.pl.nhood_enrichment(adata, cluster_key=celltype_key, method="ward", save=name+"ngb_enrichment.pdf")
     plt.close()
     for celltype in np.unique(adata.obs[celltype_key]):
         sq.gr.co_occurrence(adata, cluster_key=celltype_key)

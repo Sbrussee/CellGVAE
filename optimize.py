@@ -44,8 +44,8 @@ args.latent = 4
 args.threshold = -1
 args.neighbors = 6
 args.dataset = 'slideseq'
-#if args.dataset == 'slideseq':
-#    args.downsample = True
+if args.dataset == 'slideseq':
+    args.downsample = True
 
 print(f"Parameters {args}")
 dataset, organism, name, celltype_key = read_dataset(args.dataset, args)
