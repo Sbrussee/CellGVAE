@@ -70,7 +70,7 @@ TRAINING = True
 #Empty cuda memory
 torch.cuda.empty_cache()
 
-torch.backends.cuda.max_split_size_mb = 1024
+torch.backends.cuda.max_split_size_mb = 512
 
 #if not isinstance(dataset.X, np.ndarray):
 #    dataset.X = dataset.X.toarray()
@@ -128,7 +128,7 @@ def objective(trial):
     if model_type == 'SAGE':
         args.aggregation_method = aggregation_method
     args.hidden = hidden
-    
+
     print("Constructing model...")
     input_size, hidden_layers, latent_size, output_size = set_layer_sizes(pyg_graph, args=args, panel_size=dataset.n_vars)
     model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, output_size, args=args)

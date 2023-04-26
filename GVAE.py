@@ -1325,9 +1325,10 @@ def read_dataset(name, args):
         organism = 'mouse'
         celltype_key = 'maxScores'
 
-    elif args.dataset == 'merfish1':
+    elif args.dataset == 'merfish':
         dataset = sq.datasets.merfish("data/merfish")
-        dataset = dataset[:int(0.5*dataset.num_of_obs)]
+        sample = random.sample(range(dataset.num_of_obs), k=20000)
+        dataset = dataset[sample]
         organism='mouse'
         name='mouse_merfish'
         celltype_key = 'Cell_class'
