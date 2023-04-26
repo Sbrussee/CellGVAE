@@ -1325,10 +1325,16 @@ def read_dataset(name, args):
         organism = 'mouse'
         celltype_key = 'maxScores'
 
-    elif args.dataset == 'merfish':
+    elif args.dataset == 'merfish_train':
         dataset = sq.datasets.merfish("data/merfish")
         sample = random.sample(range(dataset.n_obs), k=20000)
         dataset = dataset[sample]
+        organism='mouse'
+        name='mouse_merfish'
+        celltype_key = 'Cell_class'
+
+    elif args.dataset == 'merfish_full':
+        dataset = sq.datasets.merfish("data/merfish")
         organism='mouse'
         name='mouse_merfish'
         celltype_key = 'Cell_class'
@@ -1847,6 +1853,9 @@ if __name__ == '__main__':
     plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
                 device, name=f'set_{name}_{type}_{subtype}', number_of_cells=1000, celltype_key=celltype_key, args=args)
     print("Applying model on entire dataset...")
+
+    if args.dataset == 'merfish_train':
+        dataset = read_dataset('merfish_full')
     #Apply on dataset
     apply_on_dataset(model, dataset, 'GVAE_GCN_SeqFISH', celltype_key, args=args)
 

@@ -64,32 +64,39 @@ args.variational = True
 args.adversarial = True
 experiments = args.experiments
 
-def apply_pca(data):
+def apply_pca(data, title, name):
     pca = PCA(n_components=2)
     pca.fit(data)
     transformed_data = pca.transform(data)
 
     plt.scatter(transformed_data[:, 0], transformed_data[:, 1])
+    plt.title(title)
     plt.xlabel('Principal Component 1')
     plt.ylabel('Principal Component 2')
-    plt.show()
+    plt.savefig(name, dpi=300)
+    plt.close()
 
-def apply_tsne(data, perplexity=30, learning_rate=200, n_iter=1000):
+def apply_tsne(data, title, name, perplexity=30, learning_rate=200, n_iter=1000):
     tsne = TSNE(n_components=2, perplexity=perplexity, learning_rate=learning_rate, n_iter=n_iter)
     transformed_data = tsne.fit_transform(data)
 
     plt.scatter(transformed_data[:, 0], transformed_data[:, 1])
+    plt.title(title)
     plt.xlabel('t-SNE Dimension 1')
     plt.ylabel('t-SNE Dimension 2')
-    plt.show()
+    plt.savefig(name, dpi=300)
+    plt.close()
 
 
-for name in ['seqfish', 'merfish']:
+for name in ['seqfish', 'merfish_train']:
     args.dataset = name
     dataset, organism, name, celltype_key = read_dataset(name, args)
 
     if args.filter:
         dataset = only_retain_lr_genes(dataset)
+
+    apply_pca(dataset.X, f"PCA of {name} data", f"pca_{name}")
+    apply_tsne(dataset.X, f"tSNE of {name} data", f"tsne_{name}")
 
     if '1' in experiments:
         #Experiment 1: Run per cell type
@@ -145,7 +152,7 @@ for name in ['seqfish', 'merfish']:
         print("Plotting training plots...")
         plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp1_{name}_{args.type}_{subtype}.png')
         plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp1_{name}_{args.type}_{subtype}.png')
-
+        plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp1_{name}')
 
         #Plot the latent test set
         plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
@@ -157,6 +164,10 @@ for name in ['seqfish', 'merfish']:
     if '2' in experiments:
         r2_per_comb = {}
         core_models = ['adversarial', 'variational', 'normal']
+        plt.figure()
+        plt.title("Learning curves per core model")
+        plt.xlabel("Epoch")
+        plt.ylabel("Training loss")
         for comb in itertools.combinations(core_models, 2):
             if 'adversarial' in comb:
                 args.adversarial = True
@@ -224,14 +235,19 @@ for name in ['seqfish', 'merfish']:
 
             #Plot results
             print("Plotting training plots...")
+            plt.plot(list(train_loss_over_epochs.keys()), list(train_loss_over_epochs.values()), label="-".join(comb))
+
             plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp2_{name}_{args.type}_{var}_{adv}.png')
             plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp2_{name}_{args.type}_{var}_{adv}.png')
+            plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp2_{name}')
 
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
                         device, name=f'exp2_{name}_{type}_{var}_{adv}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             #Apply on dataset
+            if args.dataset == 'merfish_train':
+                dataset = read_dataset('merfish_full')
             if args.adversarial:
                 apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{args.type}_{var}_{adv}', celltype_key, args=args, discriminator=discriminator)
             else:
@@ -239,8 +255,13 @@ for name in ['seqfish', 'merfish']:
 
             model = model.cpu()
 
+        plt.legend()
+        plt.savefig("exp2_trainingcurves.png", dpi=300)
+        plt.close()
         with open("exp2.pkl", 'wb') as file:
             pickle.dump(r2_per_comb, file)
+
+        plot_r2_scores(r2_per_comb, "core model", f"{name}_r2scores_exp2")
 
 
 
@@ -318,11 +339,13 @@ for name in ['seqfish', 'merfish']:
             print("Plotting training plots...")
             plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp3{name}_{args.type}_{var}_{adv}.png')
             plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp3{name}_{type}_{var}_{adv}.png')
-
+            plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp3_{name}')
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
                         device, name=f'set_{name}_{args.type}_{var}_{adv}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
+            if args.dataset == 'merfish_train':
+                dataset = read_dataset('merfish_full')
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{args.type}_{var}_{adv}', celltype_key, args=args, discriminator=discriminator)
 
@@ -330,6 +353,8 @@ for name in ['seqfish', 'merfish']:
 
         with open("exp3.pkl", 'wb') as file:
             pickle.dump(r2_per_type, file)
+
+        plot_r2_scores(r2_per_type, "model type", f"{name}_r2scores_exp3")
 
     if '4' in experiments:
         r2_per_prediction_mode = {}
@@ -407,17 +432,21 @@ for name in ['seqfish', 'merfish']:
             print("Plotting training plots...")
             plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp4_{name}_{args.type}_{prediction_mode}.png')
             plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp4_{name}_{args.type}_{prediction_mode}.png')
-
+            plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp4_{name}')
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
                         device, name=f'exp4_{name}_{args.type}_{prediction_mode}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
+            if args.dataset == 'merfish_train':
+                dataset = read_dataset('merfish_full')
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_exp4_{name}_{args.type}_{prediction_mode}', celltype_key, args=args, discriminator=discriminator)
 
             model = model.cpu()
         with open('r2_prediction_mode.pkl', 'wb') as file:
             pickle.dump(r2_per_prediction_mode, file)
+
+        plot_r2_scores(r2_per_prediction_mode, "prediction mode", f"{name}_r2scores_exp4")
 
     if '5' in experiments:
         r2_neighbors = {}
@@ -470,6 +499,8 @@ for name in ['seqfish', 'merfish']:
 
             r2_neighbors[neighbors] = test_dict['r2']
             model = model.cpu()
+
+        plot_r2_scores(r2_neighbors, "neighbors", f"{name}_r2scores_exp5_neighbors")
 
         r2_thresholds = {}
         for threshold in [5, 10, 25, 50]:
@@ -531,6 +562,8 @@ for name in ['seqfish', 'merfish']:
 
         with open("r2_thresholds.pkl", 'wb') as file:
             pickle.dump(r2_thresholds, file)
+
+        plot_r2_scores(r2_thresholds, "neighbors", f"{name}_r2scores_exp5_neighbors")
 
     if '6' in experiments:
         r2_filter = {}
@@ -604,20 +637,23 @@ for name in ['seqfish', 'merfish']:
             print("Plotting training plots...")
             plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp6_{name+filter_name}_{args.type}.png')
             plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp6_{name+filter_name}_{args.type}.png')
-
+            plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp6_{name}')
             #Plot the latent test set
             plot_latent(model, pyg_graph, exp6_dataset, list(dataset.obs[celltype_key].unique()),
                         device, name=f'exp6_{name+filter_name}_{args.type}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
+            if args.dataset == 'merfish_train':
+                dataset = read_dataset('merfish_full')
             #Apply on dataset
             apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filter_name}_{args.type}', celltype_key, args=args, discriminator=discriminator)
 
             model = model.cpu()
             del model
 
-    with open('r2_filter.pkl', 'wb') as file:
-        pickle.dump(r2_filter, file)
+        with open('r2_filter.pkl', 'wb') as file:
+            pickle.dump(r2_filter, file)
 
+        plot_r2_scores(r2_filter, "L-R filter", f"{name}_r2scores_exp6")
 
     if '7' in experiments:
         organism = 'human'
