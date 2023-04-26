@@ -760,6 +760,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             plt.close()
 
 def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
+    pyg_graph = pyg_graph.to(device)
     if args.adversarial:
         if args.variational:
             if args.type == 'GCN' or args.type == 'GAT':
@@ -783,6 +784,10 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
         fake_loss = -torch.log(1 - fake + 1e-15).mean()
         discriminator_loss = real_loss + fake_loss
         x_hat = model.discriminator(z[cell_id, :])
+        del real
+        del fake
+        del real_loss
+        del fake_loss
 
     elif args.variational:
         x_hat, kl = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, pyg_graph.weight)
@@ -798,6 +803,11 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
         loss += (1 / pyg_graph.num_nodes) * kl
     if args.adversarial:
         loss += model.reg_loss(z[cell_id])
+
+    pyg_graph = pyg_graph.cpu()
+
+    del x_hat
+    del kl
 
     if not args.adversarial:
         return loss
@@ -971,11 +981,6 @@ def get_latent_space_vectors(model, pyg_graph, anndata, device, args):
 @torch.no_grad()
 def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     model.eval()
-    val_data = val_data.to(device)
-    val_data.expr = val_data.expr.float()
-    val_data.weight = val_data.weight.float()
-    model = model.float()
-    model = model.to(device)
     if args.adversarial:
         if args.variational:
             if args.type == 'GCN' or args.type == 'GAT':
@@ -1016,8 +1021,6 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     if args.adversarial:
         loss += model.reg_loss(z[cell_id])
 
-    val_data = val_data.cpu()
-    model = model.cpu()
     return float(loss), x_hat
 
 def normalize_weights(G, args):
