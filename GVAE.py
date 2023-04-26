@@ -801,13 +801,13 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
 
     if args.variational:
         loss += (1 / pyg_graph.num_nodes) * kl
+        del kl
     if args.adversarial:
         loss += model.reg_loss(z[cell_id])
 
     pyg_graph = pyg_graph.cpu()
 
     del x_hat
-    del kl
 
     if not args.adversarial:
         return loss
