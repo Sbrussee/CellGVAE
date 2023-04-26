@@ -1327,7 +1327,7 @@ def read_dataset(name, args):
 
     elif args.dataset == 'merfish':
         dataset = sq.datasets.merfish("data/merfish")
-        sample = random.sample(range(dataset.n_of_obs), k=20000)
+        sample = random.sample(range(dataset.n_obs), k=20000)
         dataset = dataset[sample]
         organism='mouse'
         name='mouse_merfish'
