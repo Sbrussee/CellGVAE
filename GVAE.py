@@ -1498,7 +1498,6 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             model.eval()
             val_batch = pyg_graph.clone()
             val_batch = val_batch.to(device)
-            pyg_graph = pyg_graph.to(device)
             if args.prediction_mode == 'spatial':
                 val_batch.expr.fill_(0)
                 assert val_batch.expr.sum() < 0.1
@@ -1507,10 +1506,9 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
                 assert val_batch.expr[val_cells, :].sum() < 0.1
             for cell in val_cells:
                 val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell].to(device), cell, pyg_graph.weight.to(device), args=args, discriminator=discriminator)
-                total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
+                total_r2 += r2_score(pyg_graph.expr[cell], x_hat.cpu())
                 total_val_loss += val_loss
 
-            pyg_graph = pyg_graph.cpu()
             val_batch = val_batch.cpu()
             train_loss_over_epochs[epoch] = total_loss_over_cells.detach().cpu()/len(cells)
             val_loss_over_epochs[epoch] = total_val_loss/500
@@ -1532,7 +1530,6 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
     test_dict = {}
     total_test_loss = 0
     total_r2_test = 0
-    model = model.to(device)
     for cell in tqdm(random.sample(test_i, k=1000)):
         test_batch = pyg_graph.clone()
         if args.prediction_mode == 'spatial':
@@ -1541,7 +1538,7 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
         test_batch.expr[cell, :].fill_(0.0)
         test_batch = test_batch.to(device)
         assert test_batch.expr[cell, :].sum() == 0
-        test_loss, x_hat = validate(model, test_batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args, discriminator=discriminator)
+        test_loss, x_hat = validate(model, test_batch, pyg_graph.expr[cell].to(device), cell, pyg_graph.weight.to(device), args=args, discriminator=discriminator)
         total_r2_test += r2_score(pyg_graph.expr[cell], x_hat.cpu())
         total_test_loss += test_loss
         test_batch = test_batch.cpu()
