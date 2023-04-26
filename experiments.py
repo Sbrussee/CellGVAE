@@ -95,8 +95,8 @@ for name in ['seqfish', 'merfish_train']:
     if args.filter:
         dataset = only_retain_lr_genes(dataset)
 
-    apply_pca(dataset.X, f"PCA of {name} data", f"pca_{name}")
-    apply_tsne(dataset.X, f"tSNE of {name} data", f"tsne_{name}")
+    apply_pca(dataset.X.toarray(), f"PCA of {name} data", f"pca_{name}")
+    apply_tsne(dataset.X.toarray(), f"tSNE of {name} data", f"tsne_{name}")
 
     if '1' in experiments:
         #Experiment 1: Run per cell type
