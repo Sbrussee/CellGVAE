@@ -1005,6 +1005,12 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
         discriminator_loss = real_loss + fake_loss
         x_hat = model.discriminator(z[cell_id, :])
 
+        del real
+        del fake
+        del real_loss
+        del fake_loss
+        del discriminator_loss
+
     elif args.variational:
         x_hat, kl = model(val_data.expr, val_data.edge_index, cell_id, val_data.weight)
     else:
@@ -1020,6 +1026,9 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
 
     if args.adversarial:
         loss += model.reg_loss(z[cell_id])
+
+    del x
+
 
     return float(loss), x_hat
 
@@ -1498,9 +1507,6 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             del total_val_loss
 
     model = model.cpu()
-    #Save trained model
-    torch.save(model, f"model_{args.type}.pt")
-
     return loss_over_cells, train_loss_over_epochs, val_loss_over_epochs, r2_over_epochs
 
 @torch.no_grad()
@@ -1509,6 +1515,7 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
     test_dict = {}
     total_test_loss = 0
     total_r2_test = 0
+    pyg_graph = pyg_graph.to(device)
     for cell in tqdm(random.sample(test_i, k=1000)):
         test_batch = pyg_graph.clone()
         if args.prediction_mode == 'spatial':
@@ -1523,6 +1530,7 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
         test_batch = test_batch.cpu()
         del test_batch
         del test_loss
+    pyg_graph = pyg_graph.cpu()
 
 
 

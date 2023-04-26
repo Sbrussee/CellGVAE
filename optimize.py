@@ -119,12 +119,7 @@ def objective(trial):
     #threshold = trial.suggest_int('threshold', 5, 100)
     #neighbors = trial.suggest_int('neighbors', 2, 10)
     #latent = trial.suggest_int('latent', 2, 12)
-    num_of_layers = trial.suggest_int("num_of_hidden_layers", 1, 3)
-    layers = ''
-    for i in range(num_of_layers):
-        size = trial.suggest_int(name="size_"+str(i), low=10, high=1000, log=True)
-        layers += str(size)+','
-    args.hidden = layers
+    hidden = trial.suggest_categorical('hidden', ['', '32', '64,32', '128,64,32', '256,128,64,32'])
 
     # update argparse arguments with optimized hyperparameters
     args.variational = variational
@@ -132,7 +127,8 @@ def objective(trial):
     args.type = model_type
     if model_type == 'SAGE':
         args.aggregation_method = aggregation_method
-
+    args.hidden = hidden
+    
     print("Constructing model...")
     input_size, hidden_layers, latent_size, output_size = set_layer_sizes(pyg_graph, args=args, panel_size=dataset.n_vars)
     model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, output_size, args=args)
