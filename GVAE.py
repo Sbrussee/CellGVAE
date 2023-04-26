@@ -1217,6 +1217,14 @@ def plot_val_curve(train_loss, val_loss, name):
     plt.savefig(name, dpi=300)
     plt.close()
 
+def plot_r2_curve(r2_dict, xlabel, title, name):
+    plt.plot(list(r2_dict.keys()), list(r2_dict.values()))
+    plt.xlabel(xlabel)
+    plt.ylabel('R^2')
+    plt.title(title)
+    plt.savefig(name, dpi=300)
+    plt.close()
+
 def construct_graph(dataset, args, celltype_key, name=""):
     if args.threshold != -1:
         threshold = args.threshold
@@ -1317,11 +1325,13 @@ def read_dataset(name, args):
         organism = 'mouse'
         celltype_key = 'maxScores'
 
-    elif args.dataset == 'merfish':
+    elif args.dataset == 'merfish1':
         dataset = sq.datasets.merfish("data/merfish")
+        dataset = dataset[:int(0.5*dataset.num_of_obs)]
         organism='mouse'
         name='mouse_merfish'
         celltype_key = 'Cell_class'
+
 
     elif args.dataset == 'seqfish':
         dataset = sq.datasets.seqfish("data/seqfish")
@@ -1832,6 +1842,7 @@ if __name__ == '__main__':
     print("Plotting training plots...")
     plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_{name}_{type}_{subtype}.png')
     plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_{name}_{type}_{subtype}.png')
+    plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_{name}')
     print("Plotting latent space...")
     #Plot the latent test set
     plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
