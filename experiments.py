@@ -1,4 +1,5 @@
 from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
 from GVAE import *
 import argparse
