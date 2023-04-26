@@ -981,6 +981,7 @@ def get_latent_space_vectors(model, pyg_graph, anndata, device, args):
 @torch.no_grad()
 def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     model.eval()
+    val_data = val_data.to(device)
     if args.adversarial:
         if args.variational:
             if args.type == 'GCN' or args.type == 'GAT':
@@ -1028,8 +1029,7 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
         loss += model.reg_loss(z[cell_id])
 
     del x
-
-
+    val_data = val_data.cpu()
     return float(loss), x_hat
 
 def normalize_weights(G, args):
@@ -1327,7 +1327,7 @@ def read_dataset(name, args):
 
     elif args.dataset == 'merfish':
         dataset = sq.datasets.merfish("data/merfish")
-        sample = random.sample(range(dataset.num_of_obs), k=20000)
+        sample = random.sample(range(dataset.n_of_obs), k=20000)
         dataset = dataset[sample]
         organism='mouse'
         name='mouse_merfish'
@@ -1526,7 +1526,6 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
     test_dict = {}
     total_test_loss = 0
     total_r2_test = 0
-    pyg_graph = pyg_graph.to(device)
     for cell in tqdm(random.sample(test_i, k=1000)):
         test_batch = pyg_graph.clone()
         if args.prediction_mode == 'spatial':
@@ -1536,12 +1535,11 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
         test_batch = test_batch.to(device)
         assert test_batch.expr[cell, :].sum() == 0
         test_loss, x_hat = validate(model, test_batch, pyg_graph.expr[cell], cell, pyg_graph.weight, args=args, discriminator=discriminator)
-        total_r2_test += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
+        total_r2_test += r2_score(pyg_graph.expr[cell], x_hat.cpu())
         total_test_loss += test_loss
         test_batch = test_batch.cpu()
         del test_batch
         del test_loss
-    pyg_graph = pyg_graph.cpu()
 
 
 
