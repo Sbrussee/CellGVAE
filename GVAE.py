@@ -975,6 +975,7 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     val_data.expr = val_data.expr.float()
     val_data.weight = val_data.weight.float()
     model = model.float()
+    model = model.to(device)
     if args.adversarial:
         if args.variational:
             if args.type == 'GCN' or args.type == 'GAT':
@@ -1016,6 +1017,7 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
         loss += model.reg_loss(z[cell_id])
 
     val_data = val_data.cpu()
+    model = model.cpu()
     return float(loss), x_hat
 
 def normalize_weights(G, args):
