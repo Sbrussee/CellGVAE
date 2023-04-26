@@ -47,7 +47,6 @@ arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layer
 arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
 arg_parser.add_argument('-ex', '--experiments', type=list, help='Which experiments to run', default=[1,2,3,4,5,6])
 arg_parser.add_argument('-f', '--filter', action='store_true', help='Whether to filter out non-LR genes', default=False)
-arg_parser.add_argument('-ds', '--downsample', action='store_true', help='Whether to use PCA decompositions of input genes', default=False)
 args = arg_parser.parse_args()
 
 args.epochs = 200
@@ -85,11 +84,7 @@ def apply_tsne(data, perplexity=30, learning_rate=200, n_iter=1000):
     plt.show()
 
 
-for name in ['seqfish', 'slideseq']:
-    if name == 'slideseq':
-        args.downsample = True
-    else:
-        args.downsample = False
+for name in ['seqfish', 'merfish']:
     args.dataset = name
     dataset, organism, name, celltype_key = read_dataset(name, args)
 
@@ -105,15 +100,9 @@ for name in ['seqfish', 'slideseq']:
 
         print("Converting graph to PyG format...")
         if args.weight:
-            if args.downsample:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.obsm['X_pca'], dataset.obs[celltype_key], name+'_train', args=args)
-            else:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
+            G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
         else:
-            if args.downsample:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.obsm['X_pca'], dataset.obs[celltype_key], name+'_train', args=args)
-            else:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
+            G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
 
         G = nx.convert_node_labels_to_integers(G)
 
