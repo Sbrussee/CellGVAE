@@ -1532,6 +1532,7 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
     test_dict = {}
     total_test_loss = 0
     total_r2_test = 0
+    pyg_graph = pyg_graph.to(device)
     for cell in tqdm(random.sample(test_i, k=1000)):
         test_batch = pyg_graph.clone()
         if args.prediction_mode == 'spatial':
@@ -1546,6 +1547,7 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
         test_batch = test_batch.cpu()
         del test_batch
         del test_loss
+    pyg_graph = pyg_graph.cpu()
 
 
 
