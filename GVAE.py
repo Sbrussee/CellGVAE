@@ -1562,6 +1562,7 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         transmitter_params={"categories": "ligand"},
         receiver_params={"categories": "receptor"},
     )
+    print(res)
     sq.pl.ligrec(
         adata,
         cluster_key=cluster_key,
@@ -1571,7 +1572,8 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         save=name+"ligrec_original.png"
 
     )
-    res['means'].head()
+    with open(f"ligrec_results_true_{name}.pkl", 'wb') as f:
+        pickle.dump(res, f)
 
     #Then calculate using predicted expression
     adata.X = pred_expr
@@ -1591,6 +1593,9 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         swap_axes=False,
         save=name+"ligrec_pred.png"
     )
+
+    with open(f"ligrec_results_pred_{name}.pkl", 'wb') as f:
+        pickle.dump(res, f)
 
 def spatial_analysis(adata, celltype_key, name):
     sc.pl.spatial(adata, use_raw=False, spot_size=0.1, title=f'Spatial distribution of {name}',
