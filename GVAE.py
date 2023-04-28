@@ -1330,15 +1330,14 @@ def read_dataset(name, args):
         sample = random.sample(range(dataset.n_obs), k=20000)
         dataset = dataset[sample]
         organism='mouse'
-        name='mouse_merfish'
+        name='mouse_merfish_train'
         celltype_key = 'Cell_class'
 
     elif args.dataset == 'merfish_full':
         dataset = sq.datasets.merfish("data/merfish")
         organism='mouse'
-        name='mouse_merfish'
+        name='mouse_merfish_full'
         celltype_key = 'Cell_class'
-
 
     elif args.dataset == 'seqfish':
         dataset = sq.datasets.seqfish("data/seqfish")
@@ -1351,7 +1350,6 @@ def read_dataset(name, args):
         organism='mouse'
         name='mouse_slideseq'
         celltype_key = 'cluster'
-
 
     elif args.dataset == 'nanostring':
         dataset = sq.read.nanostring(path="data/Lung5_Rep1",
@@ -1595,7 +1593,7 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
     )
 
 def spatial_analysis(adata, celltype_key, name):
-    sc.pl.spatial(dataset, use_raw=False, spot_size=0.1, title=f'Spatial distribution of {name}',
+    sc.pl.spatial(adata, use_raw=False, spot_size=0.1, title=f'Spatial distribution of {name}',
                   save=f"spatial_scatter{name}.png", color=celltype_key, size=1, show=False)
     plt.close()
     sq.gr.nhood_enrichment(adata, cluster_key=celltype_key)
