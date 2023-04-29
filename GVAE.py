@@ -1563,15 +1563,19 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         receiver_params={"categories": "receptor"},
     )
     print(res)
-    sq.pl.ligrec(
+    try:
+        sq.pl.ligrec(
         adata,
         cluster_key=cluster_key,
         means_range=(0.3, np.inf),
         alpha=1e-5,
         swap_axes=False,
-        save=name+"ligrec_original.png"
-
+        save=name+"ligrec_original.png",
+        copy=True
     )
+    except:
+        print("Plotting ligrec original failed")
+
     with open(f"ligrec_results_true_{name}.pkl", 'wb') as f:
         pickle.dump(res, f)
 
@@ -1584,6 +1588,7 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         use_raw=False,
         transmitter_params={"categories": "ligand"},
         receiver_params={"categories": "receptor"},
+        copy=True
     )
     try:
         sq.pl.ligrec(
