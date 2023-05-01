@@ -740,7 +740,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             fig = plot.get_figure()
             fig.savefig(f'tsne_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
-            mean_tsne_per_celltype[celltype] = np.mean(tsne_z[:,:2])
+            mean_tsne_per_celltype[celltype] = list(np.mean(tsne_z[:,:2]))
 
 
             mapper = umap.UMAP()
@@ -752,7 +752,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             fig = plot.get_figure()
             fig.savefig(f'umap_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
-            mean_umap_per_celltype[celltype] = np.mean(umap_z[:,:2])
+            mean_umap_per_celltype[celltype] = list(np.mean(umap_z[:,:2]))
 
             pca = PCA(n_components=2, svd_solver='full')
             transformed_data = pca.fit_transform(z[idx_to_plot,:])
@@ -763,8 +763,9 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             fig = plot.get_figure()
             fig.savefig(f'pca_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
-            mean_pca_per_celltype[celltype] = np.mean(transformed_data[:,:2])
+            mean_pca_per_celltype[celltype] = list(np.mean(transformed_data[:,:2]))
 
+        print(mean_tsne_per_celltype)
         tsne_frame = pd.DataFrame.from_dict(mean_tsne_per_celltype)
         sns.scatterplot(tsne_frame, hue=list(mean_tsne_per_celltype.keys()))
         plt.legend(size=3)
