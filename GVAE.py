@@ -731,6 +731,12 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             print(idx_to_plot)
 
             celltype = celltype.replace('/', '_')
+
+            if celltype not in mean_pca_per_celltype:
+                mean_pca_per_celltype[celltype] = np.zeros(2)
+                mean_umap_per_celltype[celltype] = np.zeros(2)
+                mean_tsne_per_celltype[celltype] = np.zeros(2)
+
             tsne = manifold.TSNE(n_components=2, init='random')
             tsne_z =tsne.fit_transform(z[idx_to_plot,:])
             plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1])
@@ -740,7 +746,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             fig = plot.get_figure()
             fig.savefig(f'tsne_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
-            mean_tsne_per_celltype[celltype] = np.mean(tsne_z[:,:2]).tolist()
+            mean_tsne_per_celltype[celltype] += tsne_z[:,:2]
 
 
             mapper = umap.UMAP()
@@ -752,20 +758,23 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             fig = plot.get_figure()
             fig.savefig(f'umap_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
-            mean_umap_per_celltype[celltype] = np.mean(umap_z[:,:2]).tolist()
+            mean_umap_per_celltype[celltype] += np.mean(umap_z[:,:2]).tolist()
 
             pca = PCA(n_components=2, svd_solver='full')
             transformed_data = pca.fit_transform(z[idx_to_plot,:])
             plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1])
             plt.xlabel("PC1")
             plt.ylabel("PC2")
-            plt.title(f"PCA decomposition of the latent space of {celltype}")
+            plt.title(f"PCA decomposition of the latent space plot_latentof {celltype}")
             fig = plot.get_figure()
             fig.savefig(f'pca_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
-            mean_pca_per_celltype[celltype] = np.mean(transformed_data[:,:2]).tolist()
+            mean_pca_per_celltype[celltype] += np.mean(transformed_data[:,:2]).tolist()
 
-        print(mean_tsne_per_celltype)
+        mean_tsne_per_celltype = mean_tsne_per_celltype / len(cell_types)
+        mean_umap_per_celltype = mean_umap_per_celltype / len(cell_types)
+        mean_pca_per_celltype = mean_pca_per_celltype / len(cell_types)
+        
         tsne_frame = pd.DataFrame.from_dict(mean_tsne_per_celltype, orient='index', columns=['tsne1', 'tsne2'])
         sns.scatterplot(tsne_frame, hue=list(mean_tsne_per_celltype.keys()))
         plt.legend(size=3)
