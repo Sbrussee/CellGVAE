@@ -51,7 +51,7 @@ arg_parser.add_argument('-ex', '--experiments', type=list, help='Which experimen
 arg_parser.add_argument('-f', '--filter', action='store_true', help='Whether to filter out non-LR genes', default=False)
 args = arg_parser.parse_args()
 
-args.epochs = 1
+args.epochs = 300
 args.cells = 100
 args.graph_summary = False
 args.weight = True
@@ -265,9 +265,9 @@ for name in ['seqfish', 'merfish_train']:
             if args.dataset == 'merfish_train':
                 dataset = read_dataset('merfish_full')
             if args.adversarial:
-                apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{args.type}_{var}_{adv}', celltype_key, args=args, discriminator=discriminator)
+                apply_on_dataset(model, dataset, f'GVAE_exp2_{name}__{var}_{adv}', celltype_key, args=args, discriminator=discriminator)
             else:
-                apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{args.type}_{var}_{adv}', celltype_key, args=args)
+                apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{var}_{adv}', celltype_key, args=args)
 
             model = model.cpu()
 
