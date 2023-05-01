@@ -178,7 +178,7 @@ for name in ['seqfish', 'merfish_train']:
 
     if '2' in experiments:
         r2_per_comb = {}
-        core_models = ['adversarial', 'variational', 'normal']
+        core_models = ['adversarial', 'variational', 'normal', 'normal']
         fig, ax = plt.subplots()
         fig.set_axes([ax])
         ax.title("Learning curves per core model")
