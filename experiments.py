@@ -70,7 +70,7 @@ def apply_pca(data, title, name, anndata, celltype_key):
     pca = PCA(n_components=2)
     pca.fit(data)
     transformed_data = pca.transform(data)
-    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), s=0.3)
+    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), s=0.8)
     plot.legend(fontsize=3)
     plt.title(title)
     plt.xlabel('Principal Component 1')
@@ -82,7 +82,7 @@ def apply_tsne(data, title, name, anndata, celltype_key, perplexity=30, learning
     tsne = TSNE(n_components=2, perplexity=perplexity, learning_rate=learning_rate, n_iter=n_iter)
     transformed_data = tsne.fit_transform(data)
 
-    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), s=0.3)
+    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), s=0.8)
     plot.legend(fontsize=3)
     plt.title(title)
     plt.xlabel('t-SNE Dimension 1')
@@ -93,7 +93,7 @@ def apply_tsne(data, title, name, anndata, celltype_key, perplexity=30, learning
 def apply_umap(data, title, name, anndata, celltype_key):
     mapper = umap.UMAP()
     transformed_data = mapper.fit_transform(data)
-    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), s=0.3)
+    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), s=0.8)
     plot.legend(fontsize=3)
     plt.xlabel("UMAP dim 1")
     plt.ylabel("UMAP dim 2")
@@ -179,10 +179,11 @@ for name in ['seqfish', 'merfish_train']:
     if '2' in experiments:
         r2_per_comb = {}
         core_models = ['adversarial', 'variational', 'normal']
-        plt.figure()
-        plt.title("Learning curves per core model")
-        plt.xlabel("Epoch")
-        plt.ylabel("Training loss")
+        fig, ax = plt.subplots()
+        fig.set_axes([ax])
+        ax.title("Learning curves per core model")
+        ax.xlabel("Epoch")
+        ax.ylabel("Training loss")
         for comb in itertools.combinations(core_models, 2):
             if 'adversarial' in comb:
                 args.adversarial = True
@@ -250,7 +251,7 @@ for name in ['seqfish', 'merfish_train']:
 
             #Plot results
             print("Plotting training plots...")
-            plt.plot(list(train_loss_over_epochs.keys()), list(train_loss_over_epochs.values()), label="-".join(comb))
+            ax.plot(list(train_loss_over_epochs.keys()), list(train_loss_over_epochs.values()), label="-".join(comb))
 
             plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp2_{name}_{var}_{adv}.png')
             plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp2_{name}_{var}_{adv}.png')
@@ -270,8 +271,8 @@ for name in ['seqfish', 'merfish_train']:
 
             model = model.cpu()
 
-        plt.legend()
-        plt.savefig("exp2_trainingcurves.png", dpi=300)
+        ax.legend()
+        ax.savefig("exp2_trainingcurves.png", dpi=300)
         plt.close()
         with open("exp2.pkl", 'wb') as file:
             pickle.dump(r2_per_comb, file)
