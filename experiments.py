@@ -1,6 +1,7 @@
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
+import umap.umap_ as umap
 from GVAE import *
 import argparse
 import pickle
@@ -69,7 +70,7 @@ def apply_pca(data, title, name, anndata, celltype_key):
     pca = PCA(n_components=2)
     pca.fit(data)
     transformed_data = pca.transform(data)
-    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]))
+    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), size=0.3)
     plot.legend(fontsize=3)
     plt.title(title)
     plt.xlabel('Principal Component 1')
@@ -81,12 +82,23 @@ def apply_tsne(data, title, name, anndata, celltype_key, perplexity=30, learning
     tsne = TSNE(n_components=2, perplexity=perplexity, learning_rate=learning_rate, n_iter=n_iter)
     transformed_data = tsne.fit_transform(data)
 
-    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]))
+    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), size=0.3)
     plot.legend(fontsize=3)
     plt.title(title)
     plt.xlabel('t-SNE Dimension 1')
     plt.ylabel('t-SNE Dimension 2')
     plt.savefig(name, dpi=300)
+    plt.close()
+
+def apply_umap(data, title, name, anndata, celltype_key):
+    mapper = umap.UMAP()
+    transformed_data = mapper.fit_transform(data)
+    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata[:number_of_cells,:].obs[celltype_key]), size=0.3)
+    plot.legend(fontsize=3)
+    plt.xlabel("UMAP dim 1")
+    plt.ylabel("UMAP dim 2")
+    plt.title(title)
+    plt.savefig(name, dpi=200)
     plt.close()
 
 
@@ -99,7 +111,8 @@ for name in ['seqfish', 'merfish_train']:
 
     apply_pca(dataset.X.toarray(), f"PCA of {name} data", f"pca_{name}", dataset, celltype_key)
     apply_tsne(dataset.X.toarray(), f"tSNE of {name} data", f"tsne_{name}", dataset, celltype_key)
-
+    apply_umap(dataset.X.toarray(), f"UMAP of {name} data", f"umap_{name}", dataset, celltype_key)
+    
     if '1' in experiments:
         #Experiment 1: Run per cell type
         #Train the model on all data
