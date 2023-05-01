@@ -795,6 +795,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         fig = plot.get_figure()
         fig.savefig(f'pca_latentspace_{name}_mean_per_celltype.png', dpi=200)
         plt.close()
+
 def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     pyg_graph = pyg_graph.to(device)
     if args.adversarial:
@@ -900,10 +901,10 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
 
     ligand_receptor_analysis(dataset, pred_expr, name, celltype_key)
 
-    dataset.obs['total_counts'] = np.sum(dataset.X, axis=1)
+    dataset.obs['total_counts'] = np.sum(true_expr, axis=1)
     print(dataset.obs['total_counts'])
     print(dataset.obs['total_counts'].shape)
-    sc.pl.spatial(dataset, use_raw=False, spot_size=0.1, color=['total_counts'],
+    sc.pl.spatial(dataset, layer='X', spot_size=0.1, color=['total_counts'],
                   title="Spatial distribution of true expression",
                   save=f"true_expr_spatial_{name}_all_genes.png", size=1, show=False)
     plt.close()
