@@ -766,7 +766,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             mean_pca_per_celltype[celltype] = np.mean(transformed_data[:,:2]).tolist()
 
         print(mean_tsne_per_celltype)
-        tsne_frame = pd.DataFrame.from_dict(mean_tsne_per_celltype)
+        tsne_frame = pd.DataFrame.from_dict(mean_tsne_per_celltype, orient='index', columns=['tsne1', 'tsne2'])
         sns.scatterplot(tsne_frame, hue=list(mean_tsne_per_celltype.keys()))
         plt.legend(size=3)
         plt.xlabel("t-SNE dim 1")
@@ -777,7 +777,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         plt.close()
 
 
-        umap_frame = pd.DataFrame.from_dict(mean_umap_per_celltype)
+        umap_frame = pd.DataFrame.from_dict(mean_umap_per_celltype, orient='index', columns=['tsne1', 'tsne2'])
         sns.scatterplot(umap_frame, hue=list(mean_umap_per_celltype.keys()))
         plt.legend(size=3)
         plt.xlabel('UMAP dim 1')
@@ -787,7 +787,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         fig.savefig(f'umap_latentspace_{name}_mean_per_celltype.png', dpi=200)
         plt.close()
 
-        pca_frame = pd.DataFrame.from_dict(mean_pca_per_celltype)
+        pca_frame = pd.DataFrame.from_dict(mean_pca_per_celltype, orient='index', columns=['tsne1', 'tsne2'])
         sns.scatterplot(pca_frame, hue=list(mean_pca_per_celltype.keys()))
         plt.legend(size=3)
         plt.xlabel("PC1")
