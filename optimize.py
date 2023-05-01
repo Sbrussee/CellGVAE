@@ -156,7 +156,7 @@ def objective(trial):
     #Send model back to the cpu
     model = model.cpu()
     # Optimize for the best r2 of the validation set
-    return np.max(list(r2_over_epochs.values()))
+    return test_dict['r2']
 
 if __name__ == "__main__":
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))

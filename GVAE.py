@@ -721,6 +721,9 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     plt.close()
 
     if plot_celltypes:
+        mean_pca_per_celltype = {}
+        mean_umap_per_celltype = {}
+        mean_tsne_per_celltype = {}
         #Plot per cell types
         for celltype in cell_types:
             obs_names = anndata[anndata.obs[celltype_key] == celltype].obs_names
@@ -737,6 +740,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             fig = plot.get_figure()
             fig.savefig(f'tsne_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
+            mean_tsne_per_celltype[celltype] = np.mean(tsne_z[:,:2])
 
 
             mapper = umap.UMAP()
@@ -748,6 +752,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             fig = plot.get_figure()
             fig.savefig(f'umap_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
+            mean_umap_per_celltype[celltype] = np.mean(umap_z[:,:2])
 
             pca = PCA(n_components=2, svd_solver='full')
             transformed_data = pca.fit_transform(z[idx_to_plot,:])
@@ -758,7 +763,38 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             fig = plot.get_figure()
             fig.savefig(f'pca_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
+            mean_pca_per_celltype[celltype] = np.mean(transformed_data[:,:2])
 
+        tsne_frame = pd.DataFrame.from_dict(mean_tsne_per_celltype)
+        sns.scatterplot(tsne_frame, hue=list(mean_tsne_per_celltype.keys()))
+        plt.legend(size=3)
+        plt.xlabel("t-SNE dim 1")
+        plt.ylabel("t-SNE dim 2")
+        plt.title(f"t-SNE representation of the mean latent space per celltype")
+        fig = plot.get_figure()
+        fig.savefig(f'tsne_latentspace_{name}_mean_per_celltype.png', dpi=200)
+        plt.close()
+
+
+        umap_frame = pd.DataFrame.from_dict(mean_umap_per_celltype)
+        sns.scatterplot(umap_frame, hue=list(mean_umap_per_celltype.keys()))
+        plt.legend(size=3)
+        plt.xlabel('UMAP dim 1')
+        plt.ylabel('UMAP dim 2')
+        plt.title(f"UMAP representation of the mean latent space per celltype")
+        fig = plot.get_figure()
+        fig.savefig(f'umap_latentspace_{name}_mean_per_celltype.png', dpi=200)
+        plt.close()
+
+        pca_frame = pd.DataFrame.from_dict(mean_pca_per_celltype)
+        sns.scatterplot(pca_frame, hue=list(mean_pca_per_celltype.keys()))
+        plt.legend(size=3)
+        plt.xlabel("PC1")
+        plt.ylabel("PC2")
+        plt.title(f"PCA decomposition of the mean latent space per celltype")
+        fig = plot.get_figure()
+        fig.savefig(f'pca_latentspace_{name}_mean_per_celltype.png', dpi=200)
+        plt.close()
 def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
     pyg_graph = pyg_graph.to(device)
     if args.adversarial:
@@ -1542,10 +1578,6 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
         test_batch = test_batch.cpu()
         del test_batch
         del test_loss
-
-
-
-
 
     print(f"Test loss: {total_test_loss/1000}, Test R2 {total_r2_test/1000}")
     test_dict['loss'], test_dict['r2'] = total_test_loss/1000, total_r2_test/1000
