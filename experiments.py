@@ -70,7 +70,7 @@ def apply_pca(data, title, name, anndata, celltype_key):
     pca = PCA(n_components=2)
     pca.fit(data)
     transformed_data = pca.transform(data)
-    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), s=0.8)
+    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), s=1.0)
     plot.legend(fontsize=3)
     plt.title(title)
     plt.xlabel('Principal Component 1')
@@ -82,7 +82,7 @@ def apply_tsne(data, title, name, anndata, celltype_key, perplexity=30, learning
     tsne = TSNE(n_components=2, perplexity=perplexity, learning_rate=learning_rate, n_iter=n_iter)
     transformed_data = tsne.fit_transform(data)
 
-    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), s=0.8)
+    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), s=1.0)
     plot.legend(fontsize=3)
     plt.title(title)
     plt.xlabel('t-SNE Dimension 1')
@@ -93,7 +93,7 @@ def apply_tsne(data, title, name, anndata, celltype_key, perplexity=30, learning
 def apply_umap(data, title, name, anndata, celltype_key):
     mapper = umap.UMAP()
     transformed_data = mapper.fit_transform(data)
-    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), s=0.8)
+    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), s=1.0)
     plot.legend(fontsize=3)
     plt.xlabel("UMAP dim 1")
     plt.ylabel("UMAP dim 2")
