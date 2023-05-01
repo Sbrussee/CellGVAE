@@ -65,23 +65,24 @@ args.variational = True
 args.adversarial = True
 experiments = args.experiments
 
-def apply_pca(data, title, name):
+def apply_pca(data, title, name, anndata, celltype_key):
     pca = PCA(n_components=2)
     pca.fit(data)
     transformed_data = pca.transform(data)
-
-    plt.scatter(transformed_data[:, 0], transformed_data[:, 1])
+    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]))
+    plot.legend(fontsize=3)
     plt.title(title)
     plt.xlabel('Principal Component 1')
     plt.ylabel('Principal Component 2')
     plt.savefig(name, dpi=300)
     plt.close()
 
-def apply_tsne(data, title, name, perplexity=30, learning_rate=200, n_iter=1000):
+def apply_tsne(data, title, name, anndata, celltype_key, perplexity=30, learning_rate=200, n_iter=1000):
     tsne = TSNE(n_components=2, perplexity=perplexity, learning_rate=learning_rate, n_iter=n_iter)
     transformed_data = tsne.fit_transform(data)
 
-    plt.scatter(transformed_data[:, 0], transformed_data[:, 1])
+    plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]))
+    plot.legend(fontsize=3)
     plt.title(title)
     plt.xlabel('t-SNE Dimension 1')
     plt.ylabel('t-SNE Dimension 2')
@@ -96,8 +97,8 @@ for name in ['seqfish', 'merfish_train']:
     if args.filter:
         dataset = only_retain_lr_genes(dataset)
 
-    apply_pca(dataset.X.toarray(), f"PCA of {name} data", f"pca_{name}")
-    apply_tsne(dataset.X.toarray(), f"tSNE of {name} data", f"tsne_{name}")
+    apply_pca(dataset.X.toarray(), f"PCA of {name} data", f"pca_{name}", dataset, celltype_key)
+    apply_tsne(dataset.X.toarray(), f"tSNE of {name} data", f"tsne_{name}", dataset, celltype_key)
 
     if '1' in experiments:
         #Experiment 1: Run per cell type
@@ -157,7 +158,7 @@ for name in ['seqfish', 'merfish_train']:
 
         #Plot the latent test set
         plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                    device, name=f'{name}_exp1', number_of_cells=1000, celltype_key=celltype_key, args=args,
+                    device, name=f'{name}_exp1', number_of_cells=10000, celltype_key=celltype_key, args=args,
                     plot_celltypes=True)
 
         model = model.cpu()
@@ -238,8 +239,8 @@ for name in ['seqfish', 'merfish_train']:
             print("Plotting training plots...")
             plt.plot(list(train_loss_over_epochs.keys()), list(train_loss_over_epochs.values()), label="-".join(comb))
 
-            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp2_{name}_{args.type}_{var}_{adv}.png')
-            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp2_{name}_{args.type}_{var}_{adv}.png')
+            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp2_{name}_{var}_{adv}.png')
+            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp2_{name}_{var}_{adv}.png')
             plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp2_{name}')
 
             #Plot the latent test set
