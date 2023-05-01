@@ -1638,12 +1638,13 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         pickle.dump(res, f)
 
 def spatial_analysis(adata, celltype_key, name):
-    sc.pl.spatial(adata, use_raw=False, spot_size=0.1, title=f'Spatial distribution of {name}',
-                  save=f"spatial_scatter{name}.png", color=celltype_key, size=1, show=False)
+    sc.pl.spatial(adata, use_raw=False, spot_size=0.1, title=f'Spatial celltype distribution',
+                  save=f"spatial_scatter_{name}.png", color=celltype_key, size=1, show=False)
     plt.close()
     sq.gr.nhood_enrichment(adata, cluster_key=celltype_key)
     sq.pl.nhood_enrichment(adata, cluster_key=celltype_key, method="ward", save=name+"ngb_enrichment.pdf")
     plt.close()
+    """
     for celltype in np.unique(adata.obs[celltype_key]):
         sq.gr.co_occurrence(adata, cluster_key=celltype_key)
         sq.pl.co_occurrence(
@@ -1654,6 +1655,7 @@ def spatial_analysis(adata, celltype_key, name):
             save=name+celltype+".png"
         )
         plt.close()
+    """
 
     mode = "L"
     sq.gr.ripley(adata, cluster_key=celltype_key, mode=mode, max_dist=500)
