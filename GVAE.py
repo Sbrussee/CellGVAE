@@ -1592,8 +1592,6 @@ def plot_edge_weights(edge_dict, name):
 
 def graph_summary(G, name, args):
     summary_dict = {}
-    summary_dict['name'] = name
-    summary_dict['params'] = dict(vars(args))
     edges = G.number_of_edges()
     summary_dict['edges'] = edges
     #get number of nodes
@@ -1618,13 +1616,13 @@ def graph_summary(G, name, args):
     degrees = sorted((d for n,d in G.degree()), reverse=True)
     #Make distribution in form degree:count
     degree_dist = np.unique(degrees, return_counts=True)
-    summary_dict['degree_dist'] = degree_dist
+    #summary_dict['degree_dist'] = degree_dist
     #Plot the degree distribution
     plot_degree(degree_dist, 'degree', name)
 
     df = pd.DataFrame.from_dict(summary_dict, orient='index').transpose()
     print(df.to_latex(index=False))
-    
+
     with open(f'graph_summary_{name}.pkl', 'wb') as f:
         pickle.dump(summary_dict, f)
 
