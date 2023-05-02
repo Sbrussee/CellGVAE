@@ -795,12 +795,28 @@ class GAE(nn.Module):
 @torch.no_grad()
 def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_cells, celltype_key, args, plot_celltypes=False):
     """
+    Plots the latent space using the model given using PCA, tSNE, UMAP.
+    It can optionally also plot the latent space per celtype. The mean latent
+    space per celltype is also calculated and plotted.
 
-
+    Parameters:
+        -model (PyG model): Pytorch Geometric model to use.
+        -pyg_graph (PyG data): Pytorch Geometric Dataset to use.
+        -Anndata (anndata): Squidpy/Scanpy dataset to use.
+        -cell_types (list): List of unique celltypes in Anndata
+        -device (str): Device to use for model inference.
+        -name (str): Name to use for plotting purposes
+        -number_of_cells (int): Number of cells in the latent space to plot
+        -celltype_key (str): Key in Anndata where the celltype labels are stored
+        -args (argparse.Namespace): Arguments given by the use
+        -Plot_celltypes (Boolean): Whether to plot the latent space per celltype
     """
+
     TRAINING = False
     pyg_graph = pyg_graph.to(device)
     plt.figure()
+
+    #Encode pyg_graph to get latent space vectors in z.
     if args.variational:
         if args.type == 'GCN' or args.type == 'GAT':
             z, kl = model.encoder(pyg_graph.expr, pyg_graph.edge_index,
@@ -822,14 +838,17 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         z = z.to('cpu').detach().numpy()
 
     pyg_graph = pyg_graph.cpu()
+
     #Filter z for any nonfinite values
     z = np.where(np.isfinite(z), z, 1e-10)
 
+    #Check if any nonfinite values are left (for debugging)
     if np.any(np.isnan(z)) or np.any(np.isinf(z)):
         print("There are nonfinite values in the array.")
     else:
         print("There are no nonfinite values in the array.")
 
+    #Plot latent space using tSNE
     print('TSNE...')
     tsne = manifold.TSNE(n_components=2, init='random')
     tsne_z = tsne.fit_transform(z[:number_of_cells,:])
@@ -842,6 +861,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     fig.savefig(f'tsne_latentspace_{name}.png', dpi=200)
     plt.close()
 
+    #Plot latent space using UMAP
     print('UMAP..')
     mapper = umap.UMAP()
     umap_z = mapper.fit_transform(z[:number_of_cells,:])
@@ -854,6 +874,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     fig.savefig(f'umap_latentspace_{name}.png', dpi=200)
     plt.close()
 
+    #Plot latent space using PCA
     print('PCA...')
     pca = PCA(n_components=2, svd_solver='full')
     transformed_data = pca.fit_transform(z[:number_of_cells,:])
@@ -866,16 +887,20 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     fig.savefig(f'pca_latentspace_{name}.png', dpi=200)
     plt.close()
 
+    #If specified, plot the latent space per celltype
     if plot_celltypes:
+        #Initialize mean latent space points per celltype
         mean_pca_per_celltype = np.zeros(shape=(len(cell_types), 2))
         mean_umap_per_celltype = np.zeros(shape=(len(cell_types), 2))
         mean_tsne_per_celltype = np.zeros(shape=(len(cell_types), 2))
         #Plot per cell types
         for i, celltype in enumerate(cell_types):
+            #Select all Anndata entries for the given celltype
             obs_names = anndata[anndata.obs[celltype_key] == celltype].obs_names
             idx_to_plot = anndata.obs.index.get_indexer(obs_names)
             print(idx_to_plot)
 
+            #Remove slashes from celltype to be able to save them in correct directory.
             celltype = celltype.replace('/', '_')
 
             tsne = manifold.TSNE(n_components=2, init='random')
@@ -911,7 +936,8 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             plt.close()
             mean_pca_per_celltype[i] = np.mean(transformed_data[:,:2], axis=0)
 
-        tsne_frame = pd.DataFrame.from_dict(mean_tsne_per_celltype, orient='index', columns=['tsne1', 'tsne2'])
+        #Now plot the mean latent space points per celltype
+        tsne_frame = pd.DataFrame(mean_tsne_per_celltype, columns=['tsne1', 'tsne2'])
         sns.scatterplot(tsne_frame, hue=list(mean_tsne_per_celltype.keys()))
         plt.legend(size=3)
         plt.xlabel("t-SNE dim 1")
@@ -922,7 +948,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         plt.close()
 
 
-        umap_frame = pd.DataFrame.from_dict(mean_umap_per_celltype, orient='index', columns=['tsne1', 'tsne2'])
+        umap_frame = pd.DataFrame(mean_umap_per_celltype, columns=['umap1', 'umap2'])
         sns.scatterplot(umap_frame, hue=list(mean_umap_per_celltype.keys()))
         plt.legend(size=3)
         plt.xlabel('UMAP dim 1')
@@ -932,7 +958,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         fig.savefig(f'umap_latentspace_{name}_mean_per_celltype.png', dpi=200)
         plt.close()
 
-        pca_frame = pd.DataFrame.from_dict(mean_pca_per_celltype, orient='index', columns=['tsne1', 'tsne2'])
+        pca_frame = pd.DataFrame(mean_pca_per_celltype, columns=['pca1', 'pca2'])
         sns.scatterplot(pca_frame, hue=list(mean_pca_per_celltype.keys()))
         plt.legend(size=3)
         plt.xlabel("PC1")
@@ -943,6 +969,26 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         plt.close()
 
 def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
+    """
+    Function which calculates the loss between of the model between its output
+    and the original dataset. It can calculate both the loss for the model itself
+    and for the Discriminator module, if applicable.
+
+    model (PyG model): Pytorch geometric model to use
+    pyg_graph (PyG Data): Batch to train on
+    x: Ground truth expression of cell with index cell_id
+    cell_id: Index of cell to predict for
+    weight: Edge weights
+    args: CL arguments given by user
+    discriminator: discrimantor module, when using adversarial core model.
+
+    Returns:
+        -loss: Loss for model
+        Optionally:
+        -discriminator_loss: Loss for discrimantor module
+
+    """
+    #Encode batch to get latent space vector z.
     pyg_graph = pyg_graph.to(device)
     if args.adversarial:
         if args.variational:
@@ -961,6 +1007,7 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
                 z = model.encoder(pyg_graph.expr, pyg_graph.edge_index)
             else:
                 z = model.encoder(pyg_graph.expr)
+        #Calculate discriminator loss
         real = torch.sigmoid(discriminator(torch.randn_like(z[cell_id,:].float())))
         fake = torch.sigmoid(discriminator(z[cell_id,:].detach()))
         real_loss = -torch.log(real + 1e-15).mean()
@@ -972,20 +1019,25 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
         del real_loss
         del fake_loss
 
+    #Decode z to get predicted expression x_hat
     elif args.variational:
         x_hat, kl = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, pyg_graph.weight)
     else:
         x_hat = model(pyg_graph.expr, pyg_graph.edge_index, cell_id, pyg_graph.weight)
 
+    #Calculate MSE loss
     loss = (1/pyg_graph.expr.size(dim=1)) * ((x.to(device) - x_hat.to(device))**2).sum()
 
     x = x.cpu()
     x_hat = x_hat.cpu()
 
+    #Based on specified core model, add term to loss
     if args.variational:
+        #Add normalized KL loss term
         loss += (1 / pyg_graph.num_nodes) * kl
         del kl
     if args.adversarial:
+        #Add regularization loss term
         loss += model.reg_loss(z[cell_id])
 
     pyg_graph = pyg_graph.cpu()
@@ -999,23 +1051,44 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
 
 @torch.no_grad()
 def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=None):
+    """
+    Function that applies the GNN-model on the entire specified dataset.
+
+    Parameters:
+        -model (PyG model): GNN-model to use
+        -dataset (anndata): Squidpy/Scanpy dataset to apply the model on
+        -name (str): Name for plotting and saving purposes
+        -celltype_key (str): Name of key where celltype labels are stored in dataset.
+        -args (argparse.Namespace): User CL arguments
+        -discriminator: Discriminator module, if applicable
+
+    """
+    #Build connectivities in dataset
     dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
+    #Spatial analysis of dataset
     dataset = spatial_analysis(dataset, celltype_key, name)
+    #Construct networkx graph from dataset
     G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name, args=args)
+    #Relabel nodes to integer indices
     G = nx.convert_node_labels_to_integers(G)
+    #Construct pytorch geometric graph from the networkx graph
     pyG_graph = pyg.utils.from_networkx(G)
     pyG_graph.expr = pyG_graph.expr.float()
     pyG_graph.weight = pyG_graph.weight.float()
 
+    #Retrieve 'true' expression values from original dataset
     true_expr = dataset.X
     if not isinstance(true_expr, np.ndarray):
         true_expr = true_expr.toarray()
 
+    #Intialize predicted expression matrix
     pred_expr = np.zeros(shape=(dataset.X.shape[0], dataset.X.shape[1]))
     print(true_expr.shape, pred_expr.shape)
 
-    _, _, _, _ = variance_decomposition(pred_expr, celltype_key)
+    #Apply variance decomposition
+    _, _, _, _ = variance_decomposition(pred_expr, celltype_key, name)
 
+    #Apply model to dataset
     total_loss = 0
     batch = pyG_graph.clone()
     batch.expr = batch.expr.float()
@@ -1040,13 +1113,16 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     del batch
     del total_loss
 
+    #Retrieve R2 score over entire dataset
     print(f"R2 score: {total_r2_dataset/G.number_of_nodes()}")
     pyG_graph = pyG_graph.cpu()
     print(dataset.X.shape)
     print(true_expr.shape, pred_expr.shape)
 
+    #Apply LR analysis
     ligand_receptor_analysis(dataset, pred_expr, name, celltype_key)
 
+    #Plot the true expression spatially
     dataset.obs['total_counts'] = np.sum(true_expr, axis=1)
     print(dataset.obs['total_counts'])
     print(dataset.obs['total_counts'].shape)
@@ -1054,6 +1130,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
                   title="Spatial distribution of true expression",
                   save=f"true_expr_spatial_{name}_all_genes.png", size=1, show=False)
     plt.close()
+    #Plot the predicted expression spatially
     dataset.layers['pred'] = pred_expr
     dataset.obs['total_pred'] = np.sum(dataset.layers['pred'], axis=1)
     sc.pl.spatial(dataset, layer='pred', spot_size=0.1, color=['total_pred'],
@@ -1061,9 +1138,11 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
                   save=f"predicted_expr_spatial_{name}_all_genes.png", size=1, show=False)
     plt.close()
 
+    #Calculate prediction error, calculate relative prediction error
     dataset.layers['error'] = np.absolute(true_expr - pred_expr)
     dataset.obs['total_error'] = np.sum(dataset.layers['error'], axis=1)
     dataset.obs['relative_error'] = dataset.obs['total_error'] / dataset.obs['total_counts']
+    #Plot the prediction error spatially
     sc.pl.spatial(dataset, layer='error', spot_size=0.1, title='Spatial distribution of total prediction error',
                   save=f"total_error_spatial_{name}.png", color=['total_error'], size=1, show=False)
     plt.close()
@@ -1073,6 +1152,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
 
 
     i = 0
+    #Plot spatial predicted expression and error per gene
     for gene in dataset.var_names:
         sc.pl.spatial(dataset, use_raw=False, color=[gene], spot_size=0.1,
                       title=f'Spatial distribution of predicted expression of {gene}',
@@ -1085,6 +1165,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
         i += 1
         if i == 10:
             break
+
     print(dataset.var_names)
     #Calculate total error for each gene
     total_error_per_gene = np.sum(dataset.layers['error'], axis=0)
@@ -1106,6 +1187,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     with open(f"error_per_gene_{name}.pkl", 'wb') as f:
         pickle.dump(error_per_gene, f)
 
+    #Plot the 10 genes with highest relative error
     error_gene_df = pd.DataFrame.from_dict(error_per_gene, orient='index',
                                  columns=['total', 'average', 'relative']).sort_values(by='relative', axis=0, ascending=False)
     print(error_gene_df)
@@ -1119,6 +1201,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     plt.savefig(f'figures/gene_error_{name}.png', dpi=300)
     plt.close()
 
+    #Plot the error per celltype
     error_per_cell_type = {}
     for cell_type in dataset.obs[celltype_key].unique():
         total_error = np.sum(dataset[dataset.obs[celltype_key] == cell_type].obs['total_error'])
@@ -1139,6 +1222,19 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
 
 @torch.no_grad()
 def get_latent_space_vectors(model, pyg_graph, anndata, device, args):
+    """
+    Function to retrieve latent space vector z using the specified model
+    on the specified dataset.
+
+    model (PyG model): Pytorch geometric model
+    pyg_graph (PyG Data): Pytorch geometric dataset
+    anndata (anndata): Squidpy/scanpy dataset
+    device (str): Device to use for inference
+    args (argparse.Namespace): User CL arguments
+
+    Returns:
+        -z: Latent space vectors for the dataset
+    """
     TRAINING = False
     if args.variational:
         if args.type == 'GCN' or args.type == 'GAT':
@@ -1163,6 +1259,21 @@ def get_latent_space_vectors(model, pyg_graph, anndata, device, args):
 
 @torch.no_grad()
 def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
+    """
+    Function which applies the model on the validation dataset and calculates the loss.
+
+    model (PyG model): Pytorch geometric model to use
+    val_data (PyG Data): Batch to validate the data on
+    x (numpy array): ground truth expression of cell with index cell_id
+    weight (PyG Data): edge weights
+    args (argparse.Namespace): User CL arguments
+    discriminator (PyG model): Discriminator module, if applicable.
+
+    Returns:
+        -loss: Loss for the main model
+        Optionally:
+        -discriminator_loss: Loss for the discriminator module
+    """
     model.eval()
     val_data = val_data.to(device)
     if args.adversarial:
@@ -1216,6 +1327,23 @@ def validate(model, val_data, x, cell_id, weight, args, discriminator=None):
     return float(loss), x_hat
 
 def normalize_weights(G, args):
+    """
+    Function which normalizes the weights based on parameter sigma.
+    We calculate the weight for two nodes u and v in G as follows:
+
+    exp(-dist(u,v)**2 / sigma**2)
+
+    where dist(u,v) is the distance between u and v.
+    When using a Laplacian-normalized adjacency matrix, we take the absolute
+    weight, because otherwise negative values may occur.
+
+    Parameters:
+        -G (networkx graph): Graph based on cell proximity
+        -args (argparse.Namespace): User CL arguments
+
+    Returns:
+        -G (networkx graph): Graph with normalized weights
+    """
     sigma = 0.2
     for edge in G.edges():
         if args.normalization == 'Laplacian':
@@ -1326,7 +1454,7 @@ def remove_similar_celltype_edges(G):
 
     return G
 
-def variance_decomposition(expr, celltype_key):
+def variance_decomposition(expr, celltype_key, name):
     """
     Total variance consists of:
     mean expression over all cells line{y},
@@ -1338,6 +1466,9 @@ def variance_decomposition(expr, celltype_key):
     For intercell variance we need to calculate the mean expression overall
     for gene j over all cel types.
     """
+
+    save_dict = {}
+
     if not isinstance(expr, np.ndarray):
         expr = expr.toarray()
 
@@ -1365,6 +1496,14 @@ def variance_decomposition(expr, celltype_key):
     print(f"Intracell variance: {intracell_var}, fraction={intracell_var/total_var}")
     print(f"Intercell variance: {intercell_var}, fraction={intercell_var/total_var}")
     print(f"Gene variance: {gene_var}, fraction={gene_var/total_var}")
+
+    save_dict['intracell variance'] = [intracell_var, intracell_var/total_var]
+    save_dict['intercell variance'] = [intercell_var, intercell_var/total_var]
+    save_dict['gene variance'] = [gene_var, gene_var_var/total_var]
+    save_dict['total variance'] = [total_var, total_var]
+
+    df = pd.DataFrame.from_dict(save_dict, orient='index', columns=['Variance', 'Fraction'])
+    df.to_csv(f'variance_decomposition_{name}.csv')
     return total_var, intracell_var, intercell_var, gene_var
 
 
@@ -1980,7 +2119,7 @@ if __name__ == '__main__':
     #Empty cuda memory
     torch.cuda.empty_cache()
 
-    _, _, _, _ = variance_decomposition(dataset.X, celltype_key)
+    _, _, _, _ = variance_decomposition(dataset.X, celltype_key, name)
 
     if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
         print("Constructing graph...")

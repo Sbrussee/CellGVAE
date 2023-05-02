@@ -51,9 +51,9 @@ arg_parser.add_argument('-ex', '--experiments', type=list, help='Which experimen
 arg_parser.add_argument('-f', '--filter', action='store_true', help='Whether to filter out non-LR genes', default=False)
 args = arg_parser.parse_args()
 
-args.epochs = 300
+args.epochs = 1
 args.cells = 100
-args.graph_summary = False
+args.graph_summary = True
 args.weight = True
 args.normalization = 'Normal'
 args.remove_same_type_edges = False
@@ -358,12 +358,12 @@ for name in ['seqfish', 'merfish_train']:
             plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp3_{name}')
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                        device, name=f'set_{name}_{args.type}_{var}_{adv}', number_of_cells=1000, celltype_key=celltype_key, args=args)
+                        device, name=f'set_{name}_{args.type}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             if args.dataset == 'merfish_train':
                 dataset = read_dataset('merfish_full')
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{args.type}_{var}_{adv}', celltype_key, args=args, discriminator=discriminator)
+            apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{args.type}', celltype_key, args=args, discriminator=discriminator)
 
             model = model.cpu()
 
@@ -376,16 +376,13 @@ for name in ['seqfish', 'merfish_train']:
         r2_per_prediction_mode = {}
         args.variational = True
         args.adversarial = True
-        for prediction_mode in ['full', 'spatial', 'expression', 'spatial+expression']:
+        for prediction_mode in ['full', 'spatial', 'spatial+expression']:
             if prediction_mode == 'full':
                 args.prediction_mode = 'full'
                 args.type = 'GCN'
             elif prediction_mode == 'spatial':
                 args.prediction_mode = 'spatial'
                 args.type = 'GCN'
-            elif prediction_mode == 'expression':
-                args.prediction_mode = 'expression'
-                args.type = 'Linear'
             elif prediction_mode == 'spatial+expression':
                 args.prediction_mode = 'spatial'
                 args.type = 'GCN'
@@ -456,7 +453,7 @@ for name in ['seqfish', 'merfish_train']:
             if args.dataset == 'merfish_train':
                 dataset = read_dataset('merfish_full')
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'GVAE_exp4_{name}_{args.type}_{prediction_mode}', celltype_key, args=args, discriminator=discriminator)
+            apply_on_dataset(model, dataset, f'GVAE_exp4_{name}_{prediction_mode}', celltype_key, args=args, discriminator=discriminator)
 
             model = model.cpu()
         with open('r2_prediction_mode.pkl', 'wb') as file:
@@ -661,7 +658,7 @@ for name in ['seqfish', 'merfish_train']:
             if args.dataset == 'merfish_train':
                 dataset = read_dataset('merfish_full')
             #Apply on dataset
-            apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filter_name}_{args.type}', celltype_key, args=args, discriminator=discriminator)
+            apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filter_name}', celltype_key, args=args, discriminator=discriminator)
 
             model = model.cpu()
             del model
