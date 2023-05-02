@@ -938,7 +938,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 
         #Now plot the mean latent space points per celltype
         tsne_frame = pd.DataFrame(mean_tsne_per_celltype, columns=['tsne1', 'tsne2'])
-        sns.scatterplot(tsne_frame, hue=list(mean_tsne_per_celltype.keys()))
+        sns.scatterplot(tsne_frame, hue=cell_types)
         plt.legend(size=3)
         plt.xlabel("t-SNE dim 1")
         plt.ylabel("t-SNE dim 2")
@@ -949,7 +949,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 
 
         umap_frame = pd.DataFrame(mean_umap_per_celltype, columns=['umap1', 'umap2'])
-        sns.scatterplot(umap_frame, hue=list(mean_umap_per_celltype.keys()))
+        sns.scatterplot(umap_frame, hue=cell_types)
         plt.legend(size=3)
         plt.xlabel('UMAP dim 1')
         plt.ylabel('UMAP dim 2')
@@ -959,7 +959,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         plt.close()
 
         pca_frame = pd.DataFrame(mean_pca_per_celltype, columns=['pca1', 'pca2'])
-        sns.scatterplot(pca_frame, hue=list(mean_pca_per_celltype.keys()))
+        sns.scatterplot(pca_frame, hue=cell_types)
         plt.legend(size=3)
         plt.xlabel("PC1")
         plt.ylabel("PC2")
