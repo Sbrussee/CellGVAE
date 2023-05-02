@@ -890,9 +890,9 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     #If specified, plot the latent space per celltype
     if plot_celltypes:
         #Initialize mean latent space points per celltype
-        mean_pca_per_celltype = np.zeros(shape=(len(cell_types), 2))
-        mean_umap_per_celltype = np.zeros(shape=(len(cell_types), 2))
-        mean_tsne_per_celltype = np.zeros(shape=(len(cell_types), 2))
+        mean_pca_per_celltype = np.zeros(shape=(len(cell_types), 3))
+        mean_umap_per_celltype = np.zeros(shape=(len(cell_types), 3))
+        mean_tsne_per_celltype = np.zeros(shape=(len(cell_types), 3))
         #Plot per cell types
         for i, celltype in enumerate(cell_types):
             #Select all Anndata entries for the given celltype
@@ -912,7 +912,8 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             fig = plot.get_figure()
             fig.savefig(f'tsne_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
-            mean_tsne_per_celltype[i] = np.mean(tsne_z[:,:2], axis=0)
+            mean_tsne_per_celltype[i,:2] = np.mean(tsne_z[:,:2], axis=0)
+            mean_tsne_per_celltype[i, 2] = str(celltype)
 
             mapper = umap.UMAP()
             umap_z = mapper.fit_transform(z[idx_to_plot,:])
@@ -923,7 +924,8 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             fig = plot.get_figure()
             fig.savefig(f'umap_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
-            mean_umap_per_celltype[i] = np.mean(umap_z[:,:2], axis=0)
+            mean_umap_per_celltype[i,:2] = np.mean(umap_z[:,:2], axis=0)
+            mean_umap_per_celltype[i, 2] = str(celltype)
 
             pca = PCA(n_components=2, svd_solver='full')
             transformed_data = pca.fit_transform(z[idx_to_plot,:])
@@ -934,11 +936,12 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             fig = plot.get_figure()
             fig.savefig(f'pca_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
-            mean_pca_per_celltype[i] = np.mean(transformed_data[:,:2], axis=0)
+            mean_pca_per_celltype[i,:2] = np.mean(transformed_data[:,:2], axis=0)
+            mean_pca_per_celltype[i, 2] = str(celltype)
 
         #Now plot the mean latent space points per celltype
-        tsne_frame = pd.DataFrame(mean_tsne_per_celltype, columns=['tsne1', 'tsne2'])
-        sns.scatterplot(tsne_frame, hue=cell_types)
+        tsne_frame = pd.DataFrame(mean_tsne_per_celltype, columns=['tsne1', 'tsne2', 'celltype'])
+        sns.scatterplot(tsne_frame, hue='celltype')
         plt.legend(size=3)
         plt.xlabel("t-SNE dim 1")
         plt.ylabel("t-SNE dim 2")
@@ -948,8 +951,8 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         plt.close()
 
 
-        umap_frame = pd.DataFrame(mean_umap_per_celltype, columns=['umap1', 'umap2'])
-        sns.scatterplot(umap_frame, hue=cell_types)
+        umap_frame = pd.DataFrame(mean_umap_per_celltype, columns=['umap1', 'umap2', 'celltype'])
+        sns.scatterplot(umap_frame, hue='celltype')
         plt.legend(size=3)
         plt.xlabel('UMAP dim 1')
         plt.ylabel('UMAP dim 2')
@@ -958,8 +961,8 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         fig.savefig(f'umap_latentspace_{name}_mean_per_celltype.png', dpi=200)
         plt.close()
 
-        pca_frame = pd.DataFrame(mean_pca_per_celltype, columns=['pca1', 'pca2'])
-        sns.scatterplot(pca_frame, hue=cell_types)
+        pca_frame = pd.DataFrame(mean_pca_per_celltype, columns=['pca1', 'pca2', 'celltype'])
+        sns.scatterplot(pca_frame, hue='celltype')
         plt.legend(size=3)
         plt.xlabel("PC1")
         plt.ylabel("PC2")
@@ -1353,6 +1356,21 @@ def normalize_weights(G, args):
     return G
 
 def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None):
+    """
+    Function which converts a squidpy dataset into a networkx graph, which can
+    then be used as input for the GNN autoencoder.
+
+    Parameters:
+        -adj_mat (scipy sparse array): Adjacency matrix of the spatial connectivity of the dataset
+        -expr_mat (np array): Expression matrix (cells X genes)
+        -cell_types (list): List of unique celltypes in the dataset
+        -name (str): Name for saving and plotting
+        -args (argparse.Namespace): User CL arguments
+
+    Returns:
+        -G: Networkx graph based on the squidpy dataset
+        -isolates: List of isolate nodes in G, if there are any present.
+    """
     if args.normalization == 'Normal' or args.normalization == 'Laplacian':
         print("Normalizing adjacency matrix...")
         N, L = normalize_adjacency_matrix(adj_mat)
@@ -1399,6 +1417,7 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None
     #Calculate the weights for each edge
     print("Weighting edges")
 
+    #Weight edges
     if args.weight:
         G = normalize_weights(G, args)
 
@@ -1422,6 +1441,15 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None
     return G, isolates
 
 def remove_same_cell_type_edges(G):
+    """
+    Function which removes edges between nodes of the same celltype.
+
+    Parameters:
+        -G: Networkx graph
+
+    Returns:
+        -G: Networkx graph, with removed edges
+    """
     for node in G.nodes():
         cell_type = G.nodes[node]['cell_type']
         neighbors = list(G.neighbors(node))
@@ -1431,15 +1459,45 @@ def remove_same_cell_type_edges(G):
     return G
 
 def remove_isolated_nodes(G):
+    """
+    Function which removes nodes which are not connected via any edges.
+
+    Parameters:
+        -G: Networkx graph
+
+    Returns:
+        -G: Networkx graph, without isolate nodes.
+    """
     G.remove_nodes_from(list(nx.isolates(G)))
     return G
 
 def remove_node_attributes(G, attr):
+    """
+    Function which removes the specified attribute from all nodes in G.
+
+    Parameters:
+        -G: Networkx graph
+        -attr (str): Attribute to remove (e.g. celltype)
+
+    Returns:
+        -G: Networkx graph, without the specified attribute.
+    """
     for node in G.nodes():
         del G.nodes[node][attr]
     return G
 
 def remove_similar_celltype_edges(G):
+    """
+    Function which removes edges between nodes where the cell type of these nodes
+    shares more than 3 characters on the same location in the string.
+
+    Parameters:
+        -G: Networkx Graph
+
+    Returns:
+        -G: Networkx Graph, with removed edges.
+
+    """
     for node in G.nodes():
         cell_type = G.nodes[node]['cell_type']
         neighbors = list(G.neighbors(node))
@@ -1456,6 +1514,11 @@ def remove_similar_celltype_edges(G):
 
 def variance_decomposition(expr, celltype_key, name):
     """
+    Function which decomposes the variance in an expression matrix into
+        -inter-celltype variance
+        -intra-celltype variance
+        -gene variance
+
     Total variance consists of:
     mean expression over all cells line{y},
     and for each cell i with gene j the mean expression.
@@ -1465,6 +1528,17 @@ def variance_decomposition(expr, celltype_key, name):
 
     For intercell variance we need to calculate the mean expression overall
     for gene j over all cel types.
+
+    Parameters:
+        -expr (scipy sparse matrix): Expression matrix (cells X genes)
+        -celltype_key (str): Key for the celltype labels.
+        -name (str): name for saving and plotting
+
+    Returns:
+        -total_var: Total variance in expr.
+        -intracell_var: Total intracellular variance in expr.
+        -intercell_var: Total intercellular variance in expr.
+        -gene_var: Total gene variance in expr.
     """
 
     save_dict = {}
@@ -1507,21 +1581,40 @@ def variance_decomposition(expr, celltype_key, name):
     return total_var, intracell_var, intercell_var, gene_var
 
 
-
-
-
-
 def normalize_adjacency_matrix(M):
+    """
+    Function which normalizes a matrix M. It outputs the normalized and
+    LaPlacian normalized matrix of matrix M.
+
+    Parameters:
+        -M (scipy sparse matrix): Matrix to be normalized.
+
+    Returns:
+        -N (scipy sparse matrix): Normalized matrix
+        -L (scipy sparse matrix): Laplacian matrix
+
+    """
     d = M.sum(axis=1).A.flatten() + 1e-7  # Get row sums as a dense array
     D_data = np.reciprocal(np.sqrt(d))
     D_row_indices = np.arange(M.shape[0], dtype=np.int32)
     D_col_indices = np.arange(M.shape[1], dtype=np.int32)
     D = sp.csr_matrix((D_data, (D_row_indices, D_col_indices)), shape=M.shape) # Calculate diagonal matrix
+    #Calculate normalized matrix
     N = D @ M @ D
+    #Calculate laplacian matrix
     L = D - N
     return N, L
 
 def plot_loss_curve(data, xlabel, name):
+    """
+    Function which plots the MSE loss over epochs or cells.
+
+    Parameters:
+        -data (dict): Data to plot, where the keys should be x-axis points (epochs, or cells)
+                      and the values should be y-axis points (MSE values).
+        -xlabel (str): Label to use for the x-axis.
+        -name (str): Name for the file
+    """
     plt.plot(list(data.keys()), list(data.values()))
     plt.xlabel(xlabel)
     plt.ylabel('MSE')
@@ -1530,6 +1623,17 @@ def plot_loss_curve(data, xlabel, name):
     plt.close()
 
 def plot_val_curve(train_loss, val_loss, name):
+    """
+    Function which plots the MSE loss for both the training- and validation set
+     over epochs or cells.
+
+    Parameters:
+        -train_loss (dict): Training loss data to plot, where the keys should be x-axis points (epochs, or cells)
+                      and the values should be y-axis points (MSE values).
+        -val_loss (dict): Validation loss data to plot, where the keys should be x-axis points (epochs, or cells)
+                      and the values should be y-axis points (MSE values).
+        -name (str): Name for the file
+    """
     plt.plot(list(train_loss.keys()), list(train_loss.values()), label='training')
     plt.plot(list(val_loss.keys()), list(val_loss.values()), label='validation')
     plt.xlabel('Epochs')
@@ -1540,6 +1644,16 @@ def plot_val_curve(train_loss, val_loss, name):
     plt.close()
 
 def plot_r2_curve(r2_dict, xlabel, title, name):
+    """
+    Function which plots the MSE loss over epochs or cells.
+
+    Parameters:
+        -r2_dict (dict): R2-data to plot, where the keys should be x-axis points (epochs, or cells)
+                      and the values should be y-axis points (R2 values).
+        -xlabel (str): Label to use for the x-axis.
+        -title (str): Title for the plot
+        -name (str): Name for the file
+    """
     plt.plot(list(r2_dict.keys()), list(r2_dict.values()))
     plt.xlabel(xlabel)
     plt.ylabel('R^2')
@@ -1548,6 +1662,19 @@ def plot_r2_curve(r2_dict, xlabel, title, name):
     plt.close()
 
 def construct_graph(dataset, args, celltype_key, name=""):
+    """
+    Function which adds spatial connectivity information to the anndata-dataset.
+    It also calculates and plots an interaction matrix.
+
+    Parameters:
+        -dataset (anndata): Squidpy/scanpy dataset.
+        -args (argparse.Namespace): User CL arguments
+        -celltype_key (list): List of unique celltypes in dataset.
+        -name (str): Name for file naming.
+
+    Returns:
+        -dataset (anndata): Dataset with added spatial connectivity information.
+    """
     if args.threshold != -1:
         threshold = args.threshold
         if args.neighbors != -1:
@@ -1569,7 +1696,14 @@ def construct_graph(dataset, args, celltype_key, name=""):
     return dataset
 
 def plot_degree(degree_dist, type='degree', graph_name=''):
-    #Plot log-log scaled degree distribution
+    """
+    Function which plots the degree distribution of a network.
+
+    Parameters:
+        -degree_dist (dict): Dictionary with as keys the degree and as values the node frequency.
+        -type (str): String denoting the key name of degree_dist.
+        -graph_name (str): Name of the graph, for saving purposes.
+    """
     plt.ylabel('Node frequency')
     sns.histplot(degree_dist)
     plt.title('Distribution of node {}'.format(type))
@@ -1577,6 +1711,14 @@ def plot_degree(degree_dist, type='degree', graph_name=''):
     plt.close()
 
 def plot_degree_connectivity(conn_dict, graph_name=''):
+    """
+    Function which plots the node connectivity.
+
+    Parameters:
+        -conn_dict (dict): Dictionary with connectivity as keys and the node frequency as values.
+        -graph_name (str): Name of the graph, for saving purposes.
+
+    """
     plt.ylabel('Average connectivity')
     sns.histplot(conn_dict)
     plt.title('Average degree connectivity')
@@ -1584,6 +1726,14 @@ def plot_degree_connectivity(conn_dict, graph_name=''):
     plt.close()
 
 def plot_edge_weights(edge_dict, name):
+    """
+    Function which plots the edge weight distribution in the network.
+
+    Parameters:
+        -edge_dict (dict): Dictionary with as keys the edge weights and as values the node frequency.
+        -name (str): Name of the graph, for saving purposes.
+
+    """
     plot = sns.histplot(edge_dict)
     plot.set(xlabel='Weight (distance)', ylabel='Edge frequency')
     plt.title('Edge weight frequencies')
@@ -1591,6 +1741,14 @@ def plot_edge_weights(edge_dict, name):
     plt.close()
 
 def graph_summary(G, name, args):
+    """
+    Function which calculates graph statistics for given graph G.
+
+    Parameters:
+        -G (networkx Graph): Graph to calculate statistics for.
+        -name (str): name for file saving
+        -args (argparse.Namespace): User CL arguments
+    """
     summary_dict = {}
     edges = G.number_of_edges()
     summary_dict['edges'] = edges
@@ -1628,6 +1786,21 @@ def graph_summary(G, name, args):
 
 
 def read_dataset(name, args):
+    """
+    Function which reads a dataset based on the name parameter and returns the
+    anndata object of the dataset along with other important metadata of the
+    dataset.
+
+    Parameters:
+        -name (str): name of the dataset to load in.
+        -args (argparse.Namespace): User CL arguments
+
+    Returns:
+        -dataset (anndata): Anndata object of the dataset specified in name
+        -organism (str): Organism the dataset originates from
+        -name (str): Name of the dataset
+        -celltype_key (str): Key for the celltype labels in the dataset.
+    """
     #Get current directory, make sure output directory exists
     dirpath = os.getcwd()
     outpath = dirpath + "/output"
@@ -1688,6 +1861,21 @@ def read_dataset(name, args):
     return dataset, organism, name, celltype_key
 
 def set_layer_sizes(pyg_graph, args, panel_size):
+    """
+    Function which specifies the neural network layer sizes based on the user
+    arguments and the panel size of the dataset.
+
+    Parameters:
+        -pyg_graph (PyG Data): Pytorch geometric dataset
+        -args (argparse.Namespace): User specified arguments
+        -panel_size (int): Gene panel size of the dataset in pyg_graph.
+
+    Returns:
+        -input_size (int): Size of the first input layer of the neural network
+        -hidden_layers (list): List of the sizes of the hidden layers.
+        -latent_size (int): Size of the latent space layer of the neural network.
+        -output_size (int): Size of the output layer of the neural network.
+    """
     if ',' in args.hidden:
         lengths = [int(x) for x in args.hidden.split(',')]
         input_size, hidden_layers, latent_size = pyg_graph.expr.shape[1], lengths, args.latent
@@ -1700,6 +1888,22 @@ def set_layer_sizes(pyg_graph, args, panel_size):
 
 
 def retrieve_model(input_size, hidden_layers, latent_size, output_size, args):
+    """
+    Function which combines neural network modules based on the specified arguments
+    to build a Pytorch geometric model.
+
+    Parameters:
+        -input_size (int): Size of the input layer
+        -hidden_layers (list): List of the hidden layer sizes.
+        -latent_size (int): Size of the latent space layer
+        -output_size (int): Size of the final output layer
+        -args (argparse.Namespace): User specified arguments
+
+    Returns:
+        -model: Pytorch geometric model
+        Optionally, if adversarial:
+        -discriminator: Discriminator model
+    """
     #Build model architecture based on given arguments
     if not args.variational and args.type == 'GCN':
         encoder = GCNEncoder(input_size, hidden_layers, latent_size)
@@ -1737,6 +1941,10 @@ def retrieve_model(input_size, hidden_layers, latent_size, output_size, args):
         return model.float(), None
 
 def get_optimizer_list(model, args, discriminator=None):
+    """
+    Function which
+
+    """
     opt_list = []
     #Set optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
