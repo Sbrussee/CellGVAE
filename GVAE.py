@@ -1390,7 +1390,7 @@ def convert_to_graph(adj_mat, expr_mat, cell_types=None, name='graph', args=None
     #Calculate a graph statistics summary
     if args.graph_summary:
         print("Calculating graph statistics...")
-        graph_summary(G, name)
+        graph_summary(G, name, args)
 
     #Add cell type information to the networkx graph
     if args.prediction_mode != 'full':
@@ -1622,6 +1622,9 @@ def graph_summary(G, name, args):
     #Plot the degree distribution
     plot_degree(degree_dist, 'degree', name)
 
+    df = pd.DataFrame.from_dict(summary_dict, orient='index').transpose()
+    print(df.to_latex(index=False))
+    
     with open(f'graph_summary_{name}.pkl', 'wb') as f:
         pickle.dump(summary_dict, f)
 
