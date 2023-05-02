@@ -913,7 +913,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             fig.savefig(f'tsne_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
             mean_tsne_per_celltype[i,:2] = np.mean(tsne_z[:,:2], axis=0)
-            mean_tsne_per_celltype[i, 2] = str(celltype)
+            mean_tsne_per_celltype[i, 2] = i
 
             mapper = umap.UMAP()
             umap_z = mapper.fit_transform(z[idx_to_plot,:])
@@ -925,7 +925,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             fig.savefig(f'umap_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
             mean_umap_per_celltype[i,:2] = np.mean(umap_z[:,:2], axis=0)
-            mean_umap_per_celltype[i, 2] = str(celltype)
+            mean_umap_per_celltype[i, 2] = i
 
             pca = PCA(n_components=2, svd_solver='full')
             transformed_data = pca.fit_transform(z[idx_to_plot,:])
@@ -937,10 +937,13 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             fig.savefig(f'pca_latentspace_{name}_{celltype}.png', dpi=200)
             plt.close()
             mean_pca_per_celltype[i,:2] = np.mean(transformed_data[:,:2], axis=0)
-            mean_pca_per_celltype[i, 2] = str(celltype)
+            mean_pca_per_celltype[i, 2] = i
 
+
+        mapping = {k : v for k in range(len(cell_types)) for v in cell_types}
         #Now plot the mean latent space points per celltype
-        tsne_frame = pd.DataFrame(mean_tsne_per_celltype, columns=['tsne1', 'tsne2', 'celltype'])
+        tsne_frame = pd.DataFrame(mean_tsne_per_celltype, columns=['tsne1', 'tsne2', 'celltype']).replace(mapping)
+
         sns.scatterplot(tsne_frame, hue='celltype')
         plt.legend(size=3)
         plt.xlabel("t-SNE dim 1")
@@ -950,8 +953,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         fig.savefig(f'tsne_latentspace_{name}_mean_per_celltype.png', dpi=200)
         plt.close()
 
-
-        umap_frame = pd.DataFrame(mean_umap_per_celltype, columns=['umap1', 'umap2', 'celltype'])
+        umap_frame = pd.DataFrame(mean_umap_per_celltype, columns=['umap1', 'umap2', 'celltype']).replace(mapping)
         sns.scatterplot(umap_frame, hue='celltype')
         plt.legend(size=3)
         plt.xlabel('UMAP dim 1')
@@ -961,7 +963,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         fig.savefig(f'umap_latentspace_{name}_mean_per_celltype.png', dpi=200)
         plt.close()
 
-        pca_frame = pd.DataFrame(mean_pca_per_celltype, columns=['pca1', 'pca2', 'celltype'])
+        pca_frame = pd.DataFrame(mean_pca_per_celltype, columns=['pca1', 'pca2', 'celltype']).replace(mapping)
         sns.scatterplot(pca_frame, hue='celltype')
         plt.legend(size=3)
         plt.xlabel("PC1")
@@ -1942,8 +1944,16 @@ def retrieve_model(input_size, hidden_layers, latent_size, output_size, args):
 
 def get_optimizer_list(model, args, discriminator=None):
     """
-    Function which
+    Function which retrieves a list of pytorch optimizers  based on
+    the model and whether a discriminator module is present.
 
+    Parameters:
+        -model (PyG model): Pytorch geometric main model to use
+        -args (argparse.Namespace): User specified arguments
+        -discriminator (PyG model): Discriminator module
+
+    Returns:
+        -opt_list (list): List of optimizers for the model(s).
     """
     opt_list = []
     #Set optimizer
@@ -1955,6 +1965,28 @@ def get_optimizer_list(model, args, discriminator=None):
     return opt_list
 
 def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminator=None):
+    """
+    Function which contains the training loop for the pytorch geometric model.
+    It also validates the model and it saves performance results.
+
+    Parameters:
+        -model (PyG model): Pytorch geometric model.
+        -pyg_graph (PyG Data): Pytorch geometric dataset.
+        -optimizer_list (list): Optimizer(s) to use for the model(s).
+        -train_i (np array): Indices of the cells which are in the training set.
+        -val_i (np array): Indices of the cells which are in the validation set.
+        -k (int): Number of cells to sample per epoch.
+        -args (argparse.Namespace): User specified arguments.
+        Optionally:
+        -discriminator (PyG model): Discriminator model to use
+
+    Returns:
+        -loss_over_cells (dict): Dictionary with cumulative number of cells trained on as keys and MSE loss as values.
+        -train_loss_over_epochs (dict): Dictionary with epochs as keys and training MSE loss as values.
+        -val_loss_over_epochs (dict): Dictionary with epochs as keys and validation MSE loss as values.
+        -r2_over_epochs (dict): Dictionary with epochs as keys and validation R2 scores as values.
+
+    """
     loss_over_cells = {}
     train_loss_over_epochs = {}
     val_loss_over_epochs = {}
@@ -1966,7 +1998,9 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
     else:
         optimizer = optimizer_list[0]
 
+
     print("Training the model...")
+    #Train for specified number of epochs
     for epoch in range(1, args.epochs+1):
         model.train()
         optimizer.zero_grad()
@@ -1975,7 +2009,9 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             discriminator_optimizer.zero_grad()
             total_disc_loss = 0
         total_loss_over_cells = 0
+        #Sample k cells
         cells = random.sample(train_i, k=k)
+        #Construct batch and change to remove expression of target cells
         batch = pyg_graph.clone()
         if args.prediction_mode == 'spatial':
             batch.expr.fill_(0.0)
@@ -1984,6 +2020,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             batch.expr.index_fill_(0, torch.tensor(cells), 0.0)
             assert batch.expr[cells, :].sum() < 0.1
         batch = batch.to(device)
+        #Calculate loss for each cell
         for cell in cells:
             if args.adversarial:
                 loss, discriminator_loss = train_model(model, batch, pyg_graph.expr[cell],
@@ -1997,19 +2034,21 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         cells_seen += len(cells)
         print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
 
+        #Calculate training gradients
         total_loss_over_cells.backward()
-        #Clip gradientstrain
+        #Clip gradients
         torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=10, norm_type=2.0,
                                           error_if_nonfinite=False)
 
-        #remove infinite parameters
+        #remove infinite weight parameters
         for param in model.parameters():
             if param.grad is not None:
                 param.grad[~torch.isfinite(param.grad)] = 0
 
-
+        #Optimize weights using gradients
         optimizer.step()
 
+        #Learn from discriminator loss
         if args.adversarial:
             discriminator_loss.backward(retain_graph=True)
             discriminator_optimizer.step()
@@ -2023,6 +2062,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         del batch
         del loss
 
+        #Evaluate using validation dataset
         with torch.no_grad():
             model.eval()
             val_batch = pyg_graph.clone()
