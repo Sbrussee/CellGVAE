@@ -1,3 +1,4 @@
+#Import main libaries
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -5,7 +6,7 @@ import networkx as nx
 import scanpy as sc
 import squidpy as sq
 import pandas as pd
-
+#Pytorch imports
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -15,6 +16,8 @@ import torch_geometric.transforms as T
 from torch_geometric.nn import GCNConv, GATConv, SAGEConv
 from torch_geometric.nn.models.autoencoder import ARGVA, ARGA
 from torch_geometric.nn.sequential import Sequential
+
+#Helper functions
 from scipy.sparse.csgraph import laplacian
 import scipy.sparse as sp
 from sklearn.metrics import r2_score
@@ -22,12 +25,9 @@ from sklearn.linear_model import LinearRegression
 import sklearn.manifold as manifold
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import OneHotEncoder
-
-
 import umap.umap_ as umap
 
-
-
+#Import native python libaries
 import sys
 import os
 import os.path as osp
@@ -38,7 +38,6 @@ import random
 import pickle
 from random import sample
 from datetime import datetime
-
 from tqdm import tqdm
 
 #Set training mode to true
@@ -46,51 +45,30 @@ TRAINING = True
 
 #Make sure the plot layout works correctly
 plt.rcParams.update({'figure.autolayout':True, 'savefig.bbox':'tight'})
-
+#Set torch backend to reduce GPU memory usage
 torch.backends.cuda.max_split_size_mb = 1024
-
 class SAGEEncoder(nn.Module):
-    """GraphSAGE-based encoder class
+    """
+    Class for the GraphSAGE GNN-encoder.
 
-    Inherits:
-        nn.Module: Pytorch base class for neural networks
-
-    Attributes:
-        input_size: int
-            Neural network input layer size
-        hidden_1: int
-            Size of the first hidden layer in the network
-        hidden_2: int
-            Size of the second hidden layer in the network
-        latent_size: int
-            Size of the latent space in the network
-        aggregation_method: str
-            Neighborhood aggregation method to use in the
-            GraphSAGE convolutions (e.g. mean, max, lstm).
+    Parameters:
+        - nn.Module: Pytorch base functionality which allows for neural network construction and inference.
 
     Methods:
-        forward(x, edge_index):
-            Feeds input x through the encoder layers.
+        -forward(): called when inferencing through SAGEEncoder in a pytorch model.
     """
-
     def __init__(self, input_size, hidden_layers, latent_size, aggregation_method):
-        """Initialization function for GraphSAGE-based encoder, constructs 2 GraphSAGE
-           convolutional layers, based on the specified layer sizes and aggregation
-           method.
+        """
+        Function to intialize the GraphSAGE-encoder. First inherits pytorch
+        capabilities from nn.Module. Then constructs a sequence of hidden layers
+        based on the hidden_layer parameter which takes the node attribute and
+        edge connectivity as input.
 
         Parameters:
-            input_size: int
-                Neural network input layer size
-            hidden_1: int
-                Size of the first hidden layer in the network
-            hidden_2: int
-                Size of the second hidden layer in the network
-            latent_size: int
-                Size of the latent space in the network
-            aggregation_method: str
-                Neighborhood aggregation method to use in the
-                GraphSAGE convolutions (e.g. mean, max, lstm).
-
+            - input_size (int): Size of the input layer
+            - hidden_layers (list): List of layer sizes of the hidden layers
+            - latent_size (int): Size of the latent space layer
+            - aggregation_method: (str): node aggregation method to use in SAGE
         """
         super().__init__()
         self.num_hidden_layers = len(hidden_layers)
@@ -120,44 +98,40 @@ class SAGEEncoder(nn.Module):
         self.hlayers = Sequential('x, edge_index', hlayers)
 
     def forward(self, x, edge_index):
+        """
+        Neural network inference function for the SAGE-encoder.
+        It feeds node attribute x and edge connectivity information edge_index
+        through the hidden layers of the encoder.
+
+        Parameters:
+            -x (PyG Data): Node attribute
+            -edge_index (PyG Data): Edge connectivity
+        """
         return self.hlayers(x, edge_index)
 
 class VSAGEEncoder(nn.Module):
-    """GraphSAGE-based variational encoder class
+    """
+    Class for the variational GraphSAGE GNN-encoder.
 
-    Inherits:
-        nn.Module: Pytorch base class for neural networks
-
-    Attributes:
-        input_size: Neural network input layer size
-        hidden_1: Size of the first hidden layer in the network
-        hidden_2: Size of the second hidden layer in the network
-        latent_size: Size of the latent space in the network
-        aggregation_method: Neighborhood aggregation method to use in the
-                            GraphSAGE convolutions (e.g. mean, max, lstm).
+    Parameters:
+        - nn.Module: Pytorch base functionality which allows for neural network construction and inference.
 
     Methods:
-        forward: Feeds input x through the variational encoder layers.
+        -forward(): called when inferencing through SAGEEncoder in a pytorch model.
     """
     def __init__(self, input_size, hidden_layers, latent_size, aggregation_method):
-        """Initialization function for GraphSAGE-based variational encoder, constructs 1 GraphSAGE
-           convolutional layers, a mu and a log-std GraphSAGE convolutional layer,
-           based on the specified layer sizes and aggregation method. Additionally,
-           a normal distribution is intialized with mean=0, std=1.
+        """
+        Function to intialize the variational GraphSAGE-encoder. First inherits pytorch
+        capabilities from nn.Module. Then constructs a sequence of hidden layers
+        based on the hidden_layer parameter which takes the node attribute and
+        edge connectivity as input. It also constructs a normal distribution
+        and intializes mu and sigma.
 
         Parameters:
-            input_size: int
-                Neural network input layer size
-            hidden_1: int
-                Size of the first hidden layer in the network
-            hidden_2: int
-                Size of the second hidden layer in the network
-            latent_size: int
-                Size of the latent space in the network
-            aggregation_method: str
-                Neighborhood aggregation method to use in the
-                GraphSAGE convolutions (e.g. mean, max, lstm).
-
+            - input_size (int): Size of the input layer
+            - hidden_layers (list): List of layer sizes of the hidden layers
+            - latent_size (int): Size of the latent space layer
+            - aggregation_method: (str): node aggregation method to use in SAGE
         """
         super().__init__()
         self.num_hidden_layers = len(hidden_layers)
@@ -189,6 +163,21 @@ class VSAGEEncoder(nn.Module):
         self.N.scale = self.N.scale.cuda(device)
 
     def forward(self, x, edge_index):
+        """
+        Neural network inference function for the SAGE-encoder.
+        It feeds node attribute x and edge connectivity information edge_index
+        through the hidden layers of the encoder. Mu and sigma are sampled from
+        the model's normal distribution. The KL-divergence is calculated using
+        this mu and sigma.
+
+        Parameters:
+            -x (PyG Data): Node attribute
+            -edge_index (PyG Data): Edge connectivity
+
+        Returns:
+            -z (tensor): Sampled latent space point
+            -kl (tensor): KL-divergence
+        """
         if self.num_hidden_layers > 0:
             x = self.hlayers(x, edge_index)
         mu = self.conv_mu(x, edge_index)
@@ -198,34 +187,26 @@ class VSAGEEncoder(nn.Module):
         return z, kl
 
 class GATEncoder(nn.Module):
-    """Graph Attention Network-based encoder class
+    """
+    Class for the Graph Attention Network GNN-encoder.
 
-    Inherits:
-        nn.Module: Pytorch base class for neural networks
-
-    Attributes:
-        input_size: Neural network input layer size
-        hidden_1: Size of the first hidden layer in the network
-        hidden_2: Size of the second hidden layer in the network
-        latent_size: Size of the latent space in the network
+    Parameters:
+        - nn.Module: Pytorch base functionality which allows for neural network construction and inference.
 
     Methods:
-        forward: Feeds input x through the encoder layers.
+        -forward(): called when inferencing through the GAT-encoder in a pytorch model.
     """
     def __init__(self, input_size, hidden_layers, latent_size):
-        """Initialization function for GAT-based encoder, constructs 2 GAT
-           convolutional layers, based on the specified layer sizes.
+        """
+        Function to intialize the GAT-encoder. First inherits pytorch
+        capabilities from nn.Module. Then constructs a sequence of hidden layers
+        based on the hidden_layer parameter which takes the node attribute and
+        edge connectivity as input.
 
         Parameters:
-            input_size: int
-                Neural network input layer size
-            hidden_1: int
-                Size of the first hidden layer in the network
-            hidden_2: int
-                Size of the second hidden layer in the network
-            latent_size: int
-                Size of the latent space in the network
-
+            - input_size (int): Size of the input layer
+            - hidden_layers (list): List of layer sizes of the hidden layers
+            - latent_size (int): Size of the latent space layer
         """
         super().__init__()
         self.num_hidden_layers = len(hidden_layers)
@@ -255,11 +236,42 @@ class GATEncoder(nn.Module):
         self.hlayers = Sequential('x, edge_index, weight', hlayers)
 
     def forward(self, x, edge_index, weight):
+        """
+        Neural network inference function for the SAGE-encoder.
+        It feeds node attribute x and edge connectivity information edge_index
+        through the hidden layers of the encoder.
+
+        Parameters:
+            -x (PyG Data): Node attribute
+            -edge_index (PyG Data): Edge connectivity
+            -weight (PyG data): Weights for each edge
+        """
         return self.hlayers(x, edge_index, weight)
 
 
 class VGATEncoder(nn.Module):
+    """
+    Class for the Variational Graph Attention Network GNN-encoder.
+
+    Parameters:
+        - nn.Module: Pytorch base functionality which allows for neural network construction and inference.
+
+    Methods:
+        -forward(): called when inferencing through the GAT-encoder in a pytorch model.
+    """
     def __init__(self, input_size, hidden_layers, latent_size):
+        """
+        Function to intialize the variational GAT-encoder. First inherits pytorch
+        capabilities from nn.Module. Then constructs a sequence of hidden layers
+        based on the hidden_layer parameter which takes the node attribute and
+        edge connectivity as input. It also constructs a normal distribution
+        and intializes mu and sigma.
+
+        Parameters:
+            - input_size (int): Size of the input layer
+            - hidden_layers (list): List of layer sizes of the hidden layers
+            - latent_size (int): Size of the latent space layer
+        """
         super().__init__()
         self.num_hidden_layers = len(hidden_layers)
         self.hlayers = []
@@ -290,6 +302,22 @@ class VGATEncoder(nn.Module):
         self.N.scale = self.N.scale.cuda(device)
 
     def forward(self, x, edge_index, weight):
+        """
+        Neural network inference function for the variational GAT-encoder.
+        It feeds node attribute x along with edge connectivity information edge_index
+        and edge weghts through the hidden layers of the encoder. Mu and sigma are sampled from
+        the model's normal distribution. The KL-divergence is calculated using
+        this mu and sigma.
+
+        Parameters:
+            -x (PyG Data): Node attribute
+            -edge_index (PyG Data): Edge connectivity
+            -weight (PyG Data): Edge weights
+
+        Returns:
+            -z (tensor): Sampled latent space point
+            -kl (tensor): KL-divergence
+        """
         if self.num_hidden_layers > 0:
             x = self.hlayers(x, edge_index, weight)
         mu = self.conv_mu(x, edge_index, weight)
@@ -300,34 +328,26 @@ class VGATEncoder(nn.Module):
 
 
 class GCNEncoder(nn.Module):
-    """Graph Convolutional Network-based encoder class
+    """
+    Class for the Graph Convolutional Network GNN-encoder.
 
-    Inherits:
-        nn.Module: Pytorch base class for neural networks
-
-    Attributes:
-        input_size: Neural network input layer size
-        hidden_1: Size of the first hidden layer in the network
-        hidden_2: Size of the second hidden layer in the network
-        latent_size: Size of the latent space in the network
+    Parameters:
+        - nn.Module: Pytorch base functionality which allows for neural network construction and inference.
 
     Methods:
-        forward: Feeds input x through the encoder layers.
+        -forward(): called when inferencing through the GCN-encoder in a pytorch model.
     """
     def __init__(self, input_size, hidden_layers, latent_size):
-        """Initialization function for GCN-based encoder, constructs 2 GCN
-           convolutional layers, based on the specified layer sizes.
+        """
+        Function to intialize the GCN-encoder. First inherits pytorch
+        capabilities from nn.Module. Then constructs a sequence of hidden layers
+        based on the hidden_layer parameter which takes the node attribute and
+        edge connectivity as input.
 
         Parameters:
-            input_size: int
-                Neural network input layer size
-            hidden_1: int
-                Size of the first hidden layer in the network
-            hidden_2: int
-                Size of the second hidden layer in the network
-            latent_size: int
-                Size of the latent space in the network
-
+            - input_size (int): Size of the input layer
+            - hidden_layers (list): List of layer sizes of the hidden layers
+            - latent_size (int): Size of the latent space layer
         """
         super().__init__()
         self.num_hidden_layers = len(hidden_layers)
@@ -358,11 +378,42 @@ class GCNEncoder(nn.Module):
 
 
     def forward(self, x, edge_index, weight):
+        """
+        Neural network inference function for the GCN-encoder.
+        It feeds node attribute x and edge connectivity information edge_index
+        through the hidden layers of the encoder.
+
+        Parameters:
+            -x (PyG Data): Node attribute
+            -edge_index (PyG Data): Edge connectivity
+            -weight (PyG data): Weights for each edge
+        """
         x = self.hlayers(x, edge_index, weight)
         return x
 
 class VGCNEncoder(nn.Module):
+    """
+    Class for the Variational Graph Convolutional Network GNN-encoder.
+
+    Parameters:
+        - nn.Module: Pytorch base functionality which allows for neural network construction and inference.
+
+    Methods:
+        -forward(): called when inferencing through the VGCN-encoder in a pytorch model.
+    """
     def __init__(self, input_size, hidden_layers, latent_size):
+        """
+        Function to intialize the VGCN-encoder. First inherits pytorch
+        capabilities from nn.Module. Then constructs a sequence of hidden layers
+        based on the hidden_layer parameter which takes the node attribute and
+        edge connectivity as input. It also constructs a normal distribution
+        and intializes mu and sigma.
+
+        Parameters:
+            - input_size (int): Size of the input layer
+            - hidden_layers (list): List of layer sizes of the hidden layers
+            - latent_size (int): Size of the latent space layer
+        """
         super().__init__()
         self.num_hidden_layers = len(hidden_layers)
         self.hlayers = []
@@ -393,6 +444,22 @@ class VGCNEncoder(nn.Module):
         self.N.scale = self.N.scale.cuda(device)
 
     def forward(self, x, edge_index, weight):
+        """
+        Neural network inference function for the variational GCN-encoder.
+        It feeds node attribute x along with edge connectivity information edge_index
+        and edge weghts through the hidden layers of the encoder. Mu and sigma are sampled from
+        the model's normal distribution. The KL-divergence is calculated using
+        this mu and sigma.
+
+        Parameters:
+            -x (PyG Data): Node attribute
+            -edge_index (PyG Data): Edge connectivity
+            -weight (PyG Data): Edge weights
+
+        Returns:
+            -z (tensor): Sampled latent space point
+            -kl (tensor): KL-divergence
+        """
         if self.num_hidden_layers > 0:
             x = self.hlayers(x, edge_index, weight)
         mu = self.conv_mu(x, edge_index, weight)
@@ -403,34 +470,26 @@ class VGCNEncoder(nn.Module):
 
 
 class LinearEncoder(nn.Module):
-    """Linear MLP-based encoder class
+    """
+    Class for the Linear (MLP) encoder.
 
-    Inherits:
-        nn.Module: Pytorch base class for neural networks
-
-    Attributes:
-        input_size: Neural network input layer size
-        hidden_1: Size of the first hidden layer in the network
-        hidden_2: Size of the second hidden layer in the network
-        latent_size: Size of the latent space in the network
+    Parameters:
+        - nn.Module: Pytorch base functionality which allows for neural network construction and inference.
 
     Methods:
-        forward: Feeds input x through the encoder layers.
+        -forward(): called when inferencing through the Linear encoder in a pytorch model.
     """
     def __init__(self, input_size, hidden_layers, latent_size):
-        """Initialization function for Linear encoder, constructs 2
-           linear layers, based on the specified layer sizes.
+        """
+        Function to intialize the Linear encoder. First inherits pytorch
+        capabilities from nn.Module. Then constructs a sequence of hidden layers
+        based on the hidden_layer parameter which takes the node attribute and
+        edge connectivity as input.
 
         Parameters:
-            input_size: int
-                Neural network input layer size
-            hidden_1: int
-                Size of the first hidden layer in the network
-            hidden_2: int
-                Size of the second hidden layer in the network
-            latent_size: int
-                Size of the latent space in the network
-
+            - input_size (int): Size of the input layer
+            - hidden_layers (list): List of layer sizes of the hidden layers
+            - latent_size (int): Size of the latent space layer
         """
         super().__init__()
         self.num_hidden_layers = len(hidden_layers)
@@ -459,10 +518,38 @@ class LinearEncoder(nn.Module):
             self.hlayers.append(nn.Dropout(p=0.2))
 
     def forward(self, x):
+        """
+        Neural network inference function for the Linear encoder.
+        It feeds node attribute x through the hidden layers of the encoder.
+
+        Parameters:
+            -x (PyG Data): Node attribute
+        """
         return self.hlayers(x)
 
 class VLinearEncoder(nn.Module):
+    """
+    Class for the Variational Linear (MLP) encoder.
+
+    Parameters:
+        - nn.Module: Pytorch base functionality which allows for neural network construction and inference.
+
+    Methods:
+        -forward(): called when inferencing through the Linear encoder in a pytorch model.
+    """
     def __init__(self, input_size, hidden_layers, latent_size):
+        """
+        Function to intialize the Variational linear encoder. First inherits pytorch
+        capabilities from nn.Module. Then constructs a sequence of hidden layers
+        based on the hidden_layer parameter which takes the node attribute and
+        edge connectivity as input. It also constructs a normal distribution
+        and intializes mu and sigma.
+
+        Parameters:
+            - input_size (int): Size of the input layer
+            - hidden_layers (list): List of layer sizes of the hidden layers
+            - latent_size (int): Size of the latent space layer
+        """
         super().__init__()
         self.num_hidden_layers = len(hidden_layers)
         self.hlayers = nn.Sequential()
@@ -491,6 +578,19 @@ class VLinearEncoder(nn.Module):
 
 
     def forward(self, x):
+        """
+        Neural network inference function for the variational GCN-encoder.
+        It feeds node attribute x  through the hidden layers of the encoder. Mu and sigma are sampled from
+        the model's normal distribution. The KL-divergence is calculated using
+        this mu and sigma.
+
+        Parameters:
+            -x (PyG Data): Node attribute
+
+        Returns:
+            -z (tensor): Sampled latent space point
+            -kl (tensor): KL-divergence
+        """
         if self.num_hidden_layers != 0:
             x = self.hlayers(x)
         mu = self.linear_mu(x)
@@ -501,7 +601,28 @@ class VLinearEncoder(nn.Module):
 
 
 class Discriminator(nn.Module):
+    """
+    Class for the Discriminator module in the adversarial GNN architecture.
+
+    Parameters:
+        - nn.Module: Pytorch base functionality which allows for neural network construction and inference.
+
+    Methods:
+        -forward(): called when inferencing through the Linear encoder in a pytorch model.
+    """
     def __init__(self, input_size, hidden_layers, latent_size):
+        """
+        Function to intialize the Discrimantor module. First inherits pytorch
+        capabilities from nn.Module. Then constructs a sequence of hidden layers
+        based on the hidden_layer parameter which takes the node attribute and
+        edge connectivity as input. It also constructs a normal distribution
+        and intializes mu and sigma.
+
+        Parameters:
+            - input_size (int): Size of the input layer
+            - hidden_layers (list): List of layer sizes of the hidden layers
+            - latent_size (int): Size of the latent space layer
+        """
         super().__init__()
         self.num_hidden_layers = len(hidden_layers)
         self.hlayers = nn.Sequential()
@@ -529,40 +650,37 @@ class Discriminator(nn.Module):
             self.hlayers.append(nn.Dropout(p=0.2))
 
     def forward(self, x):
+        """
+        Neural network inference function for the Discriminator.
+        It feeds node attribute x through the hidden layers of the encoder.
+
+        Parameters:
+            -x (PyG Data): Node attribute
+        """
         return self.hlayers(x)
 
 
 class Decoder(nn.Module):
-    """Linear decoder classself.linear2(x_hat).relu()
-        if TRAINING:
-            x_hat = F.dropout(x_hat, p=0.2)
+    """
+    Class for the Decoder in the GNN architecture.
 
-    Inherits:
-        nn.Module: Pytorch base class for neural networks
-
-    Attributes:
-        output_size: Output layer size of the decoder, equal to the input size of the encoder
-        hidden_1: Size of the first hidden layer in the network
-        hidden_2: Size of the second hidden layer in the network
-        latent_size: Size of the latent space in the network
+    Parameters:
+        - nn.Module: Pytorch base functionality which allows for neural network construction and inference.
 
     Methods:
-        forward: Feeds latent space vector for one cell z through the decoder layers.
+        -forward(): called when inferencing through the Linear encoder in a pytorch model.
     """
     def __init__(self, output_size, hidden_layers, latent_size):
-        """Initialization function for the decoder, constructs 3 linear
-           decoder layers, based on the specified layer sizes.
+        """
+        Function to intialize the Variational linear encoder. First inherits pytorch
+        capabilities from nn.Module. Then constructs a sequence of hidden layers
+        based on the hidden_layer parameter which takes the node attribute and
+        edge connectivity as input.
 
         Parameters:
-            output_size: int
-                Output size of the decoder, equal to the input size of the encoder
-            hidden_1: int
-                Size of the first hidden layer in the network
-            hidden_2: int
-                Size of the second hidden layer in the network
-            latent_size: int
-                Size of the latent space in the network
-
+            - output_size (int): Size of the final output layer
+            - hidden_layers (list): List of layer sizes of the hidden layers
+            - latent_size (int): Size of the latent space layer
         """
         super().__init__()
         self.num_hidden_layers = len(hidden_layers)
@@ -592,6 +710,13 @@ class Decoder(nn.Module):
 
 
     def forward(self, z):
+        """
+        Neural network inference function for the Decoder.
+        It feeds latent space point z through the decoder back to the output layer.
+
+        Parameters:
+            -z (PyG Data): Latent space point
+        """
         return self.hlayers(z)
 
 
@@ -618,7 +743,8 @@ class GAE(nn.Module):
                 Encoder model architecture to use, can be any of the encoder classes
             decoder: class
                 Decoder model to use (decoder class specified above)
-
+            args: argsparse.Namespace
+                Arguments passed by the user
         """
         super().__init__()
         self.encoder = encoder
@@ -626,6 +752,22 @@ class GAE(nn.Module):
         self.args = args
 
     def forward(self, x, edge_index=None, cell_id=None, weight=None):
+        """
+        Inference function which encodes the node attribute x, and where applicable,
+        also the edge connectivity and edge weights to retrieve latent space sample z.
+        After this, z is decoded to retrieve predicted expression x_hat, for a particular
+        cell, as specified by cell_id. Which encoder model to use is saved in args.type.
+
+        Parameters:
+            -x (PyG Data): Node attributes
+            -edge_index (PyG Data): Edge connectivity
+            -cell_id (int): Index of the cell to predict the expression for
+            -weight (PyG Data): Edge weights
+
+        Returns:
+            -x_hat (tensor): Predicted expression for cell with index of cell_id.
+            -kl (tensor): If variational, KL-divergence score.
+        """
         if self.args.variational == False:
             if self.args.type == "Linear":
                 z = self.encoder(x)
@@ -652,6 +794,10 @@ class GAE(nn.Module):
 
 @torch.no_grad()
 def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_cells, celltype_key, args, plot_celltypes=False):
+    """
+
+
+    """
     TRAINING = False
     pyg_graph = pyg_graph.to(device)
     plt.figure()
@@ -721,9 +867,9 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     plt.close()
 
     if plot_celltypes:
-        mean_pca_per_celltype = np.array(shape=(len(cell_types), 2))
-        mean_umap_per_celltype = np.array(shape=(len(cell_types), 2))
-        mean_tsne_per_celltype = np.array(shape=(len(cell_types), 2))
+        mean_pca_per_celltype = np.zeros(shape=(len(cell_types), 2))
+        mean_umap_per_celltype = np.zeros(shape=(len(cell_types), 2))
+        mean_tsne_per_celltype = np.zeros(shape=(len(cell_types), 2))
         #Plot per cell types
         for i, celltype in enumerate(cell_types):
             obs_names = anndata[anndata.obs[celltype_key] == celltype].obs_names
