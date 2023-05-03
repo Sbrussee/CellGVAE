@@ -221,9 +221,9 @@ for name in ['seqfish', 'merfish_train']:
         r2_per_comb = {}
         core_models = ['adversarial', 'variational', 'normal', 'normal']
         fig, ax = plt.subplots()
-        ax.title("Learning curves per core model")
-        ax.xlabel("Epoch")
-        ax.ylabel("Training loss")
+        fig.title("Learning curves per core model")
+        fig.xlabel("Epoch")
+        fig.ylabel("Training loss")
         for comb in itertools.combinations(core_models, 2):
             if 'adversarial' in comb:
                 args.adversarial = True
@@ -311,8 +311,8 @@ for name in ['seqfish', 'merfish_train']:
 
             model = model.cpu()
 
-        ax.legend()
-        ax.savefig("exp2_trainingcurves.png", dpi=300)
+        fig.legend()
+        fig.savefig("exp2_trainingcurves.png", dpi=300)
         plt.close()
         with open("exp2.pkl", 'wb') as file:
             pickle.dump(r2_per_comb, file)
