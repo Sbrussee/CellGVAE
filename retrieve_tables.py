@@ -7,5 +7,6 @@ for file in files:
     print(f"FILE: {file}")
     df = pd.read_pickle(file)
     if df != None:
+        print(df['pvalues'])
         selected = df['pvalues'][(df < 0.05).any(axis=1)]
         print(selected)
