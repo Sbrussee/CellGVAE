@@ -1578,7 +1578,7 @@ def variance_decomposition(expr, celltype_key, name):
 
     save_dict['intracell variance'] = [intracell_var, intracell_var/total_var]
     save_dict['intercell variance'] = [intercell_var, intercell_var/total_var]
-    save_dict['gene variance'] = [gene_var, gene_var_var/total_var]
+    save_dict['gene variance'] = [gene_var, gene_var/total_var]
     save_dict['total variance'] = [total_var, total_var]
 
     df = pd.DataFrame.from_dict(save_dict, orient='index', columns=['Variance', 'Fraction'])
