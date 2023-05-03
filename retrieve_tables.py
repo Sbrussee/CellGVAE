@@ -6,4 +6,5 @@ files = glob.glob('*ligrec*.pkl')
 for file in files:
     print(f"FILE: {file}")
     df = pd.read_pickle(file)
-    print(df)
+    selected = df[(df < 0.05).any(axis=1)]
+    print(selected)
