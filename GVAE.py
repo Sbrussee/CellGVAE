@@ -2092,7 +2092,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             del total_val_loss
 
     model = model.cpu()
-    return loss_over_cells, train_loss_over_epochs, val_loss_over_epochs, r2_over_epochs
+    return loss_over_cells, train_loss_over_epochs, val_loss_over_epochs, r2_over_epochs, model
 
 @torch.no_grad()
 def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
@@ -2387,7 +2387,7 @@ if __name__ == '__main__':
 
     optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
     (loss_over_cells, train_loss_over_epochs,
-     val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+     val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
                                                    train_i, val_i, k=k, args=args, discriminator=discriminator)
     test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 

@@ -67,6 +67,16 @@ args.adversarial = True
 experiments = args.experiments
 
 def apply_pca(data, title, name, anndata, celltype_key):
+    """
+    Function which applies PCA to given dataset.
+
+    Parameters:
+        -data: Dataset to decompose
+        -title (str): Title for the plot
+        -name (str): Name for the file
+        -anndata (anndata): Squidpy/scanpy dataset.
+        -celltype_key (str): Key in anndata where the celltypes are saved.
+    """
     pca = PCA(n_components=2)
     pca.fit(data)
     transformed_data = pca.transform(data)
@@ -78,8 +88,19 @@ def apply_pca(data, title, name, anndata, celltype_key):
     plt.savefig(name, dpi=300)
     plt.close()
 
-def apply_tsne(data, title, name, anndata, celltype_key, perplexity=30, learning_rate=200, n_iter=1000):
-    tsne = TSNE(n_components=2, perplexity=perplexity, learning_rate=learning_rate, n_iter=n_iter)
+def apply_tsne(data, title, name, anndata, celltype_key):
+    """
+    Function which applies tSNE to given dataset.
+
+    Parameters:
+        -data: Dataset to decompose
+        -title (str): Title for the plot
+        -name (str): Name for the file
+        -anndata (anndata): Squidpy/scanpy dataset.
+        -celltype_key (str): Key in anndata where the celltypes are saved.
+
+    """
+    tsne = TSNE(n_components=2)
     transformed_data = tsne.fit_transform(data)
 
     plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), s=1.0)
@@ -91,6 +112,16 @@ def apply_tsne(data, title, name, anndata, celltype_key, perplexity=30, learning
     plt.close()
 
 def apply_umap(data, title, name, anndata, celltype_key):
+    """
+    Function which applies UMAP to given dataset.
+
+    Parameters:
+        -data: Dataset to decompose
+        -title (str): Title for the plot
+        -name (str): Name for the file
+        -anndata (anndata): Squidpy/scanpy dataset.
+        -celltype_key (str): Key in anndata where the celltypes are saved.
+    """
     mapper = umap.UMAP()
     transformed_data = mapper.fit_transform(data)
     plot = sns.scatterplot(x=transformed_data[:,0], y=transformed_data[:,1], hue=list(anndata.obs[celltype_key]), s=1.0)
@@ -102,19 +133,25 @@ def apply_umap(data, title, name, anndata, celltype_key):
     plt.close()
 
 
+#For both datasets do..
 for name in ['seqfish', 'merfish_train']:
+    #Read dataset
     args.dataset = name
     dataset, organism, name, celltype_key = read_dataset(name, args)
 
     if args.filter:
         dataset = only_retain_lr_genes(dataset)
 
+    #Apply PCA, tSNE and UMAP to the dataset
     apply_pca(dataset.X.toarray(), f"PCA of {name} data", f"pca_{name}", dataset, celltype_key)
     apply_tsne(dataset.X.toarray(), f"tSNE of {name} data", f"tsne_{name}", dataset, celltype_key)
     apply_umap(dataset.X.toarray(), f"UMAP of {name} data", f"umap_{name}", dataset, celltype_key)
 
     if '1' in experiments:
-        #Experiment 1: Run per cell type
+        """
+        Experiment 1: Plot the latent space per celtype
+
+        """
         #Train the model on all data
         if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
             print("Constructing graph...")
@@ -154,7 +191,7 @@ for name in ['seqfish', 'merfish_train']:
 
         optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
         (loss_over_cells, train_loss_over_epochs,
-         val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+         val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
                                                        train_i, val_i, k=k, args=args, discriminator=discriminator)
         test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
@@ -177,6 +214,10 @@ for name in ['seqfish', 'merfish_train']:
         model = model.cpu()
 
     if '2' in experiments:
+        """
+        Experiment 2: Assess differences using various core modules
+        (e.g. adversarial, variational)
+        """
         r2_per_comb = {}
         core_models = ['adversarial', 'variational', 'normal', 'normal']
         fig, ax = plt.subplots()
@@ -233,7 +274,7 @@ for name in ['seqfish', 'merfish_train']:
 
             optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
             (loss_over_cells, train_loss_over_epochs,
-             val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+             val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
             test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
@@ -282,6 +323,10 @@ for name in ['seqfish', 'merfish_train']:
 
 
     if '3' in experiments:
+        """
+        Experiment 3: Assess differences using various GNN encoder models
+        (e.g. GCN, GAT)
+        """
         r2_per_type = {}
         args.variational = True
         args.adversarial = True
@@ -336,7 +381,7 @@ for name in ['seqfish', 'merfish_train']:
 
             optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
             (loss_over_cells, train_loss_over_epochs,
-             val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+             val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
             test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
@@ -373,6 +418,12 @@ for name in ['seqfish', 'merfish_train']:
         plot_r2_scores(r2_per_type, "model type", f"{name}_r2scores_exp3")
 
     if '4' in experiments:
+        """
+        Experiment 4: Assess differences using different sets of inputs
+        full: Celltypes + expression + spatial information
+        spatial: Only spatial information
+        spatial + expression: Spatial information + expression information
+        """
         r2_per_prediction_mode = {}
         args.variational = True
         args.adversarial = True
@@ -425,7 +476,7 @@ for name in ['seqfish', 'merfish_train']:
 
             optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
             (loss_over_cells, train_loss_over_epochs,
-             val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+             val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
             test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
@@ -462,6 +513,9 @@ for name in ['seqfish', 'merfish_train']:
         plot_r2_scores(r2_per_prediction_mode, "prediction mode", f"{name}_r2scores_exp4")
 
     if '5' in experiments:
+        """
+        Experiment 5: Assess differences in niche construction (neighbor-wise, threshold-wise).
+        """
         r2_neighbors = {}
         for neighbors in [2,4,6,8,10]:
             args.threshold = -1
@@ -506,7 +560,7 @@ for name in ['seqfish', 'merfish_train']:
 
             optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
             (loss_over_cells, train_loss_over_epochs,
-             val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+             val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
             test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
@@ -561,7 +615,7 @@ for name in ['seqfish', 'merfish_train']:
 
             optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
             (loss_over_cells, train_loss_over_epochs,
-             val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+             val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
             test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
@@ -579,6 +633,9 @@ for name in ['seqfish', 'merfish_train']:
         plot_r2_scores(r2_thresholds, "neighbors", f"{name}_r2scores_exp5_neighbors")
 
     if '6' in experiments:
+        """
+        Experiment 6: LR-analysis using LR-filtered and Unfiltered dataset.
+        """
         r2_filter = {}
         for filter in [True, False]:
             if filter == True:
@@ -630,7 +687,7 @@ for name in ['seqfish', 'merfish_train']:
 
             optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
             (loss_over_cells, train_loss_over_epochs,
-             val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+             val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
             test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
@@ -669,6 +726,10 @@ for name in ['seqfish', 'merfish_train']:
         plot_r2_scores(r2_filter, "L-R filter", f"{name}_r2scores_exp6")
 
     if '7' in experiments:
+        """
+        Experiment 7: Score distribution divergence of diseased sample FOVs from training
+        distribution on healthy sample FOVs.
+        """
         organism = 'human'
         full = sc.read("/srv/scratch/chananchidas/LiverData/LiverData_RawNorm.h5ad")
         #Subset nanostring data in 4 parts
@@ -690,6 +751,7 @@ for name in ['seqfish', 'merfish_train']:
             #Save this sub-dataset
             fov.write(f'data/ns_fov_{tissue}_{i}_to_{i+1}.h5ad')
 
+        model_initialized = False
         for dataset in [f for f in os.listdir("data/") if f.startswith("ns_fov_") and 'Normal' in f]:
             data = sc.read("data/"+dataset)
             tissue = str(data.obs['Run_Tissue_name'].unique()[0])
@@ -710,7 +772,8 @@ for name in ['seqfish', 'merfish_train']:
             pyg_graph.expr = pyg_graph.expr.float()
             pyg_graph.weight = pyg_graph.weight.float()
             input_size, hidden_layers, latent_size, output_size = set_layer_sizes(pyg_graph, args=args, panel_size=dataset.n_vars)
-            model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, output_size, args=args)
+            if model_initialized == False:
+                model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, output_size, args=args)
 
             print("Model:")
             print(model)
@@ -732,9 +795,9 @@ for name in ['seqfish', 'merfish_train']:
             print(f"Training using fov {i} to {i+1}")
             optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
             (loss_over_cells, train_loss_over_epochs,
-             val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+             val_loss_over_epochs, r2_over_epochs, model, _) = train(model, pyg_graph, optimizer_list,
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator)
-
+            model_initialized = True
 
 
         latent_spaces_normal = {}

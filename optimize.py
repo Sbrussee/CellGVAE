@@ -31,6 +31,7 @@ arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whe
 arg_parser.add_argument('-f', '--filter', action='store_true', help='Whether to filter out non-LR genes', default=False)
 args = arg_parser.parse_args()
 
+#Set fixed parameters
 args.epochs = 400
 args.cells = 50
 args.graph_summary = False
@@ -44,9 +45,9 @@ args.threshold = -1
 args.neighbors = 6
 args.dataset = 'merfish_train'
 
+#Load dataset
 print(f"Parameters {args}")
 dataset, organism, name, celltype_key = read_dataset(args.dataset, args)
-
 
 if args.filter:
     dataset = only_retain_lr_genes(dataset)
@@ -110,15 +111,8 @@ def objective(trial):
     variational = trial.suggest_categorical('variational', [True, False])
     adversarial = trial.suggest_categorical('adversarial', [True, False])
     model_type = trial.suggest_categorical('model_type', ['GCN', 'GAT', 'SAGE'])
-    #weight = trial.suggest_categorical('weight', [True, False])
-    #normalization = trial.suggest_categorical('normalization', ["Laplacian", "Normal", "None"])
-    #remove_same_type_edges = trial.suggest_categorical('remove_same_type_edges', [True, False])
-    #remove_subtype_edges = trial.suggest_categorical('remove_subtype_edges', [True, False])
     if model_type == 'SAGE':
         aggregation_method = trial.suggest_categorical('aggregation_method', ['max', 'mean'])
-    #threshold = trial.suggest_int('threshold', 5, 100)
-    #neighbors = trial.suggest_int('neighbors', 2, 10)
-    #latent = trial.suggest_int('latent', 2, 12)
     hidden = trial.suggest_categorical('hidden', ['', '32', '64,32', '128,64,32'])
 
     # update argparse arguments with optimized hyperparameters
@@ -148,7 +142,7 @@ def objective(trial):
     optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
     # train and evaluate model with updated hyperparameters
     (loss_over_cells, train_loss_over_epochs,
-     val_loss_over_epochs, r2_over_epochs) = train(model, pyg_graph, optimizer_list,
+     val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
                                                     train_i, val_i, k=k, args=args, discriminator=discriminator)
 
     test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
@@ -159,18 +153,24 @@ def objective(trial):
     return test_dict['r2']
 
 if __name__ == "__main__":
+    #Set logger
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
+    #Initialize  optimization study
     study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler(), pruner=optuna.pruners.HyperbandPruner())
+    #Optimize the objective
     study.optimize(objective, n_trials=100)
     print(study)
+    #Save optimization results
     with open("study.pkl", 'wb') as f:
         pickle.dump(study, f)
     print(study.best_params)
     print(study.best_value)
     print(study.best_trial)
+    #Plot parameter importance plot
     fig = plot_param_importances(study)
     plt.savefig("param_imp.png", dpi=300)
     plt.close()
+    #Plot optimization history plot
     fig = plot_optimization_history(study)
     plt.savefig("opt_hist.png", dpi=300)
     plt.close()
