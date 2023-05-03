@@ -945,7 +945,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         #Now plot the mean latent space points per celltype
         tsne_frame = pd.DataFrame(mean_tsne_per_celltype, columns=['tsne1', 'tsne2', 'celltype']).replace(mapping)
         melted = pd.melt(tsne_frame, id_vars=['celltype'], value_vars=['tsne1', 'tsne2'], var_name='tsne', value_name='coordinate')
-        sns.scatterplot(data=melted, x='coordinate', y='tsne', hue='celltype')
+        plot = sns.scatterplot(data=melted, x='coordinate', y='tsne', hue='celltype')
         plt.legend(prop={ "size" : 3})
         plt.xlabel("t-SNE dim 1")
         plt.ylabel("t-SNE dim 2")
@@ -956,7 +956,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 
         umap_frame = pd.DataFrame(mean_umap_per_celltype, columns=['umap1', 'umap2', 'celltype']).replace(mapping)
         melted = pd.melt(umap_frame, id_vars=['celltype'], value_vars=['umap1', 'umap2'], var_name='umap', value_name='coordinate')
-        sns.scatterplot(data=melted, x='coordinate', y='umap', hue='celltype')
+        plot = sns.scatterplot(data=melted, x='coordinate', y='umap', hue='celltype')
         plt.legend(prop={ "size" : 3})
         plt.xlabel('UMAP dim 1')
         plt.ylabel('UMAP dim 2')
@@ -967,7 +967,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 
         pca_frame = pd.DataFrame(mean_pca_per_celltype, columns=['pca1', 'pca2', 'celltype']).replace(mapping)
         melted = pd.melt(pca_frame, id_vars=['celltype'], value_vars=['pca1', 'pca2'], var_name='pca', value_name='coordinate')
-        sns.scatterplot(data=melted, x='coordinate', y='pca', hue='celltype')
+        plot = sns.scatterplot(data=melted, x='coordinate', y='pca', hue='celltype')
         plt.legend(prop={ "size" : 3})
         plt.xlabel("PC1")
         plt.ylabel("PC2")
