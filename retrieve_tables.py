@@ -9,6 +9,6 @@ for file in files:
     if df != None:
         mask = df['pvalues'] < 0.05
         selected = df['pvalues'][(df['pvalues'] < 0.05).any(axis=1)]
-        counts = selected.lt(0.05).sum(axis=1)
+        counts = selected.lt(0.05).sum(axis=1).values
         sorted = selected.sort_values(by=counts, ascending=False)
         print(sorted)
