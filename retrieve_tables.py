@@ -13,6 +13,5 @@ for file in files:
         selected['count'] =  selected.lt(0.01).sum(axis=1)
         sorted = selected.sort_values(by='count', ascending=False)
         print(sorted[:10])
-        sq.pl.ligrec(df, pvalue_threshold=0.01, remove_empty_interactions=True,
-                     remove_nonsig_interactions=True, alpha=0.01, save=f"{file}.png")
-                
+        sq.pl.ligrec(df, pvalue_threshold=0.001, remove_empty_interactions=True,
+                     remove_nonsig_interactions=True, alpha=0.005, save=f"{file}.png")
