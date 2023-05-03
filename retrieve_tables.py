@@ -7,6 +7,8 @@ for file in files:
     print(f"FILE: {file}")
     df = pd.read_pickle(file)
     if df != None:
-        print(df['pvalues'])
+        mask = df['pvalues'] < 0.05
+        counts = mask.sum(axis=1)
         selected = df['pvalues'][(df['pvalues'] < 0.05).any(axis=1)]
-        print(selected)
+        sorted = selected.sort_values(by=counts, ascending=False)
+        print(sorted)
