@@ -1,6 +1,7 @@
 import glob
 import pandas as pd
 import squidpy as sq
+import numpy as np
 
 #Read all ligrec pickle fles
 files = glob.glob('*ligrec*.pkl')
