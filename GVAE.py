@@ -2150,6 +2150,7 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         -cluster_key (str): Key where cluster/celltype labels are saved in adata.
 
     """
+    expr = adata.X
     #First calculate for original dataset
     res = sq.gr.ligrec(
         adata,
@@ -2158,8 +2159,8 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         use_raw=False,
         transmitter_params={"categories": "ligand"},
         receiver_params={"categories": "receptor"},
+        copy=True
     )
-    print(res)
     try:
         sq.pl.ligrec(
         adata,
@@ -2198,6 +2199,7 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
             )
     except:
         print("Plotting ligrec pred failed.")
+    adata.X = expr
     with open(f"ligrec_results_pred_{name}.pkl", 'wb') as f:
         pickle.dump(res, f)
 
