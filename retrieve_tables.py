@@ -9,7 +9,7 @@ for file in files:
     print(f"FILE: {file}")
     df = pd.read_pickle(file)
     if df != None:
-        file = file.rstrip(".pkl")
+        file = file.replace(".pkl", "")
         selected = df['pvalues'][(df['pvalues'] < 0.01).any(axis=1)]
         selected['count'] =  selected.lt(0.001).sum(axis=1)
         sorted = selected.sort_values(by='count', ascending=False)
