@@ -14,5 +14,5 @@ for file in files:
         sorted = selected.sort_values(by='count', ascending=False)
         print(sorted[:10])
         sq.pl.ligrec(df, pvalue_threshold=0.001, remove_empty_interactions=True,
-                     remove_nonsig_interactions=True, alpha=0.0001, mean_range(0.3, np.inf),
+                     remove_nonsig_interactions=True, alpha=0.0001, means_range=(0.3, np.inf),
                       save=f"{file}.png")
