@@ -945,7 +945,9 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         #Now plot the mean latent space points per celltype
         tsne_frame = pd.DataFrame(mean_tsne_per_celltype, columns=['tsne1', 'tsne2', 'celltype']).replace(mapping)
         print(tsne_frame)
-        sns.scatterplot(tsne_frame, hue='celltype')
+        melted = pd.melt(tsne_frame, id_vars=['celltype'], value_vars=['tsne1', 'tsne2'], var_name='tsne', value_name='coordinate')
+        print(melted)
+        sns.scatterplot(data=melted, x='coordinate', y='tsne', hue='celltype')
         plt.legend(size=3)
         plt.xlabel("t-SNE dim 1")
         plt.ylabel("t-SNE dim 2")
