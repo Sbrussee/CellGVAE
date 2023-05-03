@@ -955,7 +955,8 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         plt.close()
 
         umap_frame = pd.DataFrame(mean_umap_per_celltype, columns=['umap1', 'umap2', 'celltype']).replace(mapping)
-        sns.scatterplot(umap_frame, hue='celltype')
+        melted = pd.melt(umap_frame, id_vars=['celltype'], value_vars=['umap1', 'umap2'], var_name='umap', value_name='coordinate')
+        sns.scatterplot(data=melted, x='coordinate', y='umap', hue='celltype')
         plt.legend(prop={ "size" : 3})
         plt.xlabel('UMAP dim 1')
         plt.ylabel('UMAP dim 2')
@@ -965,6 +966,8 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         plt.close()
 
         pca_frame = pd.DataFrame(mean_pca_per_celltype, columns=['pca1', 'pca2', 'celltype']).replace(mapping)
+        melted = pd.melt(pca_frame, id_vars=['celltype'], value_vars=['pca1', 'pca2'], var_name='pca', value_name='coordinate')
+        sns.scatterplot(data=melted, x='coordinate', y='pca', hue='celltype')
         sns.scatterplot(pca_frame, hue='celltype')
         plt.legend(prop={ "size" : 3})
         plt.xlabel("PC1")
