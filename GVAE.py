@@ -940,7 +940,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             mean_pca_per_celltype[i, 2] = i
 
 
-        mapping = {k : v for k in range(len(cell_types)) for v in cell_types}
+        mapping = {k : cell_types[k] for k in range(len(cell_types))}
         print(mapping)
         #Now plot the mean latent space points per celltype
         tsne_frame = pd.DataFrame(mean_tsne_per_celltype, columns=['tsne1', 'tsne2', 'celltype']).replace(mapping)
