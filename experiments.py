@@ -51,8 +51,8 @@ arg_parser.add_argument('-ex', '--experiments', type=list, help='Which experimen
 arg_parser.add_argument('-f', '--filter', action='store_true', help='Whether to filter out non-LR genes', default=False)
 args = arg_parser.parse_args()
 
-args.epochs = 1
-args.cells = 100
+args.epochs = 400
+args.cells = 50
 args.graph_summary = True
 args.weight = True
 args.normalization = 'Normal'
