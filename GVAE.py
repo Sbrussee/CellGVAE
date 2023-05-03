@@ -2160,18 +2160,15 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         copy=True
     )
     try:
-        sq.pl.ligrec(
-        adata,
-        cluster_key=cluster_key,
-        means_range=(0.3, np.inf),
-        alpha=1e-5,
-        swap_axes=False,
-        save=name+"ligrec_original.png",
-        copy=True
-    )
+        selected = res['pvalues'][(res['pvalues'] < 0.01).any(axis=1)]
+        selected['count'] =  selected.lt(0.001).sum(axis=1)
+        sorted = selected.sort_values(by='count', ascending=False)
+        sorted[:10].to_csv(f"lr_true_{name}.csv")
+        sq.pl.ligrec(res, pvalue_threshold=0.001, remove_empty_interactions=True,
+                     remove_nonsig_interactions=True, alpha=0.0001, means_range=(0.3, np.inf),
+                      save=f"lr_true_{name}.png")
     except:
-        print("Plotting ligrec original failed")
-
+        print("Plotting ligrec failed")
     with open(f"ligrec_results_true_{name}.pkl", 'wb') as f:
         pickle.dump(res, f)
 
@@ -2187,16 +2184,15 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         copy=True
     )
     try:
-        sq.pl.ligrec(
-            adata,
-            cluster_key=cluster_key,
-            means_range=(0.3, np.inf),
-            alpha=1e-5,
-            swap_axes=False,
-            save=name+"ligrec_pred.png"
-            )
+        selected = res['pvalues'][(res['pvalues'] < 0.01).any(axis=1)]
+        selected['count'] =  selected.lt(0.001).sum(axis=1)
+        sorted = selected.sort_values(by='count', ascending=False)
+        sorted[:10].to_csv(f"lr_pred_{name}.csv")
+        sq.pl.ligrec(res, pvalue_threshold=0.001, remove_empty_interactions=True,
+                     remove_nonsig_interactions=True, alpha=0.0001, means_range=(0.3, np.inf),
+                      save=f"lr_pred_{name}.png")
     except:
-        print("Plotting ligrec pred failed.")
+        print("Plotting ligrec failed")
     adata.X = expr
     with open(f"ligrec_results_pred_{name}.pkl", 'wb') as f:
         pickle.dump(res, f)
