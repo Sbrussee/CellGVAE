@@ -221,9 +221,9 @@ for name in ['seqfish', 'merfish_train']:
         r2_per_comb = {}
         core_models = ['adversarial', 'variational', 'normal', 'normal']
         fig, ax = plt.subplots()
-        fig.title("Learning curves per core model")
-        fig.xlabel("Epoch")
-        fig.ylabel("Training loss")
+        ax.set_title("Learning curves per core model")
+        ax.set_xlabel("Epoch")
+        ax.set_ylabel("Training loss")
         for comb in itertools.combinations(core_models, 2):
             if 'adversarial' in comb:
                 args.adversarial = True
@@ -311,7 +311,7 @@ for name in ['seqfish', 'merfish_train']:
 
             model = model.cpu()
 
-        fig.legend()
+        ax.legend()
         fig.savefig("exp2_trainingcurves.png", dpi=300)
         plt.close()
         with open("exp2.pkl", 'wb') as file:
