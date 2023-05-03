@@ -11,4 +11,4 @@ for file in files:
         selected = df['pvalues'][(df['pvalues'] < 0.05).any(axis=1)]
         selected['count'] =  selected.lt(0.05).sum(axis=1)
         sorted = selected.sort_values(by='count', ascending=False)
-        print(sorted)
+        print(sorted[:10])
