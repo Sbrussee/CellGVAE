@@ -941,9 +941,10 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 
 
         mapping = {k : v for k in range(len(cell_types)) for v in cell_types}
+        print(mapping)
         #Now plot the mean latent space points per celltype
         tsne_frame = pd.DataFrame(mean_tsne_per_celltype, columns=['tsne1', 'tsne2', 'celltype']).replace(mapping)
-
+        print(tsne_frame)
         sns.scatterplot(tsne_frame, hue='celltype')
         plt.legend(size=3)
         plt.xlabel("t-SNE dim 1")
@@ -2095,11 +2096,26 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
 
 @torch.no_grad()
 def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
+    """
+    Function which applies the specified autoencoder model on the test set.
+    Parameters:
+        -model (PyG model): Model to use.
+        -test_i (np array): Array of indices for the cells in the test set.
+        -args (argparse.Namespace): User specified arguments
+        optionally:
+        -discriminator (PyG model): Discriminator model
+        -device (str): Device to use for model inference.
+
+    Returns:
+        -test_dict (dict): Dictionary with loss and r2 scores resulting from feeding the model the test set.
+    """
     print("Testing the model...")
     test_dict = {}
     total_test_loss = 0
     total_r2_test = 0
+    #Sample cells
     for cell in tqdm(random.sample(test_i, k=1000)):
+        #Create test batch
         test_batch = pyg_graph.clone()
         if args.prediction_mode == 'spatial':
             test_batch.expr.fill_(0.0)
@@ -2120,6 +2136,18 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
     return test_dict
 
 def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
+    """
+    Function to predict ligand-receptor interactions for both the
+    original expression in the dataset as well as the expression predicted by
+    the autoencoder model. It uses a permutation test to identify interactions.
+
+    Parameters:
+        -adata (anndata): Squidpy/scanpy dataset to use
+        -pred_expr (np array): Predicted expression matrix
+        -name (str): Name for file saving
+        -cluster_key (str): Key where cluster/celltype labels are saved in adata.
+
+    """
     #First calculate for original dataset
     res = sq.gr.ligrec(
         adata,
@@ -2172,6 +2200,17 @@ def ligand_receptor_analysis(adata, pred_expr, name, cluster_key):
         pickle.dump(res, f)
 
 def spatial_analysis(adata, celltype_key, name):
+    """
+    Function which spatially analyzes a squidpy/scanpy dataset.
+
+    Parameters:
+        -adata (anndata): Dataset to analyze.
+        -celltype_key (str): Key for adata where celltype labels are saved.
+        -name (str): Name for file saving purposes.
+
+    Returns:
+        -adata (anndata): Dataset with additional spatial information saved.
+    """
     sc.pl.spatial(adata, use_raw=False, spot_size=0.1, title=f'Spatial celltype distribution',
                   save=f"spatial_scatter_{name}.png", color=celltype_key, size=1, show=False)
     plt.close()
@@ -2198,6 +2237,16 @@ def spatial_analysis(adata, celltype_key, name):
     return adata
 
 def only_retain_lr_genes(anndata):
+    """
+    Function for filtering all non-ligand and non-receptor genes out of the
+    anndata dataset. It uses the CellPhoneDB database for this.
+
+    Parameters:
+        -anndata (anndata): Squidpy/scanpy dataset to be filtered.
+
+    Returns:
+        -anndata_filtered: Filtered dataset with only LR genes.
+    """
     # Load in the mouse_lr_pair.txt file as a pandas DataFrame
     lr_pairs = pd.read_csv('data/mouse_lr_pair.txt', sep='\t')
 
@@ -2210,6 +2259,14 @@ def only_retain_lr_genes(anndata):
     return anndata_filtered
 
 def plot_r2_scores(r2_dict, param_name, name):
+    """
+    Function which plots R2 scores for specified parameter values.
+
+    Parameters:
+        -r2_dict (dict): Dictionary with parameter values as keys and r2 scores as values.
+        -param_name (str): Name of the parameter values.
+        -name (str): Name for save file.
+    """
     x_axis, y_axis = list(r2_dict.keys()), list(r2_dict.values())
         # Create a figure and axis
     fig, ax = plt.subplots()
@@ -2227,89 +2284,8 @@ def plot_r2_scores(r2_dict, param_name, name):
     plt.savefig(f"R2_{param_name}_{name}.png", dpi=300)
     plt.close()
 
-"""
-def train_regression_model(G, pyg_graph, train_i, args):
-    pca = PCA(n_components=4)
-    pca_expr = pca.fit_transform(pyg_graph.expr)
-    # Get shape of expression matrix
-    n, q = pca_expr.shape
-    # Get number of neighbors per cell
-    k = args.neighbors
-    # Construct the input and output matrices
-    X_train = []
-    Y_train = []
 
-    for node in range(len([node for node in G.nodes() if node in train_i])):
-        # Get indices of neighbors of node i
-        neighbors = list(G.neighbors(node))
-
-        # Randomly select k neighbors (if there are fewer than k neighbors, use all of them)
-        if len(neighbors) > k:
-            neighbors = np.random.choice(neighbors, k, replace=False)
-        k_neighbors = len(neighbors)
-
-        # Flatten and concatenate node attribute vectors of neighbors
-        x_train_i = np.concatenate([pca_expr[n] for n in neighbors])
-
-        if k_neighbors < k:
-            for x in range(k-k_neighbors):
-                x_train_i = np.concatenate((x_train_i, np.zeros((q))))
-
-        # Set input and output matrices for node i
-        X_train.append(x_train_i)
-        Y_train.append(pyg_graph.expr[node])
-
-    X_train = np.vstack(X_train)
-    Y_train = np.vstack(Y_train)
-
-    model = LinearRegression()
-    model.fit(X_train, Y_train)
-
-    return model
-
-
-def evaluate_regression_model(G, pyg_graph, val_i, model, args):
-    pca = PCA(n_components=4)
-    pca_expr = pca.fit_transform(pyg_graph.expr)
-    # Get shape of expression matrix
-    n, q = pca_expr.shape
-    # Get number of neighbors per cell
-    k = args.neighbors
-    # Construct the input and output matrices
-    X_val = []
-    Y_val = []
-
-    for node in range(len([node for node in G.nodes() if node in val_i])):
-        # Get indices of neighbors of node i
-        neighbors = list(G.neighbors(node))
-
-        # Randomly select k neighbors (if there are fewer than k neighbors, use all of them)
-        if len(neighbors) > k:
-            neighbors = np.random.choice(neighbors, k, replace=False)
-        k_neighbors = len(neighbors)
-
-        # Flatten and concatenate node attribute vectors of neighbors
-        x_val_i = np.concatenate([pca_expr[n] for n in neighbors])
-
-        if k_neighbors < k:
-            for x in range(k-k_neighbors):
-                x_val_i = np.concatenate((x_val_i, np.zeros((q))))
-        # Set input and output matrices for node i
-        X_val.append(x_val_i)
-        Y_val.append(pyg_graph.expr[node])
-
-    X_val = np.vstack(X_val)
-    Y_val = np.vstack(Y_val)
-
-    score = model.score(X_val, Y_val)
-    print(f"Regression R2 score: {score}")
-
-    return score
-"""
-
-
-
-
+#Set GPU identifier
 gpu_uuid = "GPU-d058c48b-633a-0acc-0bc0-a2a5f0457492"
 
 # Set the environment variable to the UUID of the GPU
