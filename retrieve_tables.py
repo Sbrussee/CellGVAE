@@ -7,6 +7,6 @@ import numpy as np
 files = glob.glob('*graph_summary*.pkl')
 for file in files:
     print(f"FILE: {file}")
-    df = pd.read_pickle(file)
+    df = pd.FataFrame.from_dict(pd.read_pickle(file))
     print(df)
     df.to_csv(f"{file}.csv")
