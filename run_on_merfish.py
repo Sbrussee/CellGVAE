@@ -133,6 +133,21 @@ def apply_umap(data, title, name, anndata, celltype_key):
     plt.close()
 
 
+args.dataset = "merfish_full"
+dataset, organism, name, celltype_key = read_dataset(name, args)
+
+#Train the model on all data
+if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
+    print("Constructing graph...")
+    dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp1")
+
+print("Converting graph to PyG format...")
+if args.weight:
+    G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
+else:
+    G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
+
+
 #For both datasets do..
 for name in ['merfish_train']:
     #Read dataset
