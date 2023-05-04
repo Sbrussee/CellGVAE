@@ -143,6 +143,9 @@ apply_tsne(dataset.X.toarray(), f"tSNE of {name} data", f"tsne_{name}", dataset,
 apply_umap(dataset.X.toarray(), f"UMAP of {name} data", f"umap_{name}", dataset, celltype_key)
 variance_decomposition(dataset.X.toarray(), celltype_key, name)
 
+sc.pl.spatial(adata, use_raw=False, spot_size=0.1, title=f'Spatial celltype distribution',
+          save=f"spatial_scatter_{name}.png", color=celltype_key, size=1, show=False)
+plt.close()
 #Train the model on all data
 if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
     print("Constructing graph...")

@@ -148,6 +148,10 @@ for name in ['seqfish', 'merfish_train']:
     apply_umap(dataset.X.toarray(), f"UMAP of {name} data", f"umap_{name}", dataset, celltype_key)
 
     variance_decomposition(dataset.X.toarray(), celltype_key, name)
+    sc.pl.spatial(adata, use_raw=False, spot_size=0.1, title=f'Spatial celltype distribution',
+                  save=f"spatial_scatter_{name}.png", color=celltype_key, size=1, show=False)
+    plt.close()
+
     if '1' in experiments:
         """
         Experiment 1: Plot the latent space per celtype
@@ -165,6 +169,7 @@ for name in ['seqfish', 'merfish_train']:
             G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
 
         G = nx.convert_node_labels_to_integers(G)
+
 
         pyg_graph = pyg.utils.from_networkx(G)
         pyg_graph.expr = pyg_graph.expr.float()
