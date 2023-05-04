@@ -137,6 +137,12 @@ args.dataset = "merfish_full"
 name = 'merfish_full'
 dataset, organism, name, celltype_key = read_dataset(name, args)
 
+#Apply PCA, tSNE and UMAP to the dataset
+apply_pca(dataset.X.toarray(), f"PCA of {name} data", f"pca_{name}", dataset, celltype_key)
+apply_tsne(dataset.X.toarray(), f"tSNE of {name} data", f"tsne_{name}", dataset, celltype_key)
+apply_umap(dataset.X.toarray(), f"UMAP of {name} data", f"umap_{name}", dataset, celltype_key)
+
+
 #Train the model on all data
 if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
     print("Constructing graph...")
