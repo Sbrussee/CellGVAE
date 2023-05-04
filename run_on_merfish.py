@@ -134,6 +134,7 @@ def apply_umap(data, title, name, anndata, celltype_key):
 
 
 args.dataset = "merfish_full"
+name = 'merfish_full'
 dataset, organism, name, celltype_key = read_dataset(name, args)
 
 #Train the model on all data
