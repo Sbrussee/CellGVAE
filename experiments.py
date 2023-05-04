@@ -147,6 +147,7 @@ for name in ['seqfish', 'merfish_train']:
     apply_tsne(dataset.X.toarray(), f"tSNE of {name} data", f"tsne_{name}", dataset, celltype_key)
     apply_umap(dataset.X.toarray(), f"UMAP of {name} data", f"umap_{name}", dataset, celltype_key)
 
+````variance_decomposition(dataset.X.toarray(), celltype_key, name)
     if '1' in experiments:
         """
         Experiment 1: Plot the latent space per celtype
