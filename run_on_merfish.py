@@ -141,7 +141,7 @@ dataset, organism, name, celltype_key = read_dataset(name, args)
 apply_pca(dataset.X.toarray(), f"PCA of {name} data", f"pca_{name}", dataset, celltype_key)
 apply_tsne(dataset.X.toarray(), f"tSNE of {name} data", f"tsne_{name}", dataset, celltype_key)
 apply_umap(dataset.X.toarray(), f"UMAP of {name} data", f"umap_{name}", dataset, celltype_key)
-
+variance_decomposition(dataset.X.toarray(), celltype_key, name)
 
 #Train the model on all data
 if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
