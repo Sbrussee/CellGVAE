@@ -1184,7 +1184,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     #Get error relative to amount of expression for that gene over all cells
     sum_x = np.sum(dataset.X, axis=0) + 1e-9
     relative_error_per_gene = total_error_per_gene / sum_x
-    print(relative_error_per_gene)
+    relative_eror_per_gene = relative_eror_per_gene[0]
 
     error_per_gene = {}
     for i, gene in enumerate(dataset.var_names):
