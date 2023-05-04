@@ -2282,6 +2282,21 @@ def plot_r2_scores(r2_dict, param_name, name):
     plt.close()
 
 
+gpu_uuid = "GPU-5b3b48fd-407b-f51c-705c-e77fa81fe6f0"
+
+# Set the environment variable to the UUID of the GPU
+os.environ["CUDA_VISIBLE_DEVICES"] = gpu_uuid
+
+# Check if CUDA is available
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+print(f"Found device: {device}")
+#Set training mode to true
+TRAINING = True
+#Empty cuda memory
+torch.cuda.empty_cache()
+
+torch.backends.cuda.max_split_size_mb = 1024
 
 if __name__ == '__main__':
 
