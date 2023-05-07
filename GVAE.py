@@ -903,7 +903,13 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             #Remove slashes from celltype to be able to save them in correct directory.
             celltype = celltype.replace('/', '_')
 
-            tsne = manifold.TSNE(n_components=2, init='random')
+
+            perplexity = 300
+            #Make sure perplexity < n_samples
+            if perplexity > idx_to_plot.size:
+                perplexity = idx_to_plot - 1
+                
+            tsne = manifold.TSNE(n_components=2, init='random', perplexity=perplexity)
             tsne_z =tsne.fit_transform(z[idx_to_plot,:])
             plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1])
             plt.xlabel("t-SNE dim 1")
@@ -1182,6 +1188,8 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     sum_x = np.sum(dataset.X, axis=0) + 1e-9
     relative_error_per_gene = total_error_per_gene / sum_x
     relative_error_per_gene = relative_error_per_gene[0]
+    print("Relative error per gene shape:")
+    print(relative_error_per_gene.shape)
 
     error_per_gene = {}
     for i, gene in enumerate(dataset.var_names):
