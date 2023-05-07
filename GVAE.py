@@ -908,7 +908,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             #Make sure perplexity < n_samples
             if perplexity > idx_to_plot.size:
                 perplexity = idx_to_plot - 1
-                
+
             tsne = manifold.TSNE(n_components=2, init='random', perplexity=perplexity)
             tsne_z =tsne.fit_transform(z[idx_to_plot,:])
             plot = sns.scatterplot(x=tsne_z[:,0], y=tsne_z[:,1])
@@ -2325,7 +2325,7 @@ if __name__ == '__main__':
 
     torch.backends.cuda.max_split_size_mb = 1024
     # Set the UUID of the GPU you want to use
-    gpu_uuid = "GPU-5b3b48fd-407b-f51c-705c-e77fa81fe6f0"
+    gpu_uuid = "GPU-d058c48b-633a-0acc-0bc0-a2a5f0457492"
 
     # Set the environment variable to the UUID of the GPU
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu_uuid
