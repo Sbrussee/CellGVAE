@@ -2289,8 +2289,8 @@ def plot_r2_scores(r2_dict, param_name, name):
     plt.savefig(f"R2_{param_name}_{name}.png", dpi=300)
     plt.close()
 
-
-gpu_uuid = "GPU-d058c48b-633a-0acc-0bc0-a2a5f0457492"
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+gpu_uuid = "GPU-5b3b48fd-407b-f51c-705c-e77fa81fe6f0"
 
 # Set the environment variable to the UUID of the GPU
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_uuid
@@ -2309,7 +2309,7 @@ torch.backends.cuda.max_split_size_mb = 1024
 if __name__ == '__main__':
 
     #Set GPU identifier
-    gpu_uuid = "GPU-d058c48b-633a-0acc-0bc0-a2a5f0457492"
+    gpu_uuid = "GPU-5b3b48fd-407b-f51c-705c-e77fa81fe6f0"
 
     # Set the environment variable to the UUID of the GPU
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu_uuid
