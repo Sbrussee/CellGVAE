@@ -976,7 +976,8 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         fig.savefig(f'umap_latentspace_{name}_mean_per_celltype.png', dpi=200)
         plt.close()
 
-        pca_frame = pd.DataFrame(mean_pca_per_celltype, columns=['pca1', 'pca2', 'celltype']).replace(mapping)
+        pca_frame = pd.DataFrame(mean_pca_per_celltype, columns=['pca1', 'pca2', 'celltype'])
+        pca_frame['celltype'] = pca_frame['celltype'].replace(mapping)
         fig, ax = plt.subplots()
         ax.scatter(pca_frame['pca1'], pca_frame['pca2'])
         for i, label in enumerate(pca_frame['celltype']):
@@ -1198,7 +1199,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     #Get error relative to amount of expression for that gene over all cells
     sum_x = np.sum(dataset.X, axis=0) + 1e-9
     relative_error_per_gene = total_error_per_gene / sum_x
-    relative_error_per_gene = np.squeeze(relative_error_per_gene)
+    relative_error_per_gene = np.squeeze(relative_error_per_gene)[0]
     print("Relative error per gene shape:")
     print(relative_error_per_gene.shape)
 
