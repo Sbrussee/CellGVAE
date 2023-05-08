@@ -13,6 +13,18 @@ import itertools
 random.seed(42)
 #Set training mode to true
 TRAINING = True
+
+#Set GPU identifier
+gpu_uuid = "GPU-5b3b48fd-407b-f51c-705c-e77fa81fe6f0"
+
+# Set the environment variable to the UUID of the GPU
+os.environ["CUDA_VISIBLE_DEVICES"] = gpu_uuid
+
+# Check if CUDA is available
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+print(f"Found device: {device}")
+
 #Empty cuda memory
 torch.cuda.empty_cache()
 
@@ -132,7 +144,7 @@ apply_tsne(dataset.X.toarray(), f"tSNE of {name} data", f"tsne_{name}", dataset,
 apply_umap(dataset.X.toarray(), f"UMAP of {name} data", f"umap_{name}", dataset, celltype_key)
 variance_decomposition(dataset.X.toarray(), celltype_key, name)
 
-sc.pl.spatial(dataset, use_raw=False, spot_size=0.01, title=f'Spatial celltype distribution',
+sc.pl.spatial(dataset, use_raw=False, spot_size=0.005, title=f'Spatial celltype distribution',
           save=f"spatial_scatter_{name}.png", color=celltype_key, show=False)
 plt.close()
 #Train the model on all data
