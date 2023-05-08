@@ -947,10 +947,13 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 
 
         mapping = {k : cell_types[k] for k in range(len(cell_types))}
-        print(mapping)
         #Now plot the mean latent space points per celltype
         tsne_frame = pd.DataFrame(mean_tsne_per_celltype, columns=['tsne1', 'tsne2', 'celltype']).replace(mapping)
-        plot = sns.scatterplot(data=tsne_frame, x='tsne1', y='tsne2', hue='celltype')
+        fig, ax = plt.subplots()
+        ax.scatter(tsne_frame['tsne1'], tsne_frame['tsne2'])
+        for i, label in enumerate(tsne_frame['celltype']):
+            ax.annotate(label, (tsne_frame['tsne1'][i], tsne_frame['tsne2'][i]))
+
         plt.legend(prop={ "size" : 3})
         plt.xlabel("t-SNE dim 1")
         plt.ylabel("t-SNE dim 2")
@@ -960,7 +963,11 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         plt.close()
 
         umap_frame = pd.DataFrame(mean_umap_per_celltype, columns=['umap1', 'umap2', 'celltype']).replace(mapping)
-        plot = sns.scatterplot(data=umap_frame, x='umap1', y='umap2', hue='celltype')
+        fig, ax = plt.subplots()
+        ax.scatter(umap_frame['umap1'], umap_frame['umap2'])
+        for i, label in enumerate(umap_frame['celltype']):
+            ax.annotate(label, (umap_frame['umap1'][i], umap_frame['umap2'][i]))
+
         plt.legend(prop={ "size" : 3})
         plt.xlabel('UMAP dim 1')
         plt.ylabel('UMAP dim 2')
@@ -970,7 +977,11 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         plt.close()
 
         pca_frame = pd.DataFrame(mean_pca_per_celltype, columns=['pca1', 'pca2', 'celltype']).replace(mapping)
-        plot = sns.scatterplot(data=pca_frame, x='pca1', y='pca2', hue='celltype')
+        fig, ax = plt.subplots()
+        ax.scatter(pca_frame['pca1'], pca_frame['pca2'])
+        for i, label in enumerate(pca_frame['celltype']):
+            ax.annotate(label, (pca_frame['pca1'][i], pca_frame['pca2'][i]))
+
         plt.legend(prop={ "size" : 3})
         plt.xlabel("PC1")
         plt.ylabel("PC2")
