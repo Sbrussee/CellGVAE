@@ -11,16 +11,6 @@ import itertools
 
 #Set seed for reproducability
 random.seed(42)
-
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-
-os.environ["CUDA_VISIBLE_DEVICES"] = 7 # if you only want to make this device visible
-device = torch.cuda.device(7)
-
-# Check if CUDA is available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-print(f"Found device: {device}")
 #Set training mode to true
 TRAINING = True
 #Empty cuda memory
