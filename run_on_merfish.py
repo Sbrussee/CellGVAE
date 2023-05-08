@@ -12,11 +12,10 @@ import itertools
 #Set seed for reproducability
 random.seed(42)
 
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 
-gpu_uuid = "GPU-d058c48b-633a-0acc-0bc0-a2a5f0457492"
-
-# Set the environment variable to the UUID of the GPU
-os.environ["CUDA_VISIBLE_DEVICES"] = gpu_uuid
+os.environ["CUDA_VISIBLE_DEVICES"] = 7 # if you only want to make this device visible
+device = torch.cuda.device(7)
 
 # Check if CUDA is available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

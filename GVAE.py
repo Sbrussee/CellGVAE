@@ -2290,13 +2290,9 @@ def plot_r2_scores(r2_dict, param_name, name):
     plt.close()
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-gpu_uuid = "GPU-5b3b48fd-407b-f51c-705c-e77fa81fe6f0"
 
-# Set the environment variable to the UUID of the GPU
-os.environ["CUDA_VISIBLE_DEVICES"] = gpu_uuid
-
-# Check if CUDA is available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+os.environ["CUDA_VISIBLE_DEVICES"] = 6 # if you only want to make this device visible
+device = torch.cuda.device(6)
 
 print(f"Found device: {device}")
 #Set training mode to true
