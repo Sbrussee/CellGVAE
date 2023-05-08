@@ -2289,10 +2289,8 @@ def plot_r2_scores(r2_dict, param_name, name):
     plt.savefig(f"R2_{param_name}_{name}.png", dpi=300)
     plt.close()
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '6' # if you only want to make this device visible
-device = torch.device("cuda:6")
 
 print(f"Found device: {device}")
 #Set training mode to true

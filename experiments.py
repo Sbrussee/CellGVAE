@@ -11,16 +11,8 @@ import itertools
 
 #Set seed for reproducability
 random.seed(42)
-
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-
-gpu_uuid = "GPU-5b3b48fd-407b-f51c-705c-e77fa81fe6f0"
-
-# Set the environment variable to the UUID of the GPU
-os.environ["CUDA_VISIBLE_DEVICES"] = gpu_uuid
-
 # Check if CUDA is available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
 
 print(f"Found device: {device}")
 #Set training mode to true
