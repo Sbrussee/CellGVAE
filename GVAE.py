@@ -1200,6 +1200,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     sum_x = np.sum(dataset.X, axis=0) + 1e-9
     relative_error_per_gene = total_error_per_gene / sum_x
     relative_error_per_gene = np.reshape(relative_error_per_gene, -1)
+    print(relative_error_per_gene)
     print("Relative error per gene shape:")
     print(relative_error_per_gene.shape)
 
@@ -2371,7 +2372,7 @@ if __name__ == '__main__':
     if args.filter:
         dataset = only_retain_lr_genes(dataset)
 
-    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     #Empty cuda memory
     torch.cuda.empty_cache()
 

@@ -21,7 +21,7 @@ TRAINING = True
 #os.environ["CUDA_VISIBLE_DEVICES"] = gpu_uuid
 
 # Check if CUDA is available
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 print(f"Found device: {device}")
 
