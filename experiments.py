@@ -309,7 +309,8 @@ for name in ['seqfish', 'merfish_train']:
             print("Applying model on entire dataset...")
             #Apply on dataset
             if args.dataset == 'merfish_train':
-                dataset = read_dataset('merfish_full')
+                dataset, organism, name, celltype_key = read_dataset('merfish_full')
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp2")
             if args.adversarial:
                 apply_on_dataset(model, dataset, f'GVAE_exp2_{name}__{var}_{adv}', celltype_key, args=args, discriminator=discriminator)
             else:
@@ -411,7 +412,8 @@ for name in ['seqfish', 'merfish_train']:
                         device, name=f'set_{name}_{args.type}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             if args.dataset == 'merfish_train':
-                dataset = read_dataset('merfish_full')
+                dataset, organism, name, celltype_key = read_dataset('merfish_full')
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp2")
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{args.type}', celltype_key, args=args, discriminator=discriminator)
 
@@ -507,7 +509,8 @@ for name in ['seqfish', 'merfish_train']:
                         device, name=f'exp4_{name}_{args.type}_{prediction_mode}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             if args.dataset == 'merfish_train':
-                dataset = read_dataset('merfish_full')
+                dataset, organism, name, celltype_key = read_dataset('merfish_full')
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp2")
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_exp4_{name}_{prediction_mode}', celltype_key, args=args, discriminator=discriminator)
 
@@ -718,7 +721,8 @@ for name in ['seqfish', 'merfish_train']:
                         device, name=f'exp6_{name+filter_name}_{args.type}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             if args.dataset == 'merfish_train':
-                dataset = read_dataset('merfish_full')
+                dataset, organism, name, celltype_key = read_dataset('merfish_full')
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp2")
             #Apply on dataset
             apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filter_name}', celltype_key, args=args, discriminator=discriminator)
 
