@@ -2307,7 +2307,7 @@ def plot_r2_scores(r2_dict, param_name, name):
     plt.savefig(f"R2_{param_name}_{name}.png", dpi=300)
     plt.close()
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 print(f"Found device: {device}")
 #Set training mode to true
