@@ -330,7 +330,7 @@ for name in ['merfish_train']:
             print("Applying model on entire dataset...")
             #Apply on dataset
             if args.dataset == 'merfish_train':
-                dataset = read_dataset('merfish_full')
+                dataset = read_dataset('merfish_full', args)
             if args.adversarial:
                 apply_on_dataset(model, dataset, f'GVAE_exp2_{name}__{var}_{adv}', celltype_key, args=args, discriminator=discriminator)
             else:

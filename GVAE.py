@@ -1199,32 +1199,38 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     #Get error relative to amount of expression for that gene over all cells
     sum_x = np.sum(dataset.X, axis=0) + 1e-9
     relative_error_per_gene = total_error_per_gene / sum_x
-    relative_error_per_gene = np.squeeze(relative_error_per_gene)[0]
+    relative_error_per_gene = np.reshape(relative_error_per_gene, -1)
     print("Relative error per gene shape:")
     print(relative_error_per_gene.shape)
 
+
     error_per_gene = {}
-    for i, gene in enumerate(dataset.var_names):
-        error_per_gene[gene] = [total_error_per_gene[i],
-                                average_error_per_gene[i],
-                                relative_error_per_gene[i]]
+    try:
+        for i, gene in enumerate(dataset.var_names):
+            error_per_gene[gene] = [total_error_per_gene[i],
+                                    average_error_per_gene[i],
+                                    relative_error_per_gene[i]]
 
-    with open(f"error_per_gene_{name}.pkl", 'wb') as f:
-        pickle.dump(error_per_gene, f)
 
-    #Plot the 10 genes with highest relative error
-    error_gene_df = pd.DataFrame.from_dict(error_per_gene, orient='index',
-                                 columns=['total', 'average', 'relative']).sort_values(by='relative', axis=0, ascending=False)
-    print(error_gene_df)
-    top10 = error_gene_df.iloc[:10]
-    print(top10)
-    print(top10.reset_index())
-    sns.barplot(data=top10.reset_index(), x='relative', y='index', label='Relative prediction error', orient='h')
-    plt.xlabel('Relative prediction error')
-    plt.ylabel('Gene')
-    plt.legend()
-    plt.savefig(f'figures/gene_error_{name}.png', dpi=300)
-    plt.close()
+        with open(f"error_per_gene_{name}.pkl", 'wb') as f:
+            pickle.dump(error_per_gene, f)
+
+        #Plot the 10 genes with highest relative error
+        error_gene_df = pd.DataFrame.from_dict(error_per_gene, orient='index',
+                                     columns=['total', 'average', 'relative']).sort_values(by='relative', axis=0, ascending=False)
+        print(error_gene_df)
+        top10 = error_gene_df.iloc[:10]
+        print(top10)
+        print(top10.reset_index())
+        sns.barplot(data=top10.reset_index(), x='relative', y='index', label='Relative prediction error', orient='h')
+        plt.xlabel('Relative prediction error')
+        plt.ylabel('Gene')
+        plt.legend()
+        plt.savefig(f'figures/gene_error_{name}.png', dpi=300)
+        plt.close()
+
+    except:
+        print(f"Because of shape: {relative_error_per_gene.shape}")
 
     #Plot the error per celltype
     error_per_cell_type = {}
