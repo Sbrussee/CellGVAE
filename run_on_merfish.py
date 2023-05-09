@@ -2,7 +2,7 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
 import umap.umap_ as umap
-from GVAE import *
+from GVAE_merfish import *
 import argparse
 import pickle
 import random
