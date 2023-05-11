@@ -734,9 +734,95 @@ for name in ['seqfish', 'merfish_train']:
 
         plot_r2_scores(r2_filter, "L-R filter", f"{name}_r2scores_exp6")
 
+
     if '7' in experiments:
         """
-        Experiment 7: Score distribution divergence of diseased sample FOVs from training
+        Experiment 7: Analyze the effect of latent space size on the reconstruction accuracy as well as on the
+        latent space visualization.
+        """
+        r2_per_latent_space = {}
+        for ls in [2,4,8,16,32]:
+            #Train the model on all data
+            if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
+                print("Constructing graph...")
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp4")
+
+            print("Converting graph to PyG format...")
+            if args.weight:
+                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp4', args=args)
+            else:
+                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp4", args=args)
+
+            G = nx.convert_node_labels_to_integers(G)
+
+            pyg_graph = pyg.utils.from_networkx(G)
+            pyg_graph.expr = pyg_graph.expr.float()
+            pyg_graph.weight = pyg_graph.weight.float()
+            input_size, hidden_layers, latent_size, output_size = set_layer_sizes(pyg_graph, args=args, panel_size=dataset.n_vars)
+            latent_size = ls
+            model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, output_size, args=args)
+
+            print("Model:")
+            print(model)
+            #Send model to GPU
+            model = model.to(device)
+            model.float()
+            pyg.transforms.ToDevice(device)
+
+            #Set number of nodes to sample per epoch
+            if args.cells == -1:
+                k = G.number_of_nodes()
+            else:
+                k = args.cells
+
+            #Split dataset
+            val_i = random.sample(G.nodes(), k=1000)
+            test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
+            train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
+
+            optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
+            (loss_over_cells, train_loss_over_epochs,
+             val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
+                                                           train_i, val_i, k=k, args=args, discriminator=discriminator)
+            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
+
+            r2_per_latent_space[str(ls)] = test_dict['r2']
+
+            if args.variational:
+                var = 'variational'
+            else:
+                var = 'non-variational'
+
+            if args.adversarial:
+                adv = 'adversarial'
+            else:
+                adv = 'non-adverserial'
+
+            #Plot results
+            print("Plotting training plots...")
+            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp7_{name}_{str(ls)}.png')
+            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp7_{name}_{str(ls)}.png')
+            plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp7_{name}')
+            #Plot the latent test set
+            plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
+                        device, name=f'exp7_{name}_{str(ls)}', number_of_cells=1000, celltype_key=celltype_key, args=args)
+            print("Applying model on entire dataset...")
+            if args.dataset == 'merfish_train':
+                dataset, organism, name, celltype_key = read_dataset('merfish_full', args=args)
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp7")
+            #Apply on dataset
+            apply_on_dataset(model, dataset, f'GVAE_exp7_{name}_{str(ls)}', celltype_key, args=args, discriminator=discriminator)
+
+            model = model.cpu()
+        with open('r2_latent_space_exp7.pkl', 'wb') as file:
+            pickle.dump(r2_per_latent_space, file)
+
+        plot_r2_scores(r2_per_latent_space, "latent_space", f"{name}_r2scores_exp7")
+
+
+    if '8' in experiments:
+        """
+        Experiment 8: Score distribution divergence of diseased sample FOVs from training
         distribution on healthy sample FOVs.
         """
         organism = 'human'
