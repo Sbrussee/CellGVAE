@@ -425,18 +425,18 @@ for name in ['merfish_train']:
 
             #Plot results
             print("Plotting training plots...")
-            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp3{name}_{args.type}_{var}_{adv}.png')
+            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp3{name}_{str(type)}_{var}_{adv}.png')
             plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp3{name}_{type}_{var}_{adv}.png')
             plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp3_{name}')
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                        device, name=f'set_{name}_{args.type}', number_of_cells=1000, celltype_key=celltype_key, args=args)
+                        device, name=f'set_{name}_{str(type)}', number_of_cells=1000, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             if args.dataset == 'merfish_train':
                 dataset, organism, name, celltype_key = read_dataset('merfish_full', args=args)
                 dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp2")
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{args.type}', celltype_key, args=args, discriminator=discriminator)
+            apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{str(type)}', celltype_key, args=args, discriminator=discriminator)
 
             model = model.cpu()
 
