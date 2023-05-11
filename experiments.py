@@ -214,7 +214,7 @@ for name in ['seqfish', 'merfish_train']:
 
         #Plot the latent test set
         plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                    device, name=f'{name}_exp1', number_of_cells=10000, celltype_key=celltype_key, args=args,
+                    device, name=f'{name}_exp1', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args,
                     plot_celltypes=True)
 
         model = model.cpu()
@@ -305,7 +305,7 @@ for name in ['seqfish', 'merfish_train']:
 
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                        device, name=f'exp2_{name}_{type}_{var}_{adv}', number_of_cells=1000, celltype_key=celltype_key, args=args)
+                        device, name=f'exp2_{name}_{type}_{var}_{adv}', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             #Apply on dataset
             if args.dataset == 'merfish_train':
@@ -409,7 +409,7 @@ for name in ['seqfish', 'merfish_train']:
             plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp3_{name}')
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                        device, name=f'set_{name}_{args.type}', number_of_cells=1000, celltype_key=celltype_key, args=args)
+                        device, name=f'exp3_{name}_{str(type)}', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             if args.dataset == 'merfish_train':
                 dataset, organism, name, celltype_key = read_dataset('merfish_full')
@@ -506,7 +506,7 @@ for name in ['seqfish', 'merfish_train']:
             plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp4_{name}')
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                        device, name=f'exp4_{name}_{args.type}_{prediction_mode}', number_of_cells=1000, celltype_key=celltype_key, args=args)
+                        device, name=f'exp4_{name}_{args.type}_{prediction_mode}', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             if args.dataset == 'merfish_train':
                 dataset, organism, name, celltype_key = read_dataset('merfish_full')
@@ -718,7 +718,7 @@ for name in ['seqfish', 'merfish_train']:
             plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp6_{name}')
             #Plot the latent test set
             plot_latent(model, pyg_graph, exp6_dataset, list(dataset.obs[celltype_key].unique()),
-                        device, name=f'exp6_{name+filter_name}_{args.type}', number_of_cells=1000, celltype_key=celltype_key, args=args)
+                        device, name=f'exp6_{name+filter_name}_{args.type}', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             if args.dataset == 'merfish_train':
                 dataset, organism, name, celltype_key = read_dataset('merfish_full')
@@ -805,7 +805,7 @@ for name in ['seqfish', 'merfish_train']:
             plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp7_{name}')
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                        device, name=f'exp7_{name}_{str(ls)}', number_of_cells=1000, celltype_key=celltype_key, args=args)
+                        device, name=f'exp7_{name}_{str(ls)}', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             if args.dataset == 'merfish_train':
                 dataset, organism, name, celltype_key = read_dataset('merfish_full', args=args)
