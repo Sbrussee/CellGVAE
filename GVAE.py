@@ -1210,7 +1210,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
         for i, gene in enumerate(dataset.var_names):
             error_per_gene[gene] = [total_error_per_gene[i],
                                     average_error_per_gene[i],
-                                    relative_error_per_gene[i]]
+                                    relative_error_per_gene[0][i]]
 
 
         with open(f"error_per_gene_{name}.pkl", 'wb') as f:
