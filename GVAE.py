@@ -2238,9 +2238,11 @@ def spatial_analysis(adata, celltype_key, name):
     sc.pl.spatial(adata, use_raw=False, spot_size=0.1, title=f'Spatial celltype distribution',
                   save=f"spatial_scatter_{name}.png", color=celltype_key, size=1, show=False)
     plt.close()
+    """
     sq.gr.nhood_enrichment(adata, cluster_key=celltype_key)
     sq.pl.nhood_enrichment(adata, cluster_key=celltype_key, method="ward", save=name+"ngb_enrichment.pdf")
     plt.close()
+    """
     """
     for celltype in np.unique(adata.obs[celltype_key]):
         sq.gr.co_occurrence(adata, cluster_key=celltype_key)
@@ -2255,9 +2257,11 @@ def spatial_analysis(adata, celltype_key, name):
     """
 
     mode = "L"
+    """
     sq.gr.ripley(adata, cluster_key=celltype_key, mode=mode, max_dist=500)
     sq.pl.ripley(adata, cluster_key=celltype_key, mode=mode, save=name+"_ripley.png")
     plt.close()
+    """
     return adata
 
 def only_retain_lr_genes(anndata):
