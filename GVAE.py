@@ -865,7 +865,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
     print('UMAP..')
     mapper = umap.UMAP()
     umap_z = mapper.fit_transform(z[:number_of_cells,:])
-    plot = sns.scatterplot(x=umap_z[:,0], y=umap_z[:,1], s=0.1 hue=list(anndata[:number_of_cells,:].obs[celltype_key]))
+    plot = sns.scatterplot(x=umap_z[:,0], y=umap_z[:,1], s=0.1, hue=list(anndata[:number_of_cells,:].obs[celltype_key]))
     plot.legend(fontsize=3)
     plt.xlabel("UMAP dim 1")
     plt.ylabel("UMAP dim 2")
