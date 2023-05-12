@@ -1121,7 +1121,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     batch = batch.to(device)
 
     total_r2_dataset = 0
-    for cell in tqdm(G.nodes()):
+    for cell in tqdm(list(G)):
         orig_expr = batch.expr[cell, :]
         batch.expr[cell, :].fill_(0.0)
         assert batch.expr[cell, :].sum() == 0
@@ -1478,7 +1478,7 @@ def remove_same_cell_type_edges(G):
     Returns:
         -G: Networkx graph, with removed edges
     """
-    for node in G.nodes():
+    for node in list(G):
         cell_type = G.nodes[node]['cell_type']
         neighbors = list(G.neighbors(node))
         for neighbor in neighbors:
@@ -1510,7 +1510,7 @@ def remove_node_attributes(G, attr):
     Returns:
         -G: Networkx graph, without the specified attribute.
     """
-    for node in G.nodes():
+    for node in list(G):
         del G.nodes[node][attr]
     return G
 
@@ -1526,7 +1526,7 @@ def remove_similar_celltype_edges(G):
         -G: Networkx Graph, with removed edges.
 
     """
-    for node in G.nodes():
+    for node in list(G):
         cell_type = G.nodes[node]['cell_type']
         neighbors = list(G.neighbors(node))
         for neighbor in neighbors:
@@ -2434,9 +2434,9 @@ if __name__ == '__main__':
         k = args.cells
 
     #Split dataset
-    val_i = random.sample(G.nodes(), k=1000)
-    test_i = random.sample([node for node in G.nodes() if node not in val_i], k=1000)
-    train_i = [node for node in G.nodes() if node not in val_i and node not in test_i]
+    val_i = random.sample(list(G), k=1000)
+    test_i = random.sample([node for node in list(G) if node not in val_i], k=1000)
+    train_i = [node for node in list(G) if node not in val_i and node not in test_i]
 
     optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
     (loss_over_cells, train_loss_over_epochs,
@@ -2466,4 +2466,3 @@ if __name__ == '__main__':
     apply_on_dataset(model, dataset, 'GVAE_GCN_SeqFISH', celltype_key, args=args)
 
     model = model.cpu()
-
