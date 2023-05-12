@@ -60,6 +60,7 @@ args.normalization = 'Normal'
 args.remove_same_type_edges = False
 args.remove_subtype_edges = False
 args.prediction_mode = 'expression'
+args.hidden = '128,64,32'
 args.neighbors = 6
 args.latent = 16
 args.threshold = -1
