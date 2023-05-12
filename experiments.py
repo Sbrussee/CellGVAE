@@ -61,7 +61,6 @@ args.remove_subtype_edges = False
 args.prediction_mode = 'expression'
 args.neighbors = 6
 args.latent = 16
-a
 args.threshold = -1
 args.variational = True
 args.adversarial = True
