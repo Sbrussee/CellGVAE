@@ -902,7 +902,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             celltype = celltype.replace('/', '_')
 
 
-            perplexity = 300
+            perplexity = 30
             #Make sure perplexity < n_samples
             if perplexity > len(list(idx_to_plot)):
                 perplexity = len(list(idx_to_plot))-5
