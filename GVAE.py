@@ -898,16 +898,14 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             #Select all Anndata entries for the given celltype
             obs_names = anndata[anndata.obs[celltype_key] == celltype].obs_names
             idx_to_plot = anndata.obs.index.get_indexer(obs_names)
-            print(idx_to_plot)
-
             #Remove slashes from celltype to be able to save them in correct directory.
             celltype = celltype.replace('/', '_')
 
 
             perplexity = 300
             #Make sure perplexity < n_samples
-            if perplexity > idx_to_plot.size:
-                perplexity = idx_to_plot.size - 1
+            if perplexity > len(list(idx_to_plot))
+                perplexity = len((list(idx_to_plot)) - 5
 
             tsne = manifold.TSNE(n_components=2, init='random', perplexity=perplexity)
             tsne_z =tsne.fit_transform(z[idx_to_plot,:])
