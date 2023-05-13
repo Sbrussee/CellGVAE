@@ -904,7 +904,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 
             perplexity = 300
             #Make sure perplexity < n_samples
-            if perplexity > len(list(idx_to_plot))
+            if perplexity > len(list(idx_to_plot)):
                 perplexity = len((list(idx_to_plot)) - 5
 
             tsne = manifold.TSNE(n_components=2, init='random', perplexity=perplexity)
