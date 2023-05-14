@@ -2391,7 +2391,7 @@ if __name__ == '__main__':
 
     if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
         print("Constructing graph...")
-        dataset = construct_graph(dataset, args=args, celtype_key=celltype_key, name=name)
+        dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name)
 
     print("Converting graph to PyG format...")
     if args.weight:
