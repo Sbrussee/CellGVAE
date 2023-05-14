@@ -2431,7 +2431,7 @@ if __name__ == '__main__':
     optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
     (loss_over_cells, train_loss_over_epochs,
      val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
-                                                   train_i, val_i, k=k, args=args, discriminator=discriminator, dataset=None)
+                                                   train_i, val_i, k=k, args=args, discriminator=discriminator, dataset=dataset)
     test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
     if args.variational:
