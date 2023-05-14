@@ -13,8 +13,9 @@ import torch.nn.functional as F
 import torch.distributions
 import torch_geometric as pyg
 import torch_geometric.transforms as T
+from torch_geometric.utils import to_scipy_sparse_matrix
 from torch_geometric.nn import GCNConv, GATConv, SAGEConv
-from torch_geometric.nn.models.autoencoder import ARGVA, ARGA
+from torch_geometric.nn.models.autoencoder import ARGVA, ARGA, InnerProductDecoder
 from torch_geometric.nn.sequential import Sequential
 
 #Helper functions
@@ -1989,7 +1990,7 @@ def get_optimizer_list(model, args, discriminator=None):
         opt_list.append(discriminator_optimizer)
     return opt_list
 
-def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminator=None):
+def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminator=None, dataset=None):
     """
     Function which contains the training loop for the pytorch geometric model.
     It also validates the model and it saves performance results.
@@ -2059,6 +2060,13 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         cells_seen += len(cells)
         print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
 
+        if args.ipd:
+            #Add MSE for Inner Product Decoder
+            A_hat = ipd.forward(get_latent_space_vectors(model, pyg_graph, dataset, device, args=args))
+            A = to_scipy_sparse_matrix(pyg_graph.edge_index).toarray()
+            total_loss_over_cells += np.mean((A - A_hat) ** 2)
+
+        #Add
         #Calculate training gradients
         total_loss_over_cells.backward()
         #Clip gradients
@@ -2367,6 +2375,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layers', default='64,32')
     arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
     arg_parser.add_argument('-f', '--filter', action='store_true', help='Whether to filter out non-LR genes', default=False)
+    arg_parser.add_argument('-ipd', '--innerproduct', action='store_true', help="Whether to add the IPD loss to the model", default=False)
     args = arg_parser.parse_args()
 
     dataset, organism, name, celltype_key = read_dataset(args.dataset, args=args)
@@ -2422,7 +2431,7 @@ if __name__ == '__main__':
     optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
     (loss_over_cells, train_loss_over_epochs,
      val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
-                                                   train_i, val_i, k=k, args=args, discriminator=discriminator)
+                                                   train_i, val_i, k=k, args=args, discriminator=discriminator, dataset=None)
     test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
     if args.variational:
