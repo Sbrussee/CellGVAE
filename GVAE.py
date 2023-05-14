@@ -2395,9 +2395,9 @@ if __name__ == '__main__':
 
     print("Converting graph to PyG format...")
     if args.weight:
-        G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.obsm['X_pca'], dataset.obs[celltype_key], name+'_train', args=args)
+        G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset['X'], dataset.obs[celltype_key], name+'_train', args=args)
     else:
-        G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.obsm['X_pca'], dataset.obs[celltype_key], name+'_train', args=args)
+        G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset['X'],, dataset.obs[celltype_key], name+'_train', args=args)
     G = nx.convert_node_labels_to_integers(G)
 
     pyg_graph = pyg.utils.from_networkx(G)
