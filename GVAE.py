@@ -2159,7 +2159,7 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
         test_batch = test_batch.to(device)
         assert test_batch.expr[cell, :].sum() == 0
         test_loss, x_hat = validate(model.to(device), test_batch, pyg_graph.expr[cell].to(device), cell, pyg_graph.weight.to(device), args=args, discriminator=discriminator)
-        total_r2_test += r2_score(pyg_graph.expr[cell], x_hat.cpu())
+        total_r2_test += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
         total_test_loss += test_loss
         test_batch = test_batch.cpu()
         del test_batch
