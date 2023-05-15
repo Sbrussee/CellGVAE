@@ -2054,17 +2054,19 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             total_loss_over_cells += loss
             if args.adversarial:
                 total_disc_loss += discriminator_loss
+        if args.innerproduct:
+            print(f"average MSE without IPD: {total_loss_over_cells/len(cells)}")
+            #Add MSE for Inner Product Decoder
+            ipd = InnerProductDecoder().cuda()
+            A_hat = InnerProductDecoder.forward(get_latent_space_vectors(model, pyg_graph, dataset, device, args=args))
+            A = to_scipy_sparse_matrix(pyg_graph.edge_index).toarray()
+            total_loss_over_cells += np.mean((A - A_hat) ** 2)
         batch = batch.cpu()
         cells_seen += len(cells)
         print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
 
-        if args.innerproduct:
-            #Add MSE for Inner Product Decoder
-            A_hat = InnerProductDecoder.forward(get_latent_space_vectors(model, pyg_graph, dataset, device, args=args))
-            A = to_scipy_sparse_matrix(pyg_graph.edge_index).toarray()
-            total_loss_over_cells += np.mean((A - A_hat) ** 2)
 
-        #Add
+
         #Calculate training gradients
         total_loss_over_cells.backward()
         #Clip gradients
