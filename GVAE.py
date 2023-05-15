@@ -2023,7 +2023,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
     else:
         optimizer = optimizer_list[0]
 
-
+    print(f"k={k}")
     print("Training the model...")
     #Train for specified number of epochs
     for epoch in range(1, args.epochs+1):
@@ -2421,6 +2421,8 @@ if __name__ == '__main__':
         k = G.number_of_nodes()
     else:
         k = args.cells
+
+    print(k)
 
     #Split dataset
     val_i = random.sample(list(G), k=1000)
