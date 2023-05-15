@@ -2041,7 +2041,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             batch.expr.fill_(0.0)
             assert batch.expr.sum() < 0.1
         else:
-            batch.expr.index_fill_(0, torch.tensor(cells).cpu(), 0.0)
+            batch.expr.index_fill_(0, torch.tensor(cells), 0.0)
             assert batch.expr[cells, :].sum() < 0.1
         batch = batch.to(device)
         #Calculate loss for each cell
@@ -2064,6 +2064,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             print(ipd_loss)
             total_loss_over_cells += ipd_loss.to(device)
             ipd_loss = ipd_loss.cpu()
+            pyg_graph = pyg_graph.cpu() 
         batch = batch.cpu()
         cells_seen += len(cells)
         print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
