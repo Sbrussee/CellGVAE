@@ -2041,7 +2041,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             batch.expr.fill_(0.0)
             assert batch.expr.sum() < 0.1
         else:
-            batch.expr.index_fill_(0, torch.tensor(cells), 0.0)
+            batch.expr.index_fill_(0, torch.tensor(cells).cpu(), 0.0)
             assert batch.expr[cells, :].sum() < 0.1
         batch = batch.to(device)
         #Calculate loss for each cell
