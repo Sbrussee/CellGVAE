@@ -2060,7 +2060,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             ipd = InnerProductDecoder()
             A_hat = ipd.forward_all(torch.from_numpy(get_latent_space_vectors(model, pyg_graph.to(device), dataset, device, args=args))).cpu()
             A = torch.from_numpy(to_scipy_sparse_matrix(pyg_graph.edge_index).toarray()).cpu()
-            ipd_loss = torch.sum((A - A_hat) ** 2))
+            ipd_loss = torch.sum((A - A_hat) ** 2)
             print(ipd_loss)
             total_loss_over_cels += ipd_loss.to(device)
             ipd_loss = ipd_loss.cpu()
