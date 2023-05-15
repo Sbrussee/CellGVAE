@@ -2111,7 +2111,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
                 assert val_batch.expr[val_cells, :].sum() < 0.1
             for cell in val_cells:
                 val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell].to(device), cell, pyg_graph.weight.to(device), args=args, discriminator=discriminator)
-                total_r2 += r2_score(pyg_graph.expr[cell], x_hat.cpu())
+                total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
                 total_val_loss += val_loss
 
             val_batch = val_batch.cpu()
