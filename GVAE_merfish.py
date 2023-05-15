@@ -1149,14 +1149,14 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     dataset.obs['total_counts'] = np.sum(true_expr, axis=1)
     print(dataset.obs['total_counts'])
     print(dataset.obs['total_counts'].shape)
-    sc.pl.spatial(dataset, layer='X', spot_size=0.05, color=['total_counts'],
+    sc.pl.spatial(dataset, layer='X', spot_size=0.02, color=['total_counts'],
                   title="Spatial distribution of true expression",
                   save=f"true_expr_spatial_{name}_all_genes.png", show=False)
     plt.close()
     #Plot the predicted expression spatially
     dataset.layers['pred'] = pred_expr
     dataset.obs['total_pred'] = np.sum(dataset.layers['pred'], axis=1)
-    sc.pl.spatial(dataset, layer='pred', spot_size=0.05, color=['total_pred'],
+    sc.pl.spatial(dataset, layer='pred', spot_size=0.02, color=['total_pred'],
                   title='Spatial distribution of predicted expression',
                   save=f"predicted_expr_spatial_{name}_all_genes.png", show=False)
     plt.close()
@@ -1166,10 +1166,10 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     dataset.obs['total_error'] = np.sum(dataset.layers['error'], axis=1)
     dataset.obs['relative_error'] = dataset.obs['total_error'] / dataset.obs['total_counts']
     #Plot the prediction error spatially
-    sc.pl.spatial(dataset, layer='error', spot_size=0.05, title='Spatial distribution of total prediction error',
+    sc.pl.spatial(dataset, layer='error', spot_size=0.02, title='Spatial distribution of total prediction error',
                   save=f"total_error_spatial_{name}.png", color=['total_error'], show=False)
     plt.close()
-    sc.pl.spatial(dataset, layer='error', spot_size=0.01, title='Spatial distribution of relative prediction error',
+    sc.pl.spatial(dataset, layer='error', spot_size=0.02, title='Spatial distribution of relative prediction error',
                   save=f"relative_error_spatial_{name}.png", color=['relative_error'],  show=False)
     plt.close()
 
@@ -1177,11 +1177,11 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     i = 0
     #Plot spatial predicted expression and error per gene
     for gene in dataset.var_names:
-        sc.pl.spatial(dataset, use_raw=False, color=[gene], spot_size=0.05,
+        sc.pl.spatial(dataset, use_raw=False, color=[gene], spot_size=0.02,
                       title=f'Spatial distribution of predicted expression of {gene}',
                       save=f"predicted_expr_spatial_{name}_{gene}.png", show=False)
         plt.close()
-        sc.pl.spatial(dataset, layer='error', color=[gene], spot_size=0.05,
+        sc.pl.spatial(dataset, layer='error', color=[gene], spot_size=0.02,
                       title=f'Spatial distribution of prediction error of {gene}',
                       save=f"error_spatial_{name}_{gene}.png", show=False)
         plt.close()
@@ -2233,7 +2233,7 @@ def spatial_analysis(adata, celltype_key, name):
     Returns:
         -adata (anndata): Dataset with additional spatial information saved.
     """
-    sc.pl.spatial(adata, use_raw=False, spot_size=0.05, title=f'Spatial celltype distribution',
+    sc.pl.spatial(adata, use_raw=False, spot_size=0.02, title=f'Spatial celltype distribution',
                   save=f"spatial_scatter_{name}.png", color=celltype_key,  show=False)
     plt.close()
     """
