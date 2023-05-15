@@ -1,4 +1,4 @@
-#Import main libaries
+if args.innerproduct#Import main libaries
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -2023,7 +2023,6 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
     else:
         optimizer = optimizer_list[0]
 
-    print(f"k={k}")
     print("Training the model...")
     #Train for specified number of epochs
     for epoch in range(1, args.epochs+1):
@@ -2059,7 +2058,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
         cells_seen += len(cells)
         print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
 
-        if args.ipd:
+        if args.innerproduct:
             #Add MSE for Inner Product Decoder
             A_hat = ipd.forward(get_latent_space_vectors(model, pyg_graph, dataset, device, args=args))
             A = to_scipy_sparse_matrix(pyg_graph.edge_index).toarray()
