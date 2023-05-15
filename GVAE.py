@@ -2060,7 +2060,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
 
         if args.innerproduct:
             #Add MSE for Inner Product Decoder
-            A_hat = ipd.forward(get_latent_space_vectors(model, pyg_graph, dataset, device, args=args))
+            A_hat = InnerProductDecoder.forward(get_latent_space_vectors(model, pyg_graph, dataset, device, args=args))
             A = to_scipy_sparse_matrix(pyg_graph.edge_index).toarray()
             total_loss_over_cells += np.mean((A - A_hat) ** 2)
 
@@ -2380,6 +2380,9 @@ if __name__ == '__main__':
 
     if args.filter:
         dataset = only_retain_lr_genes(dataset)
+
+    if args.innerproduct:
+        name = name + "_IPD_"
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     #Empty cuda memory
