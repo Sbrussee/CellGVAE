@@ -1,4 +1,4 @@
-if args.innerproduct#Import main libaries
+#Import main libaries
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
