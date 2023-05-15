@@ -2060,7 +2060,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             ipd = InnerProductDecoder().to(device)
             A_hat = ipd.forward_all(torch.from_numpy(get_latent_space_vectors(model, pyg_graph.to(device), dataset, device, args=args)).to(device)).cpu()
             A = torch.from_numpy(to_scipy_sparse_matrix(pyg_graph.edge_index).toarray())
-            total_loss_over_cells += torch.from_numpy((A - A_hat) ** 2)).to(device)
+            total_loss_over_cells += torch.from_numpy((A - A_hat) ** 2).to(device)
         batch = batch.cpu()
         cells_seen += len(cells)
         print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
