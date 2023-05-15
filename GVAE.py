@@ -2326,7 +2326,7 @@ TRAINING = True
 #Empty cuda memory
 torch.cuda.empty_cache()
 
-torch.backends.cuda.max_split_size_mb = 1024
+torch.backends.cuda.max_split_size_mb = 512
 
 if __name__ == '__main__':
 
@@ -2360,7 +2360,7 @@ if __name__ == '__main__':
     if args.innerproduct:
         name = name + "_IPD_"
 
-    device = torch.device('cuda:4' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:6' if torch.cuda.is_available() else 'cpu')
     #Empty cuda memory
     torch.cuda.empty_cache()
 
