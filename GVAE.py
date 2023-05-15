@@ -2062,7 +2062,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             A = torch.from_numpy(to_scipy_sparse_matrix(pyg_graph.edge_index).toarray()).cpu()
             ipd_loss = torch.sum((A - A_hat) ** 2)
             print(ipd_loss)
-            total_loss_over_cels += ipd_loss.to(device)
+            total_loss_over_cells += ipd_loss.to(device)
             ipd_loss = ipd_loss.cpu()
         batch = batch.cpu()
         cells_seen += len(cells)
