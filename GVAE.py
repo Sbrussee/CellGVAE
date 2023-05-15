@@ -2058,11 +2058,11 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             print(f"average MSE without IPD: {total_loss_over_cells/len(cells)}")
             #Add MSE for Inner Product Decoder
             ipd = InnerProductDecoder().to(device)
-            A_hat = ipd.forward_all(torch.from_numpy(get_latent_space_vectors(model, pyg_graph.to(device), dataset, device, args=args)).to(device))
+            A_hat = ipd.forward_all(torch.from_numpy(get_latent_space_vectors(model, pyg_graph.to(device), dataset, device, args=args)).to(device)).cpu()
             print(A_hat)
             A = torch.from_numpy(to_scipy_sparse_matrix(pyg_graph.edge_index).toarray())
             print(A)
-            total_loss_over_cells += np.mean((A - A_hat.cpu()) ** 2)
+            total_loss_over_cells += np.mean((A - A_hat) ** 2)
         batch = batch.cpu()
         cells_seen += len(cells)
         print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
