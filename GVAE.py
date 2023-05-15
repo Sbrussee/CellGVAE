@@ -2062,7 +2062,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             print(A_hat)
             A = torch.from_numpy(to_scipy_sparse_matrix(pyg_graph.edge_index).toarray())
             print(A)
-            total_loss_over_cells += (A.numpy() - A_hat.numpy()) ** 2)
+            total_loss_over_cells += (A.numpy() - A_hat.numpy()) ** 2
         batch = batch.cpu()
         cells_seen += len(cells)
         print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
