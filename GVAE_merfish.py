@@ -947,9 +947,13 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
             mean_pca_per_celltype[i, 2] = i
 
 
+        plt.close()
+        plt.figure()
         mapping = {k : cell_types[k] for k in range(len(cell_types))}
+        print(mapping)
         #Now plot the mean latent space points per celltype
         tsne_frame = pd.DataFrame(mean_tsne_per_celltype, columns=['tsne1', 'tsne2', 'celltype']).replace(mapping)
+        print(tsne_frame)
         fig, ax = plt.subplots()
         ax.scatter(tsne_frame['tsne1'], tsne_frame['tsne2'])
         for i, label in enumerate(tsne_frame['celltype']):
@@ -963,6 +967,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         fig.savefig(f'tsne_latentspace_{name}_mean_per_celltype.png', dpi=200)
         plt.close()
 
+        plt.figure()
         umap_frame = pd.DataFrame(mean_umap_per_celltype, columns=['umap1', 'umap2', 'celltype']).replace(mapping)
         fig, ax = plt.subplots()
         ax.scatter(umap_frame['umap1'], umap_frame['umap2'])
@@ -977,6 +982,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         fig.savefig(f'umap_latentspace_{name}_mean_per_celltype.png', dpi=200)
         plt.close()
 
+        plt.figure()
         pca_frame = pd.DataFrame(mean_pca_per_celltype, columns=['pca1', 'pca2', 'celltype'])
         pca_frame['celltype'] = pca_frame['celltype'].replace(mapping)
         fig, ax = plt.subplots()
