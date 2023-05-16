@@ -366,7 +366,8 @@ for name in ['merfish_train']:
 
         plot_r2_scores(r2_per_comb, "core model", f"{name}_r2scores_exp2")
 
-
+    args.variational = True
+    args.adversarial = True
 
     if '3' in experiments:
         """
@@ -374,8 +375,6 @@ for name in ['merfish_train']:
         (e.g. GCN, GAT)
         """
         r2_per_type = {}
-        args.variational = True
-        args.adversarial = True
         for type in ['GCN', 'GAT', 'SAGE_max', 'SAGE_mean']:
             if type == 'SAGE_max':
                 args.type = 'SAGE'
@@ -444,7 +443,7 @@ for name in ['merfish_train']:
             plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp3_{name}')
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                        device, name=f'set_{name}_{str(type)}', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
+                        device, name=f'exp3_{name}_{str(type)}', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             if args.dataset == 'merfish_train':
                 args.dataset = 'merfish_full'
@@ -461,6 +460,7 @@ for name in ['merfish_train']:
 
         plot_r2_scores(r2_per_type, "model type", f"{name}_r2scores_exp3")
 
+    args.type = 'GCN'
     if '4' in experiments:
         """
         Experiment 4: Assess differences using different sets of inputs
@@ -479,7 +479,7 @@ for name in ['merfish_train']:
                 args.prediction_mode = 'spatial'
                 args.type = 'GCN'
             elif prediction_mode == 'spatial+expression':
-                args.prediction_mode = 'spatial'
+                args.prediction_mode = 'expression'
                 args.type = 'GCN'
             #Train the model on all data
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
@@ -610,8 +610,6 @@ for name in ['merfish_train']:
         for threshold in [5, 10, 25, 50]:
             args.threshold = threshold
             args.neighbors = -1
-            args.threshold = -1
-            args.neighbors = neighbors
             #Train the model on all data
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
@@ -664,6 +662,8 @@ for name in ['merfish_train']:
 
         plot_r2_scores(r2_thresholds, "neighbors", f"{name}_r2scores_exp5_neighbors")
 
+    args.neighbors = 6
+    args.threshold = -1
     if '6' in experiments:
         """
         Experiment 6: LR-analysis using LR-filtered and Unfiltered dataset.
@@ -756,6 +756,7 @@ for name in ['merfish_train']:
 
         plot_r2_scores(r2_filter, "L-R filter", f"{name}_r2scores_exp6")
 
+    args.filter = False
     if '7' in experiments:
         """
         Experiment 7: Analyze the effect of latent space size on the reconstruction accuracy as well as on the
@@ -837,6 +838,7 @@ for name in ['merfish_train']:
 
         plot_r2_scores(r2_per_latent_space, "latent_space", f"{name}_r2scores_exp7")
 
+    args.latent = 16
     if '8' in experiments:
         """
         Experiment 8: See how the latent space is affected when jointly optimizing graph reconstruction

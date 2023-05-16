@@ -188,7 +188,6 @@ for name in ['seqfish', 'merfish_train']:
 
         G = nx.convert_node_labels_to_integers(G)
 
-
         pyg_graph = pyg.utils.from_networkx(G)
         pyg_graph.expr = pyg_graph.expr.float()
         pyg_graph.weight = pyg_graph.weight.float()
@@ -207,11 +206,6 @@ for name in ['seqfish', 'merfish_train']:
             k = G.number_of_nodes()
         else:
             k = args.cells
-
-        #Split dataset
-        val_i = random.sample(list(G), k=1000)
-        test_i = random.sample([node for node in list(G) if node not in val_i], k=1000)
-        train_i = [node for node in list(G) if node not in val_i and node not in test_i]
 
         optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
         (loss_over_cells, train_loss_over_epochs,
@@ -341,7 +335,8 @@ for name in ['seqfish', 'merfish_train']:
         plot_r2_scores(r2_per_comb, "core model", f"{name}_r2scores_exp2")
 
 
-
+    args.variational = True
+    args.adversarial = True
     if '3' in experiments:
         """
         Experiment 3: Assess differences using various GNN encoder models
@@ -433,6 +428,7 @@ for name in ['seqfish', 'merfish_train']:
 
         plot_r2_scores(r2_per_type, "model type", f"{name}_r2scores_exp3")
 
+    args.type = 'GCN'
     if '4' in experiments:
         """
         Experiment 4: Assess differences using different sets of inputs
@@ -451,7 +447,7 @@ for name in ['seqfish', 'merfish_train']:
                 args.prediction_mode = 'spatial'
                 args.type = 'GCN'
             elif prediction_mode == 'spatial+expression':
-                args.prediction_mode = 'spatial'
+                args.prediction_mode = 'expression'
                 args.type = 'GCN'
             #Train the model on all data
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
@@ -524,6 +520,7 @@ for name in ['seqfish', 'merfish_train']:
 
         plot_r2_scores(r2_per_prediction_mode, "prediction mode", f"{name}_r2scores_exp4")
 
+    args.prediction_mode = 'expression'
     if '5' in experiments:
         """
         Experiment 5: Assess differences in niche construction (neighbor-wise, threshold-wise).
@@ -580,8 +577,6 @@ for name in ['seqfish', 'merfish_train']:
         for threshold in [5, 10, 25, 50]:
             args.threshold = threshold
             args.neighbors = -1
-            args.threshold = -1
-            args.neighbors = neighbors
             #Train the model on all data
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
@@ -634,6 +629,8 @@ for name in ['seqfish', 'merfish_train']:
 
         plot_r2_scores(r2_thresholds, "neighbors", f"{name}_r2scores_exp5_neighbors")
 
+    args.neighbors = 6
+    args.threshold = -1
     if '6' in experiments:
         """
         Experiment 6: LR-analysis using LR-filtered and Unfiltered dataset.
@@ -723,7 +720,7 @@ for name in ['seqfish', 'merfish_train']:
 
         plot_r2_scores(r2_filter, "L-R filter", f"{name}_r2scores_exp6")
 
-
+    args.filter = False
     if '7' in experiments:
         """
         Experiment 7: Analyze the effect of latent space size on the reconstruction accuracy as well as on the
@@ -734,13 +731,13 @@ for name in ['seqfish', 'merfish_train']:
             #Train the model on all data
             if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
                 print("Constructing graph...")
-                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp4")
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp7")
 
             print("Converting graph to PyG format...")
             if args.weight:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp4', args=args)
+                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp7', args=args)
             else:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp4", args=args)
+                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp7", args=args)
 
             G = nx.convert_node_labels_to_integers(G)
 
@@ -803,6 +800,7 @@ for name in ['seqfish', 'merfish_train']:
 
         plot_r2_scores(r2_per_latent_space, "latent_space", f"{name}_r2scores_exp7")
 
+    args.latent = 16
     if '8' in experiments:
         """
         Experiment 8: See how the latent space is affected when jointly optimizing graph reconstruction
@@ -886,7 +884,7 @@ for name in ['seqfish', 'merfish_train']:
 
         plot_r2_scores(r2_innerproductdecoder, "IPD", f"{name}_r2scores_exp8")
 
-
+    args.innerproduct = False
     if '9' in experiments:
         """
         Experiment 8: Score distribution divergence of diseased sample FOVs from training
