@@ -149,6 +149,8 @@ variance_decomposition(dataset.X.toarray(), celltype_key, name)
 sc.pl.spatial(dataset, use_raw=False, spot_size=0.005, title=f'Spatial celltype distribution',
           save=f"spatial_scatter_{name}.png", color=celltype_key, show=False)
 plt.close()
+
+#First build the graph for the full MERFISH dataset
 #Train the model on all data
 if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
     print("Constructing graph...")
@@ -160,12 +162,26 @@ if args.weight:
 else:
     G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
 
+#Now do the same for merfish_train to select data splits
+name='merfish_train'
+dataset, organism, name, celltype_key = read_dataset(name, args)
+
+#First build the graph for the full MERFISH dataset
+#Train the model on all data
+if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
+    print("Constructing graph...")
+    dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp1")
+
+print("Converting graph to PyG format...")
+if args.weight:
+    G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_train', args=args)
+else:
+    G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
 
 #Split dataset
 val_i = random.sample(list(G), k=1000)
 test_i = random.sample([node for node in list(G) if node not in val_i], k=1000)
 train_i = [node for node in list(G) if node not in val_i and node not in test_i]
-
 
 #For both datasets do..
 for name in ['merfish_train']:
