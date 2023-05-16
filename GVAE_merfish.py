@@ -1151,7 +1151,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
 
     #Apply LR analysis
     ligand_receptor_analysis(dataset, pred_expr, name, celltype_key)
-
+    plt.close()
     #Plot the true expression spatially
     dataset.obs['total_counts'] = np.sum(true_expr, axis=1)
     print(dataset.obs['total_counts'])
@@ -1160,6 +1160,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
                   title="Spatial distribution of true expression",
                   save=f"true_expr_spatial_{name}_all_genes.png", show=False)
     plt.close()
+    plt.figure()
     #Plot the predicted expression spatially
     dataset.layers['pred'] = pred_expr
     dataset.obs['total_pred'] = np.sum(dataset.layers['pred'], axis=1)
@@ -1167,6 +1168,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
                   title='Spatial distribution of predicted expression',
                   save=f"predicted_expr_spatial_{name}_all_genes.png", show=False)
     plt.close()
+    plt.figure()
 
     #Calculate prediction error, calculate relative prediction error
     dataset.layers['error'] = np.absolute(true_expr - pred_expr)
