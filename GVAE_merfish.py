@@ -1186,7 +1186,11 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     i = 0
     #Plot spatial predicted expression and error per gene
     for gene in dataset.var_names:
-        sc.pl.spatial(dataset, use_raw=False, color=[gene], spot_size=0.02,
+        sc.pl.spatial(dataset, layer='X', color=[gene], spot_size=0.02,
+                      title=f'Spatial distribution of predicted expression of {gene}',
+                      save=f"true_expr_spatial_{name}_{gene}.png", show=False)
+        plt.close()
+        sc.pl.spatial(dataset, layer='pred', color=[gene], spot_size=0.02,
                       title=f'Spatial distribution of predicted expression of {gene}',
                       save=f"predicted_expr_spatial_{name}_{gene}.png", show=False)
         plt.close()
