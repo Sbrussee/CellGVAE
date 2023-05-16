@@ -16,7 +16,7 @@ import torch_geometric.transforms as T
 from torch_geometric.nn import GCNConv, GATConv, SAGEConv
 from torch_geometric.nn.models.autoencoder import ARGVA, ARGA, InnerProductDecoder
 from torch_geometric.nn.sequential import Sequential
-from torch.geometric.utils import to_scipy_sparse_matrix
+from torch_geometric.utils import to_scipy_sparse_matrix
 
 #Helper functions
 from scipy.sparse.csgraph import laplacian
