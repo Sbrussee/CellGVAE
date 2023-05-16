@@ -161,6 +161,12 @@ else:
     G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_train", args=args)
 
 
+#Split dataset
+val_i = random.sample(list(G), k=1000)
+test_i = random.sample([node for node in list(G) if node not in val_i], k=1000)
+train_i = [node for node in list(G) if node not in val_i and node not in test_i]
+
+
 #For both datasets do..
 for name in ['merfish_train']:
     #Read dataset
@@ -212,11 +218,6 @@ for name in ['merfish_train']:
             k = G.number_of_nodes()
         else:
             k = args.cells
-
-        #Split dataset
-        val_i = random.sample(list(G), k=1000)
-        test_i = random.sample([node for node in list(G) if node not in val_i], k=1000)
-        train_i = [node for node in list(G) if node not in val_i and node not in test_i]
 
         optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
         (loss_over_cells, train_loss_over_epochs,
@@ -294,11 +295,6 @@ for name in ['merfish_train']:
                 k = G.number_of_nodes()
             else:
                 k = args.cells
-
-            #Split dataset
-            val_i = random.sample(list(G), k=1000)
-            test_i = random.sample([node for node in list(G) if node not in val_i], k=1000)
-            train_i = [node for node in list(G) if node not in val_i and node not in test_i]
 
             optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
             (loss_over_cells, train_loss_over_epochs,
@@ -403,11 +399,6 @@ for name in ['merfish_train']:
             else:
                 k = args.cells
 
-            #Split dataset
-            val_i = random.sample(list(G), k=1000)
-            test_i = random.sample([node for node in list(G) if node not in val_i], k=1000)
-            train_i = [node for node in list(G) if node not in val_i and node not in test_i]
-
             optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
             (loss_over_cells, train_loss_over_epochs,
              val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
@@ -499,11 +490,6 @@ for name in ['merfish_train']:
             else:
                 k = args.cells
 
-            #Split dataset
-            val_i = random.sample(list(G), k=1000)
-            test_i = random.sample([node for node in list(G) if node not in val_i], k=1000)
-            train_i = [node for node in list(G) if node not in val_i and node not in test_i]
-
             optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
             (loss_over_cells, train_loss_over_epochs,
              val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
@@ -584,11 +570,6 @@ for name in ['merfish_train']:
             else:
                 k = args.cells
 
-            #Split dataset
-            val_i = random.sample(list(G), k=1000)
-            test_i = random.sample([node for node in list(G) if node not in val_i], k=1000)
-            train_i = [node for node in list(G) if node not in val_i and node not in test_i]
-
             optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
             (loss_over_cells, train_loss_over_epochs,
              val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
@@ -638,11 +619,6 @@ for name in ['merfish_train']:
                 k = G.number_of_nodes()
             else:
                 k = args.cells
-
-            #Split dataset
-            val_i = random.sample(list(G), k=1000)
-            test_i = random.sample([node for node in list(G) if node not in val_i], k=1000)
-            train_i = [node for node in list(G) if node not in val_i and node not in test_i]
 
             optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
             (loss_over_cells, train_loss_over_epochs,
@@ -711,10 +687,6 @@ for name in ['merfish_train']:
             else:
                 k = args.cells
 
-            #Split dataset
-            val_i = random.sample(list(G), k=1000)
-            test_i = random.sample([node for node in list(G) if node not in val_i], k=1000)
-            train_i = [node for node in list(G) if node not in val_i and node not in test_i]
 
             optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
             (loss_over_cells, train_loss_over_epochs,
@@ -796,11 +768,6 @@ for name in ['merfish_train']:
                 k = G.number_of_nodes()
             else:
                 k = args.cells
-
-            #Split dataset
-            val_i = random.sample(list(G), k=1000)
-            test_i = random.sample([node for node in list(G) if node not in val_i], k=1000)
-            train_i = [node for node in list(G) if node not in val_i and node not in test_i]
 
             optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
             (loss_over_cells, train_loss_over_epochs,
@@ -884,11 +851,6 @@ for name in ['merfish_train']:
                 k = G.number_of_nodes()
             else:
                 k = args.cells
-
-            #Split dataset
-            val_i = random.sample(list(G), k=1000)
-            test_i = random.sample([node for node in list(G) if node not in val_i], k=1000)
-            train_i = [node for node in list(G) if node not in val_i and node not in test_i]
 
             optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
             (loss_over_cells, train_loss_over_epochs,
