@@ -2056,7 +2056,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             total_loss_over_cells += loss
             if args.adversarial:
                 total_disc_loss += discriminator_loss
-	        if args.innerproduct:
+            if args.innerproduct:
                 print(f"average MSE without IPD: {total_loss_over_cells/len(cells)}")
                 #Add MSE for Inner Product Decoder
                 ipd = InnerProductDecoder()
