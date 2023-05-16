@@ -49,6 +49,7 @@ arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layer
 arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
 arg_parser.add_argument('-ex', '--experiments', type=list, help='Which experiments to run', default=[1,2,3,4,5,6])
 arg_parser.add_argument('-f', '--filter', action='store_true', help='Whether to filter out non-LR genes', default=False)
+arg_parser.add_argument('-ipd', '--innerproduct', action='store_true', help="Whether to add the IPD loss to the model", default=False)
 args = arg_parser.parse_args()
 
 args.epochs = 400
@@ -153,6 +154,7 @@ for name in ['seqfish', 'merfish_train']:
                   save=f"spatial_scatter_{name}.png", color=celltype_key, size=1, show=False)
     plt.close()
 
+
     if '1' in experiments:
         """
         Experiment 1: Plot the latent space per celtype
@@ -213,6 +215,7 @@ for name in ['seqfish', 'merfish_train']:
         plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp1_{name}_{args.type}_{subtype}.png')
         plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp1_{name}')
 
+        print(list(dataset.obs[celltype_key].unique()))
         #Plot the latent test set
         plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
                     device, name=f'{name}_exp1', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args,
@@ -820,8 +823,96 @@ for name in ['seqfish', 'merfish_train']:
 
         plot_r2_scores(r2_per_latent_space, "latent_space", f"{name}_r2scores_exp7")
 
-
     if '8' in experiments:
+        """
+        Experiment 8: See how the latent space is affected when jointly optimizing graph reconstruction
+        using a inner product decoder.
+        """
+        r2_innerproductdecoder = {}
+        for use_ipd in [True, False]:
+            if use_ipd:
+                args.innerproduct = True
+            else:
+                args.innerproduct = False
+            #Train the model on all data
+            if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
+                print("Constructing graph...")
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp8")
+
+            print("Converting graph to PyG format...")
+            if args.weight:
+                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp4=8', args=args)
+            else:
+                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp8", args=args)
+
+            G = nx.convert_node_labels_to_integers(G)
+
+            pyg_graph = pyg.utils.from_networkx(G)
+            pyg_graph.expr = pyg_graph.expr.float()
+            pyg_graph.weight = pyg_graph.weight.float()
+            input_size, hidden_layers, latent_size, output_size = set_layer_sizes(pyg_graph, args=args, panel_size=dataset.n_vars)
+            latent_size = ls
+            model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, output_size, args=args)
+
+            print("Model:")
+            print(model)
+            #Send model to GPU
+            model = model.to(device)
+            model.float()
+            pyg.transforms.ToDevice(device)
+
+            #Set number of nodes to sample per epoch
+            if args.cells == -1:
+                k = G.number_of_nodes()
+            else:
+                k = args.cells
+
+            #Split dataset
+            val_i = random.sample(list(G), k=1000)
+            test_i = random.sample([node for node in list(G) if node not in val_i], k=1000)
+            train_i = [node for node in list(G) if node not in val_i and node not in test_i]
+
+            optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
+            (loss_over_cells, train_loss_over_epochs,
+             val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
+                                                           train_i, val_i, k=k, args=args, discriminator=discriminator, dataset=dataset)
+            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
+
+            r2_innerproductdecoder[str(use_ipd)] = test_dict['r2']
+
+            if args.variational:
+                var = 'variational'
+            else:
+                var = 'non-variational'
+
+            if args.adversarial:
+                adv = 'adversarial'
+            else:
+                adv = 'non-adverserial'
+
+            #Plot results
+            print("Plotting training plots...")
+            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp8_{name}_{str(ls)}.png')
+            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp8_{name}_{str(ls)}.png')
+            plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp8_{name}')
+            #Plot the latent test set
+            plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
+                        device, name=f'exp8_{name}_IPD_{str(use_ipd)}', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
+            print("Applying model on entire dataset...")
+            if args.dataset == 'merfish_train':
+                dataset, organism, name, celltype_key = read_dataset('merfish_full', args=args)
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp8")
+            #Apply on dataset
+            apply_on_dataset(model, dataset, f'GVAE_exp8_{name}_IPD_{str(use_ipd)}', celltype_key, args=args, discriminator=discriminator)
+
+            model = model.cpu()
+        with open('r2_ipd_exp8.pkl', 'wb') as file:
+            pickle.dump(r2_innerproductdecoder, file)
+
+        plot_r2_scores(r2_innerproductdecoder, "IPD", f"{name}_r2scores_exp8")
+
+
+    if '9' in experiments:
         """
         Experiment 8: Score distribution divergence of diseased sample FOVs from training
         distribution on healthy sample FOVs.

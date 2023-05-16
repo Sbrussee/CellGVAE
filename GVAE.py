@@ -1208,7 +1208,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
         for i, gene in enumerate(dataset.var_names):
             error_per_gene[gene] = [total_error_per_gene[i],
                                     average_error_per_gene[i],
-                                    relative_error_per_gene[0][i]]
+                                    relative_error_per_gene[i]]
 
 
         with open(f"error_per_gene_{name}.pkl", 'wb') as f:
@@ -2064,7 +2064,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             print(ipd_loss)
             total_loss_over_cells += ipd_loss.to(device)
             ipd_loss = ipd_loss.cpu()
-            pyg_graph = pyg_graph.cpu() 
+            pyg_graph = pyg_graph.cpu()
         batch = batch.cpu()
         cells_seen += len(cells)
         print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")

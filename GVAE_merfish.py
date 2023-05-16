@@ -14,8 +14,9 @@ import torch.distributions
 import torch_geometric as pyg
 import torch_geometric.transforms as T
 from torch_geometric.nn import GCNConv, GATConv, SAGEConv
-from torch_geometric.nn.models.autoencoder import ARGVA, ARGA
+from torch_geometric.nn.models.autoencoder import ARGVA, ARGA, InnerProductDecoder
 from torch_geometric.nn.sequential import Sequential
+from torch.geometric.utils import to_scipy_sparse_matrix
 
 #Helper functions
 from scipy.sparse.csgraph import laplacian
@@ -1989,7 +1990,7 @@ def get_optimizer_list(model, args, discriminator=None):
         opt_list.append(discriminator_optimizer)
     return opt_list
 
-def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminator=None):
+def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminator=None, dataset=None):
     """
     Function which contains the training loop for the pytorch geometric model.
     It also validates the model and it saves performance results.
@@ -2055,6 +2056,17 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
             total_loss_over_cells += loss
             if args.adversarial:
                 total_disc_loss += discriminator_loss
+	        if args.innerproduct:
+                print(f"average MSE without IPD: {total_loss_over_cells/len(cells)}")
+                #Add MSE for Inner Product Decoder
+                ipd = InnerProductDecoder()
+                A_hat = ipd.forward_all(torch.from_numpy(get_latent_space_vectors(model, pyg_graph.to(device), dataset, device, args=args))).cpu()
+                A = torch.from_numpy(to_scipy_sparse_matrix(pyg_graph.edge_index).toarray()).cpu()
+                ipd_loss = torch.mean((A - A_hat) ** 2)
+                print(ipd_loss)
+                total_loss_over_cells += ipd_loss.to(device)
+                ipd_loss = ipd_loss.cpu()
+                pyg_graph = pyg_graph.cpu()
         batch = batch.cpu()
         cells_seen += len(cells)
         print(f"Cells seen: {cells_seen}, average MSE:{total_loss_over_cells/len(cells)}")
@@ -2100,7 +2112,7 @@ def train(model, pyg_graph, optimizer_list, train_i, val_i, k, args, discriminat
                 assert val_batch.expr[val_cells, :].sum() < 0.1
             for cell in val_cells:
                 val_loss, x_hat = validate(model, val_batch, pyg_graph.expr[cell].to(device), cell, pyg_graph.weight.to(device), args=args, discriminator=discriminator)
-                total_r2 += r2_score(pyg_graph.expr[cell], x_hat.cpu())
+                total_r2 += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
                 total_val_loss += val_loss
 
             val_batch = val_batch.cpu()
@@ -2148,7 +2160,7 @@ def test(model, test_i, pyg_graph, args, discriminator=None, device=None):
         test_batch = test_batch.to(device)
         assert test_batch.expr[cell, :].sum() == 0
         test_loss, x_hat = validate(model.to(device), test_batch, pyg_graph.expr[cell].to(device), cell, pyg_graph.weight.to(device), args=args, discriminator=discriminator)
-        total_r2_test += r2_score(pyg_graph.expr[cell], x_hat.cpu())
+        total_r2_test += r2_score(pyg_graph.expr[cell].cpu(), x_hat.cpu())
         total_test_loss += test_loss
         test_batch = test_batch.cpu()
         del test_batch
@@ -2385,6 +2397,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('-hid', '--hidden', type=str, help='Specify hidden layers', default='64,32')
     arg_parser.add_argument('-gs', '--graph_summary', action='store_true', help='Whether to calculate a graph summary', default=True)
     arg_parser.add_argument('-f', '--filter', action='store_true', help='Whether to filter out non-LR genes', default=False)
+    arg_parser.add_argument('-ipd', '--innerproduct', action='store_true', help="Whether to add the IPD loss to the model", default=False)
     args = arg_parser.parse_args()
 
     dataset, organism, name, celltype_key = read_dataset(args.dataset, args=args)
