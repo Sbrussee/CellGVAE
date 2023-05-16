@@ -164,6 +164,7 @@ else:
 
 #Now do the same for merfish_train to select data splits
 name='merfish_train'
+args.dataset = name
 dataset, organism, name, celltype_key = read_dataset(name, args)
 
 #First build the graph for the full MERFISH dataset
@@ -198,6 +199,7 @@ for name in ['merfish_train']:
     apply_umap(dataset.X.toarray(), f"UMAP of {name} data", f"umap_{name}", dataset, celltype_key)
 
     variance_decomposition(dataset.X.toarray(), celltype_key, name)
+
     if '1' in experiments:
         """
         Experiment 1: Plot the latent space per celtype
