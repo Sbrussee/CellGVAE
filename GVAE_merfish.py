@@ -963,7 +963,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 
         plt.figure()
         umap_frame = pd.DataFrame(mean_umap_per_celltype, columns=['umap1', 'umap2', 'celltype']).replace(mapping)
-        sns.scatterplot(data=tumap_frame, x='umap1', y='umap2', hue='celltype')
+        sns.scatterplot(data=umap_frame, x='umap1', y='umap2', hue='celltype')
         plt.legend(prop={ "size" : 3})
         plt.xlabel('UMAP dim 1')
         plt.ylabel('UMAP dim 2')
