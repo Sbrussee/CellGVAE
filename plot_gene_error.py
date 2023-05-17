@@ -15,9 +15,11 @@ files = ['error_per_gene_GVAE_exp2_mouse_merfish_full__variational_adversarial.p
 for file in files:
     with open(file, 'rb') as f:
         error_per_gene = pickle.load(f)
+    print(error_per_gene)
     # Plot the 10 genes with the highest relative error
     error_gene_df = pd.DataFrame.from_dict(error_per_gene, orient='index',
                                            columns=['total', 'average', 'relative'])
+    error_gene_df['relative'] = pd.to_numeric(error_gene_df['relative'])  # Convert 'relative' column to numeric
     error_gene_df = error_gene_df.sort_values(by=['relative'], ascending=False)
 
     print(error_gene_df)
