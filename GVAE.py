@@ -1205,8 +1205,8 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     average_error_per_gene = total_error_per_gene/dataset.shape[1]
     print(average_error_per_gene)
     #Get error relative to amount of expression for that gene over all cells
-    sum_x = np.sum(dataset.X, axis=0) + 1e-9
-    relative_error_per_gene = total_error_per_gene / np.reshape(sum_x, (-1,1))
+    sum_x = np.squeeze(np.sum(dataset.X, axis=0) + 1e-9)
+    relative_error_per_gene = total_error_per_gene / sum_x
     print(relative_error_per_gene)
     print("Relative error per gene shape:")
     print(relative_error_per_gene.shape)
