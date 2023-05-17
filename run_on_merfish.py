@@ -746,7 +746,7 @@ for name in ['merfish_train']:
                 dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp6")
                 args.dataset = 'merfish_train'
             #Apply on dataset
-            apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filter_name}', celltype_key, args=args, discriminator=discriminator)
+            apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filter_name}', celltype_key, args=args, discriminator=discriminator, ligrec=True)
 
             model = model.cpu()
             del model

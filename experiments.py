@@ -710,7 +710,7 @@ for name in ['seqfish', 'merfish_train']:
                 dataset, organism, name, celltype_key = read_dataset('merfish_full')
                 dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp2")
             #Apply on dataset
-            apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filter_name}', celltype_key, args=args, discriminator=discriminator)
+            apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filter_name}', celltype_key, args=args, discriminator=discriminator, ligrec=True)
 
             model = model.cpu()
             del model

@@ -951,14 +951,8 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         plt.figure()
         mapping = {k : cell_types[k] for k in range(len(cell_types))}
         print(mapping)
-        #Now plot the mean latent space points per celltype
         tsne_frame = pd.DataFrame(mean_tsne_per_celltype, columns=['tsne1', 'tsne2', 'celltype']).replace(mapping)
-        print(tsne_frame)
-        fig, ax = plt.subplots()
-        ax.scatter(tsne_frame['tsne1'], tsne_frame['tsne2'])
-        for i, label in enumerate(tsne_frame['celltype']):
-            ax.annotate(label, (tsne_frame['tsne1'][i], tsne_frame['tsne2'][i]))
-
+        sns.scatterplot(data=tsne_frame, x='tsne1', y='tsne2', hue='celltype')
         plt.legend(prop={ "size" : 3})
         plt.xlabel("t-SNE dim 1")
         plt.ylabel("t-SNE dim 2")
@@ -969,11 +963,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
 
         plt.figure()
         umap_frame = pd.DataFrame(mean_umap_per_celltype, columns=['umap1', 'umap2', 'celltype']).replace(mapping)
-        fig, ax = plt.subplots()
-        ax.scatter(umap_frame['umap1'], umap_frame['umap2'])
-        for i, label in enumerate(umap_frame['celltype']):
-            ax.annotate(label, (umap_frame['umap1'][i], umap_frame['umap2'][i]))
-
+        sns.scatterplot(data=tumap_frame, x='umap1', y='umap2', hue='celltype')
         plt.legend(prop={ "size" : 3})
         plt.xlabel('UMAP dim 1')
         plt.ylabel('UMAP dim 2')
@@ -985,11 +975,7 @@ def plot_latent(model, pyg_graph, anndata, cell_types, device, name, number_of_c
         plt.figure()
         pca_frame = pd.DataFrame(mean_pca_per_celltype, columns=['pca1', 'pca2', 'celltype'])
         pca_frame['celltype'] = pca_frame['celltype'].replace(mapping)
-        fig, ax = plt.subplots()
-        ax.scatter(pca_frame['pca1'], pca_frame['pca2'])
-        for i, label in enumerate(pca_frame['celltype']):
-            ax.annotate(label, (pca_frame['pca1'][i], pca_frame['pca2'][i]))
-
+        sns.scatterplot(data=pca_frame, x='pca1', y='pca2', hue='celltype')
         plt.legend(prop={ "size" : 3})
         plt.xlabel("PC1")
         plt.ylabel("PC2")
@@ -1080,7 +1066,7 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
         return loss, discriminator_loss
 
 @torch.no_grad()
-def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=None):
+def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=None, ligrec=False):
     """
     Function that applies the GNN-model on the entire specified dataset.
 
@@ -1149,8 +1135,10 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     print(dataset.X.shape)
     print(true_expr.shape, pred_expr.shape)
 
-    #Apply LR analysis
-    ligand_receptor_analysis(dataset, pred_expr, name, celltype_key)
+    if ligrec:
+        #Apply LR analysis
+        ligand_receptor_analysis(dataset, pred_expr, name, celltype_key)
+
     plt.close()
     #Plot the true expression spatially
     dataset.obs['total_counts'] = np.sum(true_expr, axis=1)
@@ -1210,7 +1198,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     average_error_per_gene = total_error_per_gene/dataset.shape[1]
     print(average_error_per_gene)
     #Get error relative to amount of expression for that gene over all cells
-    sum_x = np.sum(dataset.X, axis=0) + 1e-9
+    sum_x = np.squeeze(np.sum(dataset.X, axis=0) + 1e-9)
     relative_error_per_gene = total_error_per_gene / np.reshape(sum_x, (-1,1))
     print("Relative error per gene shape:")
     print(relative_error_per_gene.shape)
