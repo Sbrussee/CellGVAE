@@ -15,13 +15,16 @@ files = ['error_per_gene_GVAE_exp2_mouse_merfish_full__variational_adversarial.p
 for file in files:
     with open(file, 'rb') as f:
         error_per_gene = pickle.load(f)
-    #Plot the 10 genes with highest relative error
+    # Plot the 10 genes with the highest relative error
     error_gene_df = pd.DataFrame.from_dict(error_per_gene, orient='index',
-                                 columns=['total', 'average', 'relative']).sort_values(by='relative', axis=0, ascending=False)
+                                           columns=['total', 'average', 'relative'])
+    error_gene_df = error_gene_df.sort_values(by=['relative'], ascending=False)
+
     print(error_gene_df)
     top10 = error_gene_df.iloc[:10]
     print(top10)
     print(top10.reset_index())
+
     sns.barplot(data=top10.reset_index(), x='relative', y='index', label='Relative prediction error', orient='h')
     plt.xlabel('Relative prediction error')
     plt.ylabel('Gene')
