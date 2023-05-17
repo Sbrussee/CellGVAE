@@ -19,8 +19,8 @@ for file in files:
     # Plot the 10 genes with the highest relative error
     error_gene_df = pd.DataFrame.from_dict(error_per_gene, orient='index',
                                            columns=['total', 'average', 'relative'])
-    error_gene_df['relative'] = pd.to_numeric(error_gene_df['relative'])  # Convert 'relative' column to numeric
-    error_gene_df = error_gene_df.sort_values(by=['relative'], ascending=False)
+    error_gene_df['relative_total'] = np.sum(error_gene_df['relative']))  # Convert 'relative' column to numeric
+    error_gene_df = error_gene_df.sort_values(by=['relative_total'], ascending=False)
 
     print(error_gene_df)
     top10 = error_gene_df.iloc[:10]
