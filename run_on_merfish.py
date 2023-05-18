@@ -2,7 +2,7 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
 import umap.umap_ as umap
-from GVAE_merfish import *
+from CellGirAffE_merfish import *
 import argparse
 import pickle
 import random
@@ -253,6 +253,12 @@ for name in ['merfish_train']:
         plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp1_{name}_{args.type}_{subtype}.png')
         plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp1_{name}_{args.type}_{subtype}.png')
         plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp1_{name}')
+
+        if args.dataset == 'merfish_train':
+            args.dataset = 'merfish_full'
+            dataset, organism, name, celltype_key = read_dataset('merfish_full', args=args)
+            dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp2")
+            args.dataset = 'merfish_train'
 
         #Plot the latent test set
         plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
