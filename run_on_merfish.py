@@ -376,6 +376,7 @@ for name in ['merfish_train']:
     args.adversarial = True
 
     if '3' in experiments:
+        args.hidden = '64,32'
         """
         Experiment 3: Assess differences using various GNN encoder models
         (e.g. GCN, GAT)
