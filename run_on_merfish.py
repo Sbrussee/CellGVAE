@@ -267,10 +267,6 @@ for name in ['merfish_train']:
 
         model = model.cpu()
 
-    #Read dataset
-    args.dataset = name
-    dataset, organism, name, celltype_key = read_dataset(name, args)
-
     if '2' in experiments:
         #Read dataset
         args.dataset = name
