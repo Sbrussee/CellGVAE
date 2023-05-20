@@ -267,7 +267,15 @@ for name in ['merfish_train']:
 
         model = model.cpu()
 
+    #Read dataset
+    args.dataset = name
+    dataset, organism, name, celltype_key = read_dataset(name, args)
+
     if '2' in experiments:
+        #Read dataset
+        args.dataset = name
+        dataset, organism, name, celltype_key = read_dataset(name, args)
+
         """
         Experiment 2: Assess differences using various core modules
         (e.g. adversarial, variational)
@@ -376,6 +384,10 @@ for name in ['merfish_train']:
     args.adversarial = True
 
     if '3' in experiments:
+        #Read dataset
+        args.dataset = name
+        dataset, organism, name, celltype_key = read_dataset(name, args)
+
         args.hidden = '64,32'
         """
         Experiment 3: Assess differences using various GNN encoder models
@@ -469,6 +481,10 @@ for name in ['merfish_train']:
 
     args.type = 'GCN'
     if '4' in experiments:
+        #Read dataset
+        args.dataset = name
+        dataset, organism, name, celltype_key = read_dataset(name, args)
+
         """
         Experiment 4: Assess differences using different sets of inputs
         full: Celltypes + expression + spatial information
@@ -562,6 +578,10 @@ for name in ['merfish_train']:
         plot_r2_scores(r2_per_prediction_mode, "prediction mode", f"{name}_r2scores_exp4")
 
     if '5' in experiments:
+        #Read dataset
+        args.dataset = name
+        dataset, organism, name, celltype_key = read_dataset(name, args)
+
         """
         Experiment 5: Assess differences in niche construction (neighbor-wise, threshold-wise).
         """
@@ -672,6 +692,10 @@ for name in ['merfish_train']:
     args.neighbors = 6
     args.threshold = -1
     if '6' in experiments:
+        #Read dataset
+        args.dataset = name
+        dataset, organism, name, celltype_key = read_dataset(name, args)
+
         """
         Experiment 6: LR-analysis using LR-filtered and Unfiltered dataset.
         """
@@ -765,6 +789,10 @@ for name in ['merfish_train']:
 
     args.filter = False
     if '7' in experiments:
+        #Read dataset
+        args.dataset = name
+        dataset, organism, name, celltype_key = read_dataset(name, args)
+
         """
         Experiment 7: Analyze the effect of latent space size on the reconstruction accuracy as well as on the
         latent space visualization.
@@ -847,6 +875,10 @@ for name in ['merfish_train']:
 
     args.latent = 16
     if '8' in experiments:
+        #Read dataset
+        args.dataset = name
+        dataset, organism, name, celltype_key = read_dataset(name, args)
+
         """
         Experiment 8: See how the latent space is affected when jointly optimizing graph reconstruction
         using a inner product decoder.
