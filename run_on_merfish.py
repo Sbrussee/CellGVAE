@@ -268,10 +268,11 @@ for name in ['merfish_train']:
         model = model.cpu()
 
     if '2' in experiments:
+        name = 'merfish_train'
         #Read dataset
         args.dataset = name
         dataset, organism, name, celltype_key = read_dataset(name, args)
-
+        
         """
         Experiment 2: Assess differences using various core modules
         (e.g. adversarial, variational)
