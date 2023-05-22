@@ -379,7 +379,9 @@ for name in ['merfish_train']:
     args.variational = True
     args.adversarial = True
 
+
     if '3' in experiments:
+        name = 'merfish_train'
         #Read dataset
         args.dataset = name
         dataset, organism, name, celltype_key = read_dataset(name, args)
@@ -477,6 +479,7 @@ for name in ['merfish_train']:
 
     args.type = 'GCN'
     if '4' in experiments:
+        name = 'merfish_train'
         #Read dataset
         args.dataset = name
         dataset, organism, name, celltype_key = read_dataset(name, args)
@@ -574,6 +577,7 @@ for name in ['merfish_train']:
         plot_r2_scores(r2_per_prediction_mode, "prediction mode", f"{name}_r2scores_exp4")
 
     if '5' in experiments:
+        name = 'merfish_train'
         #Read dataset
         args.dataset = name
         dataset, organism, name, celltype_key = read_dataset(name, args)
@@ -688,6 +692,7 @@ for name in ['merfish_train']:
     args.neighbors = 6
     args.threshold = -1
     if '6' in experiments:
+        name = 'merfish_train'
         #Read dataset
         args.dataset = name
         dataset, organism, name, celltype_key = read_dataset(name, args)
@@ -785,6 +790,7 @@ for name in ['merfish_train']:
 
     args.filter = False
     if '7' in experiments:
+        name = 'merfish_train'
         #Read dataset
         args.dataset = name
         dataset, organism, name, celltype_key = read_dataset(name, args)
@@ -871,6 +877,7 @@ for name in ['merfish_train']:
 
     args.latent = 16
     if '8' in experiments:
+        name = 'merfish_train'
         #Read dataset
         args.dataset = name
         dataset, organism, name, celltype_key = read_dataset(name, args)
