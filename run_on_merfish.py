@@ -633,61 +633,9 @@ for name in ['merfish_train']:
 
         plot_r2_scores(r2_neighbors, "neighbors", f"{name}_r2scores_exp5_neighbors")
 
-        r2_thresholds = {}
-        for threshold in [5, 10, 25, 50]:
-            args.threshold = threshold
-            args.neighbors = -1
-            #Train the model on all data
-            if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
-                print("Constructing graph...")
-                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp5threshold")
-                dataset = spatial_analysis(dataset, celltype_key, name+"_exp5_"+str(threshold)+"threshold")
-
-            print("Converting graph to PyG format...")
-            if args.weight:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp5threshold', args=args)
-            else:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp5threshold", args=args)
-            graph_summary(G, f'exp5_th={threshold}_'+name, args=args)
-            G = nx.convert_node_labels_to_integers(G)
-
-            pyg_graph = pyg.utils.from_networkx(G)
-            pyg_graph.expr = pyg_graph.expr.float()
-            pyg_graph.weight = pyg_graph.weight.float()
-            input_size, hidden_layers, latent_size, output_size = set_layer_sizes(pyg_graph, args=args, panel_size=dataset.n_vars)
-            model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, output_size, args=args)
-
-            print("Model:")
-            print(model)
-            #Send model to GPU
-            model = model.to(device)
-            model.float()
-            pyg.transforms.ToDevice(device)
-
-            #Set number of nodes to sample per epoch
-            if args.cells == -1:
-                k = G.number_of_nodes()
-            else:
-                k = args.cells
-
-            optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
-            (loss_over_cells, train_loss_over_epochs,
-             val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
-                                                           train_i, val_i, k=k, args=args, discriminator=discriminator)
-            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
-
-            r2_thresholds[threshold] = test_dict['r2']
-
-            model = model.cpu()
 
         with open("r2_neighbors.pkl", 'wb') as file:
             pickle.dump(r2_neighbors, file)
-
-
-        with open("r2_thresholds.pkl", 'wb') as file:
-            pickle.dump(r2_thresholds, file)
-
-        plot_r2_scores(r2_thresholds, "neighbors", f"{name}_r2scores_exp5_neighbors")
 
     args.neighbors = 6
     args.threshold = -1
@@ -899,7 +847,7 @@ for name in ['merfish_train']:
 
             print("Converting graph to PyG format...")
             if args.weight:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp4=8', args=args)
+                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp8', args=args)
             else:
                 G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp8", args=args)
 
@@ -945,8 +893,8 @@ for name in ['merfish_train']:
 
             #Plot results
             print("Plotting training plots...")
-            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp8_{name}_{str(ls)}.png')
-            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp8_{name}_{str(ls)}.png')
+            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp8_{name}_{str(use_ipd)}.png')
+            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp8_{name}_{str(use_ipd)}.png')
             plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp8_{name}')
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
@@ -965,6 +913,102 @@ for name in ['merfish_train']:
             pickle.dump(r2_innerproductdecoder, file)
 
         plot_r2_scores(r2_innerproductdecoder, "IPD", f"{name}_r2scores_exp8")
+
+    args.innerproduct = False
+    if '9' in experiments:
+        name = 'merfish_train'
+        #Read dataset
+        args.dataset = name
+        dataset, organism, name, celltype_key = read_dataset(name, args)
+
+        """
+        Experiment 9: See how the latent space is affected when removing edges between same-type edges.
+        """
+        r2_remove_edges = {}
+        for egde_removal in ['none', 'same_type', 'same_subtype']:
+            if egde_removal == 'same_type':
+                args.remove_same_type_edges = True
+                args.remove_subtype_edges = False
+            elif edge_removal == 'same_subtype':
+                args.remove_same_type_edges = True
+                args.remove_subtype_edges = True
+            else:
+                args.remove_same_type_edges = False
+                args.remove_subtype_edges = False
+
+            #Train the model on all data
+            if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
+                print("Constructing graph...")
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp9")
+
+            print("Converting graph to PyG format...")
+            if args.weight:
+                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp9', args=args)
+            else:
+                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp9", args=args)
+
+            G = nx.convert_node_labels_to_integers(G)
+
+            pyg_graph = pyg.utils.from_networkx(G)
+            pyg_graph.expr = pyg_graph.expr.float()
+            pyg_graph.weight = pyg_graph.weight.float()
+            input_size, hidden_layers, latent_size, output_size = set_layer_sizes(pyg_graph, args=args, panel_size=dataset.n_vars)
+            latent_size = ls
+            model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, output_size, args=args)
+
+            print("Model:")
+            print(model)
+            #Send model to GPU
+            model = model.to(device)
+            model.float()
+            pyg.transforms.ToDevice(device)
+
+            #Set number of nodes to sample per epoch
+            if args.cells == -1:
+                k = G.number_of_nodes()
+            else:
+                k = args.cells
+
+            optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
+            (loss_over_cells, train_loss_over_epochs,
+             val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
+                                                           train_i, val_i, k=k, args=args, discriminator=discriminator, dataset=dataset)
+            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
+
+            r2_remove_edges[str(use_ipd)] = test_dict['r2']
+
+            if args.variational:
+                var = 'variational'
+            else:
+                var = 'non-variational'
+
+            if args.adversarial:
+                adv = 'adversarial'
+            else:
+                adv = 'non-adverserial'
+
+            #Plot results
+            print("Plotting training plots...")
+            plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp8_{name}_{str(edge_removal)}.png')
+            plot_val_curve(train_loss_over_epochs, val_loss_over_epochs, f'val_loss_curve_epochs_exp9_{name}_{str(edge_removal)}.png')
+            plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp9_{name}')
+            #Plot the latent test set
+            plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
+                        device, name=f'exp8_{name}_IPD_{str(use_ipd)}', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
+            print("Applying model on entire dataset...")
+            if args.dataset == 'merfish_train':
+                args.dataset = 'merfish_full'
+                dataset, organism, name, celltype_key = read_dataset('merfish_full', args=args)
+                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp9")
+                args.dataset = 'merfish_train'
+            #Apply on dataset
+            apply_on_dataset(model, dataset, f'exp9_{name}_edge_removal_{str(use_ipd)}', celltype_key, args=args, discriminator=discriminator)
+
+            model = model.cpu()
+        with open('r2_exp9_remove_edges.pkl', 'wb') as file:
+            pickle.dump(r2_remove_edges, file)
+
+        plot_r2_scores(r2_remove_edges, "Edge removal", f"{name}_r2scores_exp8")
 
     if '9' in experiments:
         """

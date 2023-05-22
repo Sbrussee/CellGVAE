@@ -2,7 +2,7 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
 import umap.umap_ as umap
-from GVAE import *
+from CellGirAffE_seqfish import *
 import argparse
 import pickle
 import random
@@ -573,61 +573,8 @@ for name in ['seqfish', 'merfish_train']:
 
         plot_r2_scores(r2_neighbors, "neighbors", f"{name}_r2scores_exp5_neighbors")
 
-        r2_thresholds = {}
-        for threshold in [5, 10, 25, 50]:
-            args.threshold = threshold
-            args.neighbors = -1
-            #Train the model on all data
-            if args.threshold != -1 or args.neighbors != -1 or args.dataset != 'resolve':
-                print("Constructing graph...")
-                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp5threshold")
-                dataset = spatial_analysis(dataset, celltype_key, name+"_exp5_"+str(threshold)+"threshold")
-
-            print("Converting graph to PyG format...")
-            if args.weight:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_distances'], dataset.X, dataset.obs[celltype_key], name+'_exp5threshold', args=args)
-            else:
-                G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp5threshold", args=args)
-            graph_summary(G, f'exp5_th={threshold}_'+name, args=args)
-            G = nx.convert_node_labels_to_integers(G)
-
-            pyg_graph = pyg.utils.from_networkx(G)
-            pyg_graph.expr = pyg_graph.expr.float()
-            pyg_graph.weight = pyg_graph.weight.float()
-            input_size, hidden_layers, latent_size, output_size = set_layer_sizes(pyg_graph, args=args, panel_size=dataset.n_vars)
-            model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, output_size, args=args)
-
-            print("Model:")
-            print(model)
-            #Send model to GPU
-            model = model.to(device)
-            model.float()
-            pyg.transforms.ToDevice(device)
-
-            #Set number of nodes to sample per epoch
-            if args.cells == -1:
-                k = G.number_of_nodes()
-            else:
-                k = args.cells
-
-            optimizer_list = get_optimizer_list(model=model, args=args, discriminator=discriminator)
-            (loss_over_cells, train_loss_over_epochs,
-             val_loss_over_epochs, r2_over_epochs, _) = train(model, pyg_graph, optimizer_list,
-                                                           train_i, val_i, k=k, args=args, discriminator=discriminator)
-            test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
-
-            r2_thresholds[threshold] = test_dict['r2']
-
-            model = model.cpu()
-
         with open("r2_neighbors.pkl", 'wb') as file:
             pickle.dump(r2_neighbors, file)
-
-
-        with open("r2_thresholds.pkl", 'wb') as file:
-            pickle.dump(r2_thresholds, file)
-
-        plot_r2_scores(r2_thresholds, "neighbors", f"{name}_r2scores_exp5_neighbors")
 
     args.neighbors = 6
     args.threshold = -1
