@@ -3,9 +3,10 @@ import scanpy as sc
 import pandas
 import numpy
 import glob
+import os
 
 pattern = '/ligrec*.pkl'
-files = glob.glob(pattern)
+files = glob.glob(os.getcwd()+pattern)
 
 for file in files:
   interactions = pd.read_pickle(file)
