@@ -8,6 +8,6 @@ files = glob.glob(pattern)
 print(files)
 for file in files:
   print(file)
-  df = pd.read_csv(file)
+  df = pd.read_csv(file, skiprows=1)
   print(df)
   df = df[['source', 'target', 'count']]
