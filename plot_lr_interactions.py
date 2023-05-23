@@ -1,6 +1,6 @@
 import squidpy as sq
 import scanpy as sc
-import pandas
+import pandas as pd
 import numpy
 import glob
 import os
