@@ -5,13 +5,11 @@ import numpy as np
 import glob
 import os
 
-pattern = '/ligrec*.pkl'
+pattern = '/lr*.csv'
 files = glob.glob(os.getcwd()+pattern)
 
 for file in files:
-  interactions = pd.read_pickle(file)
-  print()
-  name = file
-  sq.pl.ligrec(interactions, pvalue_threshold=0.01, remove_empty_interactions=True,
-               remove_nonsig_interactions=True, alpha=0.001, means_range=(0.3, np.inf),
-                save=f"lr_{name}.png")
+  df = pd.read_csv(pattern)
+  df['Count'] = (df < 0.001).sum(axis=1)
+  df = df[['Count']]
+  print(df)
