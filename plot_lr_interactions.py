@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import glob
 import os
-
+print(os.getcwd())
 pattern = 'lr_*.csv'
 print(os.getcwd()+pattern)
 files = glob.glob(os.getcwd()+pattern)
