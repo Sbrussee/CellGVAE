@@ -2,10 +2,9 @@ import pandas as pd
 import numpy as np
 import glob
 import os
-print(os.getcwd())
+print(os.path.abspath(os.getcwd()))
 pattern = 'lr_*.csv'
-print(os.getcwd()+pattern)
-files = glob.glob(os.getcwd()+pattern)
+files = glob.glob(pattern)
 print(files)
 for file in files:
   df = pd.read_csv(pattern)
