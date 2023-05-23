@@ -907,11 +907,6 @@ for name in ['seqfish', 'merfish_train']:
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
                         device, name=f'exp8_{name}_IPD_{str(use_ipd)}', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
-            if args.dataset == 'merfish_train':
-                args.dataset = 'merfish_full'
-                dataset, organism, name, celltype_key = read_dataset('merfish_full', args=args)
-                dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp9")
-                args.dataset = 'merfish_train'
             #Apply on dataset
             apply_on_dataset(model, dataset, f'exp9_{name}_edge_removal_{str(use_ipd)}', celltype_key, args=args, discriminator=discriminator)
 
