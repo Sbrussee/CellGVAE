@@ -3,7 +3,8 @@ import numpy as np
 import glob
 import os
 
-pattern = '/lr_*.csv'
+pattern = 'lr_*.csv'
+print(os.getcwd()+pattern)
 files = glob.glob(os.getcwd()+pattern)
 print(files)
 for file in files:
