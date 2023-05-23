@@ -10,4 +10,4 @@ for file in files:
   print(file)
   df = pd.read_csv(file)
   print(df)
-  df = df[['count']]
+  df = df[['source', 'target', 'count']]
