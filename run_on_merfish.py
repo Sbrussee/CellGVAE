@@ -926,8 +926,8 @@ for name in ['merfish_train']:
         Experiment 9: See how the latent space is affected when removing edges between same-type edges.
         """
         r2_remove_edges = {}
-        for egde_removal in ['none', 'same_type', 'same_subtype']:
-            if egde_removal == 'same_type':
+        for edge_removal in ['none', 'same_type', 'same_subtype']:
+            if edge_removal == 'same_type':
                 args.remove_same_type_edges = True
                 args.remove_subtype_edges = False
             elif edge_removal == 'same_subtype':
@@ -976,7 +976,7 @@ for name in ['merfish_train']:
                                                            train_i, val_i, k=k, args=args, discriminator=discriminator, dataset=dataset)
             test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
-            r2_remove_edges[str(use_ipd)] = test_dict['r2']
+            r2_remove_edges[str(edge_removal)] = test_dict['r2']
 
             if args.variational:
                 var = 'variational'
@@ -995,7 +995,7 @@ for name in ['merfish_train']:
             plot_r2_curve(r2_over_epochs, 'epochs', 'R2 over training epochs', f'r2_curve_exp9_{name}')
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
-                        device, name=f'exp8_{name}_IPD_{str(use_ipd)}', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
+                        device, name=f'exp9_{name}_edge_removal_{str(edge_removal)}', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             if args.dataset == 'merfish_train':
                 args.dataset = 'merfish_full'
@@ -1003,13 +1003,13 @@ for name in ['merfish_train']:
                 dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp9")
                 args.dataset = 'merfish_train'
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'exp9_{name}_edge_removal_{str(use_ipd)}', celltype_key, args=args, discriminator=discriminator)
+            apply_on_dataset(model, dataset, f'exp9_{name}_edge_removal_{str(edge_removal)}', celltype_key, args=args, discriminator=discriminator)
 
             model = model.cpu()
         with open('r2_exp9_remove_edges.pkl', 'wb') as file:
             pickle.dump(r2_remove_edges, file)
 
-        plot_r2_scores(r2_remove_edges, "Edge removal", f"{name}_r2scores_exp8")
+        plot_r2_scores(r2_remove_edges, "Edge removal", f"{name}_r2scores_exp9")
 
     if '10' in experiments:
         """
