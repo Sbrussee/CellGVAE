@@ -864,7 +864,6 @@ for name in ['seqfish', 'merfish_train']:
             pyg_graph.expr = pyg_graph.expr.float()
             pyg_graph.weight = pyg_graph.weight.float()
             input_size, hidden_layers, latent_size, output_size = set_layer_sizes(pyg_graph, args=args, panel_size=dataset.n_vars)
-            latent_size = ls
             model, discriminator = retrieve_model(input_size, hidden_layers, latent_size, output_size, args=args)
 
             print("Model:")
