@@ -10,5 +10,6 @@ for file in files:
   print(file)
   df = pd.read_csv(file, skiprows=2)
   df['count'] = df[df.columns[-1]]
-  print(df)
   df = df[['source', 'target', 'count']]
+  print(df)
+  df.to_csv("reduced_"+file, index=False)
