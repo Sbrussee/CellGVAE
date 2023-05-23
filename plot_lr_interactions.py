@@ -9,5 +9,6 @@ print(files)
 for file in files:
   print(file)
   df = pd.read_csv(file, skiprows=2)
+  df['count'] = df[:,-1]
   print(df)
   df = df[['source', 'target', 'count']]
