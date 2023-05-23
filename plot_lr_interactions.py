@@ -10,6 +10,4 @@ for file in files:
   print(file)
   df = pd.read_csv(file)
   print(df)
-  df['Count'] = (df < 0.001).sum(axis=1)
-  df = df[['Count']]
-  print(df)
+  df = df[['count']]
