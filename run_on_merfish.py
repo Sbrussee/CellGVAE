@@ -272,7 +272,7 @@ for name in ['merfish_train']:
         #Read dataset
         args.dataset = name
         dataset, organism, name, celltype_key = read_dataset(name, args)
-        
+
         """
         Experiment 2: Assess differences using various core modules
         (e.g. adversarial, variational)
@@ -1011,9 +1011,9 @@ for name in ['merfish_train']:
 
         plot_r2_scores(r2_remove_edges, "Edge removal", f"{name}_r2scores_exp8")
 
-    if '9' in experiments:
+    if '10' in experiments:
         """
-        Experiment 9: Score distribution divergence of diseased sample FOVs from training
+        Experiment 10: Score distribution divergence of diseased sample FOVs from training
         distribution on healthy sample FOVs.
         """
         organism = 'human'
