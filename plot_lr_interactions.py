@@ -8,6 +8,7 @@ files = glob.glob(pattern)
 print(files)
 for file in files:
   df = pd.read_csv(file)
+  print(df)
   df['Count'] = (df < 0.001).sum(axis=1)
   df = df[['Count']]
   print(df)
