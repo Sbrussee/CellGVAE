@@ -1184,7 +1184,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
                       save=f"error_spatial_{name}_{gene}.png", size=1, show=False)
         plt.close()
 
-        r2_per_gene[gene] = r2_score(dataset.layers['X'][:, dataset.var_names == gene], dataset.layers['pred'][:, dataset.var_names == gene])
+        r2_per_gene[gene] = r2_score(dataset.X.toarray()[:, dataset.var_names == gene], dataset.layers['pred'][:, dataset.var_names == gene])
         i += 1
     sorted_r2_per_gene = sorted(r2_per_gene.items(), key=lambda x: x[1])
     print(sorted_r2_per_gene)
