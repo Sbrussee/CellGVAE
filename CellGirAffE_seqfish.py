@@ -1188,7 +1188,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
         i += 1
     sorted_r2_per_gene = sorted(r2_per_gene.items(), key=lambda x: x[1])
     print(sorted_r2_per_gene)
-    r2_df = pd.from_dict(sorted_r2_per_gene)
+    r2_df = pd.DataFrame.from_dict(sorted_r2_per_gene)
     r2_df.to_csv("r2_per_gene_"+name)
     print(dataset.var_names)
     #Calculate total error for each gene
