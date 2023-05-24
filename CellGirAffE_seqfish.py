@@ -1188,8 +1188,17 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
         i += 1
     sorted_r2_per_gene = sorted(r2_per_gene.items(), key=lambda x: x[1])
     print(sorted_r2_per_gene)
-    r2_df = pd.DataFrame.from_dict(sorted_r2_per_gene)
+    r2_df = pd.DataFrame.from_dict(sorted_r2_per_gene, columns=['gene', 'r2'])
     r2_df.to_csv("r2_per_gene_"+name)
+
+    sns.barplot(data=r2_df[:10], x='gene, y='r2',
+                label='Relative prediction error', orient='h')
+    plt.legend()
+    plt.xlabel('Prediction error')
+    plt.ylabel('Cell type')
+    plt.savefig(f"figures/cell_type_error_{name}.png", dpi=300)
+    plt.close()
+
     print(dataset.var_names)
     #Calculate total error for each gene
     total_error_per_gene = np.sum(dataset.layers['error'], axis=0)
@@ -1198,7 +1207,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     average_error_per_gene = total_error_per_gene/dataset.shape[1]
     print(average_error_per_gene)
     #Get error relative to amount of expression for that gene over all cells
-    sum_x = np.squeeze(np.sum(dataset.X, axis=0) + 1e-9)
+    sum_x = np.squeeze(np.sum(dataset.X, axis=0) + 1e-9)[0]
     print(sum_x.shape)
     relative_error_per_gene = total_error_per_gene / sum_x
     print(relative_error_per_gene.shape)
@@ -1244,7 +1253,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
         error_per_cell_type[cell_type] = average_error
         print(f"{cell_type} : {average_error}")
 
-    error_celltype_df = pd.DataFrame.from_dict(error_per_cell_type, orient='index', columns=['average_error']).sort_values(by='average_error', axis=0, ascending=False)
+    error_celltype_df = pd.DataFrame.from_dict(error_per_cell_type, orient='index', columns=['average_error']).sort_values(by='average_error', axis=0, ascending=True)
     sns.barplot(data=error_celltype_df.reset_index(), x='average_error', y='index',
                 label='Relative prediction error', orient='h')
     plt.legend()
