@@ -1265,6 +1265,8 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     with open(f"error_per_celltype_{name}.pkl", 'wb') as f:
         pickle.dump(error_per_cell_type, f)
 
+    sys.exit()
+
 @torch.no_grad()
 def get_latent_space_vectors(model, pyg_graph, anndata, device, args):
     """
