@@ -1191,12 +1191,12 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     r2_df = pd.DataFrame.from_dict(sorted_r2_per_gene, columns=['gene', 'r2'])
     r2_df.to_csv("r2_per_gene_"+name)
 
-    sns.barplot(data=r2_df[:10], x='gene, y='r2',
-                label='Relative prediction error', orient='h')
+    sns.barplot(data=r2_df[:10], x='r2', y='gene',
+                label='R2-score', orient='h')
     plt.legend()
-    plt.xlabel('Prediction error')
-    plt.ylabel('Cell type')
-    plt.savefig(f"figures/cell_type_error_{name}.png", dpi=300)
+    plt.xlabel('R2-score')
+    plt.ylabel('Gene')
+    plt.savefig(f"figures/r2_score_per_gene_{name}.png", dpi=300)
     plt.close()
 
     print(dataset.var_names)
