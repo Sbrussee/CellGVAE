@@ -1168,6 +1168,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
 
 
     i = 0
+    r2_per_gene = {}
     #Plot spatial predicted expression and error per gene
     for gene in dataset.var_names:
         sc.pl.spatial(dataset, layer='X', color=[gene], spot_size=0.1,
@@ -1182,10 +1183,13 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
                       title=f'Spatial distribution of prediction error of {gene}',
                       save=f"error_spatial_{name}_{gene}.png", size=1, show=False)
         plt.close()
-        i += 1
-        if i == 10:
-            break
 
+        r2_per_gene[gene] = r2_score(dataset.X[:, dataset.var_names == gene], dataset.layers['pred'][:, dataset.var_names == gene])
+        i += 1
+    sorted_r2_per_gene = sorted(r2_per_gene.items(), key=lambda x: x[1])
+    print(sorted_r2_per_gene)
+    r2_df = pd.from_dict(sorted_r2_per_gene)
+    r2_df.to_csv("r2_per_gene_"+name)
     print(dataset.var_names)
     #Calculate total error for each gene
     total_error_per_gene = np.sum(dataset.layers['error'], axis=0)
@@ -1195,7 +1199,10 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     print(average_error_per_gene)
     #Get error relative to amount of expression for that gene over all cells
     sum_x = np.squeeze(np.sum(dataset.X, axis=0) + 1e-9)
+    print(sum_x.shape)
     relative_error_per_gene = total_error_per_gene / sum_x
+    print(relative_error_per_gene.shape)
+    relative_error_per_gene = relative_error_per_gene.reshape(dataset.shape[1])
     print(relative_error_per_gene)
     print("Relative error per gene shape:")
     print(relative_error_per_gene.shape)
@@ -1239,7 +1246,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
 
     error_celltype_df = pd.DataFrame.from_dict(error_per_cell_type, orient='index', columns=['average_error']).sort_values(by='average_error', axis=0, ascending=False)
     sns.barplot(data=error_celltype_df.reset_index(), x='average_error', y='index',
-                label='Prediction error', orient='h')
+                label='Relative prediction error', orient='h')
     plt.legend()
     plt.xlabel('Prediction error')
     plt.ylabel('Cell type')

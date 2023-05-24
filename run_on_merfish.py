@@ -953,8 +953,6 @@ for name in ['merfish_train']:
             else:
                 G, isolates = convert_to_graph(dataset.obsp['spatial_connectivities'], dataset.X, dataset.obs[celltype_key], name+"_exp9", args=args)
 
-            G = nx.convert_node_labels_to_integers(G)
-
             pyg_graph = pyg.utils.from_networkx(G)
             pyg_graph.expr = pyg_graph.expr.float()
             pyg_graph.weight = pyg_graph.weight.float()
