@@ -1136,7 +1136,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     print(dataset.X.shape)
     print(true_expr.shape, pred_expr.shape)
 
-    plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
+    plot_latent(model, pyG_graph, dataset, list(dataset.obs[celltype_key].unique()),
                 device, name=name, number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
 
     if ligrec:

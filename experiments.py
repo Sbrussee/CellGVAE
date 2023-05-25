@@ -320,9 +320,9 @@ for name in ['seqfish', 'merfish_train']:
                 dataset, organism, name, celltype_key = read_dataset('merfish_full')
                 dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp2")
             if args.adversarial:
-                apply_on_dataset(model, dataset, f'GVAE_exp2_{name}__{var}_{adv}', celltype_key, args=args, discriminator=discriminator, device=device)
+                apply_on_dataset(model, dataset, f'GVAE_exp2_{name}__{var}_{adv}', celltype_key, args=args, discriminator=discriminator)
             else:
-                apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{var}_{adv}', celltype_key, args=args, device=device)
+                apply_on_dataset(model, dataset, f'GVAE_exp2_{name}_{var}_{adv}', celltype_key, args=args)
 
             model = model.cpu()
 
@@ -419,7 +419,7 @@ for name in ['seqfish', 'merfish_train']:
                 dataset, organism, name, celltype_key = read_dataset('merfish_full')
                 dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp2")
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{str(type)}', celltype_key, args=args, discriminator=discriminator, device=device)
+            apply_on_dataset(model, dataset, f'GVAE_exp3_{name}_{str(type)}', celltype_key, args=args, discriminator=discriminator)
 
             model = model.cpu()
 
@@ -512,7 +512,7 @@ for name in ['seqfish', 'merfish_train']:
                 dataset, organism, name, celltype_key = read_dataset('merfish_full')
                 dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp2")
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'GVAE_exp4_{name}_{prediction_mode}', celltype_key, args=args, discriminator=discriminator, device=device)
+            apply_on_dataset(model, dataset, f'GVAE_exp4_{name}_{prediction_mode}', celltype_key, args=args, discriminator=discriminator)
 
             model = model.cpu()
         with open('r2_prediction_mode.pkl', 'wb') as file:
@@ -570,6 +570,14 @@ for name in ['seqfish', 'merfish_train']:
 
             r2_neighbors[neighbors] = test_dict['r2']
             model = model.cpu()
+
+            #Plot the latent test set
+            plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
+                        device, name=f'exp5_{name}_{neighbors}', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
+
+            #Apply on dataset
+            apply_on_dataset(model, dataset, f'GVAE_exp5_{name}_{neighbors}', celltype_key, args=args, discriminator=discriminator)
+
 
         plot_r2_scores(r2_neighbors, "neighbors", f"{name}_r2scores_exp5_neighbors")
 
@@ -657,7 +665,7 @@ for name in ['seqfish', 'merfish_train']:
                 dataset, organism, name, celltype_key = read_dataset('merfish_full')
                 dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp2")
             #Apply on dataset
-            apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filter_name}', celltype_key, args=args, discriminator=discriminator, ligrec=True, device=device)
+            apply_on_dataset(model, exp6_dataset, f'exp6_GVAE_{name+filter_name}', celltype_key, args=args, discriminator=discriminator, ligrec=True)
 
             model = model.cpu()
             del model
@@ -739,7 +747,7 @@ for name in ['seqfish', 'merfish_train']:
                 dataset, organism, name, celltype_key = read_dataset('merfish_full', args=args)
                 dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp7")
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'GVAE_exp7_{name}_{str(ls)}', celltype_key, args=args, discriminator=discriminator, device=device)
+            apply_on_dataset(model, dataset, f'GVAE_exp7_{name}_{str(ls)}', celltype_key, args=args, discriminator=discriminator)
 
             model = model.cpu()
         with open('r2_latent_space_exp7.pkl', 'wb') as file:
@@ -823,7 +831,7 @@ for name in ['seqfish', 'merfish_train']:
                 dataset, organism, name, celltype_key = read_dataset('merfish_full', args=args)
                 dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp8")
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'GVAE_exp8_{name}_IPD_{str(use_ipd)}', celltype_key, args=args, discriminator=discriminator, device=device)
+            apply_on_dataset(model, dataset, f'GVAE_exp8_{name}_IPD_{str(use_ipd)}', celltype_key, args=args, discriminator=discriminator)
 
             model = model.cpu()
         with open('r2_ipd_exp8.pkl', 'wb') as file:
@@ -907,7 +915,7 @@ for name in ['seqfish', 'merfish_train']:
                         device, name=f'exp8_{name}_IPD_{str(edge_removal)}', number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
             print("Applying model on entire dataset...")
             #Apply on dataset
-            apply_on_dataset(model, dataset, f'exp9_{name}_edge_removal_{str(edge_removal)}', celltype_key, args=args, discriminator=discriminator, device=device)
+            apply_on_dataset(model, dataset, f'exp9_{name}_edge_removal_{str(edge_removal)}', celltype_key, args=args, discriminator=discriminator)
 
             model = model.cpu()
         with open('r2_exp9_remove_edges.pkl', 'wb') as file:
