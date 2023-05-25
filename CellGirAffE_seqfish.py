@@ -1064,7 +1064,7 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
         return loss, discriminator_loss
 
 @torch.no_grad()
-def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=None, ligrec = False):
+def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=None, ligrec=False, device='cuda'):
     """
     Function that applies the GNN-model on the entire specified dataset.
 
