@@ -1188,8 +1188,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
         i += 1
     sorted_r2_per_gene = sorted(r2_per_gene.items(), key=lambda x: x[1])
     print(sorted_r2_per_gene)
-    r2_df = pd.DataFrame.from_dict(sorted_r2_per_gene, orient='index', columns=['r2'])
-    r2_df.reset_index(inplace=True)
+    r2_df = pd.DataFrame.from_records(sorted_r2_per_gene, columns=['gene', 'r2'])
     r2_df.to_csv("r2_per_gene_"+name)
 
     sns.barplot(data=r2_df[:10], x='r2', y='index',
