@@ -1176,23 +1176,36 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
 
 
     i = 0
+    r2_per_gene = {}
     #Plot spatial predicted expression and error per gene
     for gene in dataset.var_names:
-        sc.pl.spatial(dataset, layer='X', color=[gene], spot_size=0.02,
+        sc.pl.spatial(dataset, layer='X', color=[gene], spot_size=0.1,
                       title=f'Spatial distribution of true expression of {gene}',
                       save=f"true_expr_spatial_{name}_{gene}.png", show=False)
         plt.close()
-        sc.pl.spatial(dataset, layer='pred', color=[gene], spot_size=0.02,
+        sc.pl.spatial(dataset, layer='pred', color=[gene], spot_size=0.1,
                       title=f'Spatial distribution of predicted expression of {gene}',
                       save=f"predicted_expr_spatial_{name}_{gene}.png", show=False)
         plt.close()
-        sc.pl.spatial(dataset, layer='error', color=[gene], spot_size=0.02,
+        sc.pl.spatial(dataset, layer='error', color=[gene], spot_size=0.1,
                       title=f'Spatial distribution of prediction error of {gene}',
-                      save=f"error_spatial_{name}_{gene}.png", show=False)
+                      save=f"error_spatial_{name}_{gene}.png", size=1, show=False)
         plt.close()
+
+        r2_per_gene[gene] = r2_score(dataset.X.toarray()[:, dataset.var_names == gene], dataset.layers['pred'][:, dataset.var_names == gene])
         i += 1
-        if i == 10:
-            break
+    sorted_r2_per_gene = sorted(r2_per_gene.items(), key=lambda x: x[1])
+    print(sorted_r2_per_gene)
+    r2_df = pd.DataFrame.from_records(sorted_r2_per_gene, columns=['gene', 'r2'])
+    r2_df.to_csv("r2_per_gene_"+name)
+
+    sns.barplot(data=r2_df[:-10], x='r2', y='gene',
+                label='R2-score', orient='h')
+    plt.legend()
+    plt.xlabel('R2-score')
+    plt.ylabel('Gene')
+    plt.savefig(f"figures/r2_score_per_gene_{name}.png", dpi=300)
+    plt.close()
 
     print(dataset.var_names)
     #Calculate total error for each gene
@@ -1203,8 +1216,11 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     print(average_error_per_gene)
     #Get error relative to amount of expression for that gene over all cells
     sum_x = np.squeeze(np.sum(dataset.X, axis=0) + 1e-9)
+    print(sum_x.shape)
     relative_error_per_gene = total_error_per_gene / sum_x
+    print(relative_error_per_gene.shape)
     relative_error_per_gene = relative_error_per_gene.reshape(dataset.shape[1])
+    print(relative_error_per_gene)
     print("Relative error per gene shape:")
     print(relative_error_per_gene.shape)
 
@@ -1227,7 +1243,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
         top10 = error_gene_df.iloc[:10]
         print(top10)
         print(top10.reset_index())
-        sns.barplot(data=top10.reset_index(), x='relative', y='index', label='Relative prediction error', orient='h')
+        sns.barplot(data=top10.reset_index(), x='relative', y='index', label='Error', orient='h')
         plt.xlabel('Relative prediction error')
         plt.ylabel('Gene')
         plt.legend()
@@ -1239,17 +1255,33 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
 
     #Plot the error per celltype
     error_per_cell_type = {}
+    r2_per_cell_type = {}
     for cell_type in dataset.obs[celltype_key].unique():
         total_error = np.sum(dataset[dataset.obs[celltype_key] == cell_type].obs['total_error'])
         average_error = total_error / dataset[dataset.obs[celltype_key] == cell_type].shape[0]
         error_per_cell_type[cell_type] = average_error
+        r2_per_cell_type[cell_type] =  r2_score(dataset.X.toarray()[dataset.obs[celltype_key] == cell_type, :], dataset.layers['pred'][dataset.obs[celltype_key] == cell_type, :])
         print(f"{cell_type} : {average_error}")
 
-    error_celltype_df = pd.DataFrame.from_dict(error_per_cell_type, orient='index', columns=['average_error']).sort_values(by='average_error', axis=0, ascending=False)
-    sns.barplot(data=error_celltype_df.reset_index(), x='average_error', y='index',
-                label='Prediction error', orient='h')
+    #Plot the R2-score per celltype
+    sorted_r2_per_celltype = sorted(r2_per_cell_type.items(), key=lambda x: x[1])
+    print(sorted_r2_per_gene)
+    r2_df = pd.DataFrame.from_records(sorted_r2_per_celltype, columns=['celltype', 'r2'])
+    r2_df.to_csv("r2_per_celltype_"+name)
+
+    sns.barplot(data=r2_df[:-10], x='r2', y='celltype',
+                label='R2-score', orient='h')
     plt.legend()
-    plt.xlabel('Prediction error')
+    plt.xlabel('R2-score')
+    plt.ylabel('Cell type')
+    plt.savefig(f"figures/r2_score_per_celltype_{name}.png", dpi=300)
+    plt.close()
+
+    error_celltype_df = pd.DataFrame.from_dict(error_per_cell_type, orient='index', columns=['average_error']).sort_values(by='average_error', axis=0, ascending=True)
+    sns.barplot(data=error_celltype_df.reset_index(), x='average_error', y='index',
+                label='error', orient='h')
+    plt.legend()
+    plt.xlabel('Relative prediction error')
     plt.ylabel('Cell type')
     plt.savefig(f"figures/cell_type_error_{name}.png", dpi=300)
     plt.close()
