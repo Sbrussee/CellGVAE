@@ -820,6 +820,8 @@ for name in ['merfish_train']:
                 dataset, organism, name, celltype_key = read_dataset('merfish_full', args=args)
                 dataset = construct_graph(dataset, args=args, celltype_key=celltype_key, name=name+"_exp7")
                 args.dataset = 'merfish_train'
+
+            print("Applying model on entire dataset...")
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_exp7_{name}_{str(ls)}', celltype_key, args=args, discriminator=discriminator)
 

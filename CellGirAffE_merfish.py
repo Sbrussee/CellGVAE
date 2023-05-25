@@ -1066,7 +1066,7 @@ def train_model(model, pyg_graph, x, cell_id, weight, args, discriminator=None):
         return loss, discriminator_loss
 
 @torch.no_grad()
-def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=None, ligrec=False):
+def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=None, ligrec=False, device='cuda'):
     """
     Function that applies the GNN-model on the entire specified dataset.
 
@@ -1136,6 +1136,9 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     print(dataset.X.shape)
     print(true_expr.shape, pred_expr.shape)
 
+    plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
+                device, name=name, number_of_cells=dataset.n_obs, celltype_key=celltype_key, args=args)
+
     if ligrec:
         #Apply LR analysis
         ligand_receptor_analysis(dataset, pred_expr, name, celltype_key)
@@ -1201,6 +1204,7 @@ def apply_on_dataset(model, dataset, name, celltype_key, args, discriminator=Non
     #Get error relative to amount of expression for that gene over all cells
     sum_x = np.squeeze(np.sum(dataset.X, axis=0) + 1e-9)
     relative_error_per_gene = total_error_per_gene / sum_x
+    relative_error_per_gene = relative_error_per_gene.reshape(dataset.shape[1])
     print("Relative error per gene shape:")
     print(relative_error_per_gene.shape)
 
