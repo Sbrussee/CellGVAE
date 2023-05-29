@@ -52,7 +52,7 @@ arg_parser.add_argument('-f', '--filter', action='store_true', help='Whether to 
 arg_parser.add_argument('-ipd', '--innerproduct', action='store_true', help="Whether to add the IPD loss to the model", default=False)
 args = arg_parser.parse_args()
 
-args.epochs = 50
+args.epochs = 400
 args.cells = 50
 args.graph_summary = True
 args.weight = True
