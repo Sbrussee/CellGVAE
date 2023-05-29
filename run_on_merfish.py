@@ -630,7 +630,6 @@ for name in ['merfish_train']:
             test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
             r2_neighbors[neighbors] = test_dict['r2']
-            model = model.cpu()
 
             print("Plotting training plots...")
             plot_loss_curve(loss_over_cells, 'cells', f'loss_curve_cells_exp4_{name}_{neighbors}.png')
@@ -645,7 +644,7 @@ for name in ['merfish_train']:
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_exp5_{name}_{neighbors}', celltype_key, args=args, discriminator=discriminator, device=device)
 
-
+            model = model.cpu()
         plot_r2_scores(r2_neighbors, "neighbors", f"{name}_r2scores_exp5_neighbors")
 
 

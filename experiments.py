@@ -569,7 +569,6 @@ for name in ['seqfish', 'merfish_train']:
             test_dict = test(model, test_i, pyg_graph, args=args, discriminator=discriminator, device=device)
 
             r2_neighbors[neighbors] = test_dict['r2']
-            model = model.cpu()
 
             #Plot the latent test set
             plot_latent(model, pyg_graph, dataset, list(dataset.obs[celltype_key].unique()),
@@ -578,7 +577,7 @@ for name in ['seqfish', 'merfish_train']:
             #Apply on dataset
             apply_on_dataset(model, dataset, f'GVAE_exp5_{name}_{neighbors}', celltype_key, args=args, discriminator=discriminator)
 
-
+            model = model.cpu()
         plot_r2_scores(r2_neighbors, "neighbors", f"{name}_r2scores_exp5_neighbors")
 
         with open("r2_neighbors.pkl", 'wb') as file:
