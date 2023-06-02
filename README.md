@@ -1,7 +1,10 @@
 # CellGirAffE
-Framework for testing (Adversarial) Graph (Variational) AutoEncoder techniques for analyzing spatial transcriptomics data. Built for a small-scale research project at the VIB-IRC in Ghent. Currently, two datasets can be analyzed using the framework. A MERFISH Preoptic brain region dataset and a seqFISH mouse embryo dataset. Both of these are available from the Squidpy package.
 
-![alt text](https://github.com/Sbrussee/CellGirAffE/edit/main/CellGirAffE_overview.png)
+![alt text](https://github.com/Sbrussee/CellGirAffE/blob/main/cellgiraffe-logo.png)
+<br /> <br />
+Framework for testing (Adversarial) Graph (Variational) AutoEncoder techniques for analyzing spatial transcriptomics data. Built for a small-scale research project at the VIB-IRC in Ghent. Currently, two datasets can be analyzed using the framework. A MERFISH Preoptic brain region dataset and a seqFISH mouse embryo dataset. Both of these are available from the Squidpy package.
+<br /> <br />
+![alt text](https://github.com/Sbrussee/CellGirAffE/blob/main/framework_chart.png)
 
 ## Setup
 A requirements file was provided for easy install of the required python packages required to run the framework. One can use
